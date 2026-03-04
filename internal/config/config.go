@@ -1,0 +1,97 @@
+package config
+
+import (
+	"time"
+)
+
+// Config represents the complete Keyline configuration
+type Config struct {
+	Server        ServerConfig        `mapstructure:"server"`
+	OIDC          OIDCConfig          `mapstructure:"oidc"`
+	LocalUsers    LocalUsersConfig    `mapstructure:"local_users"`
+	Session       SessionConfig       `mapstructure:"session"`
+	Elasticsearch ElasticsearchConfig `mapstructure:"elasticsearch"`
+	Upstream      UpstreamConfig      `mapstructure:"upstream"`
+	Observability ObservabilityConfig `mapstructure:"observability"`
+}
+
+// ServerConfig contains server settings
+type ServerConfig struct {
+	Port          int           `mapstructure:"port"`
+	Mode          string        `mapstructure:"mode"` // forward_auth, standalone
+	ReadTimeout   time.Duration `mapstructure:"read_timeout"`
+	WriteTimeout  time.Duration `mapstructure:"write_timeout"`
+	MaxConcurrent int           `mapstructure:"max_concurrent"`
+}
+
+// OIDCConfig contains OIDC provider settings
+type OIDCConfig struct {
+	Enabled       bool          `mapstructure:"enabled"`
+	IssuerURL     string        `mapstructure:"issuer_url"`
+	ClientID      string        `mapstructure:"client_id"`
+	ClientSecret  string        `mapstructure:"client_secret"`
+	RedirectURL   string        `mapstructure:"redirect_url"`
+	Scopes        []string      `mapstructure:"scopes"`
+	Mappings      []OIDCMapping `mapstructure:"mappings"`
+	DefaultESUser string        `mapstructure:"default_es_user"`
+}
+
+// OIDCMapping maps OIDC claims to ES users
+type OIDCMapping struct {
+	Claim   string `mapstructure:"claim"`
+	Pattern string `mapstructure:"pattern"`
+	ESUser  string `mapstructure:"es_user"`
+}
+
+// LocalUsersConfig contains local user settings
+type LocalUsersConfig struct {
+	Enabled bool        `mapstructure:"enabled"`
+	Users   []LocalUser `mapstructure:"users"`
+}
+
+// LocalUser represents a local user
+type LocalUser struct {
+	Username       string `mapstructure:"username"`
+	PasswordBcrypt string `mapstructure:"password_bcrypt"`
+	ESUser         string `mapstructure:"es_user"`
+}
+
+// SessionConfig contains session management settings
+type SessionConfig struct {
+	Store         string        `mapstructure:"store"` // redis, memory
+	TTL           time.Duration `mapstructure:"ttl"`
+	CookieName    string        `mapstructure:"cookie_name"`
+	CookieDomain  string        `mapstructure:"cookie_domain"`
+	CookiePath    string        `mapstructure:"cookie_path"`
+	SessionSecret string        `mapstructure:"session_secret"`
+	RedisURL      string        `mapstructure:"redis_url"`
+	RedisPassword string        `mapstructure:"redis_password"`
+	RedisDB       int           `mapstructure:"redis_db"`
+}
+
+// ElasticsearchConfig contains ES credential settings
+type ElasticsearchConfig struct {
+	Users []ESUser `mapstructure:"users"`
+}
+
+// ESUser represents an Elasticsearch user
+type ESUser struct {
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
+}
+
+// UpstreamConfig contains upstream proxy settings
+type UpstreamConfig struct {
+	URL          string        `mapstructure:"url"`
+	Timeout      time.Duration `mapstructure:"timeout"`
+	MaxIdleConns int           `mapstructure:"max_idle_conns"`
+}
+
+// ObservabilityConfig contains logging and tracing settings
+type ObservabilityConfig struct {
+	LogLevel       string `mapstructure:"log_level"`
+	LogFormat      string `mapstructure:"log_format"` // json, text
+	OTelEnabled    bool   `mapstructure:"otel_enabled"`
+	OTelEndpoint   string `mapstructure:"otel_endpoint"`
+	MetricsEnabled bool   `mapstructure:"metrics_enabled"`
+}

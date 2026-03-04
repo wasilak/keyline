@@ -1,0 +1,69 @@
+server:
+  port: 9000
+  mode: forward_auth  # forward_auth or standalone
+  read_timeout: 30s
+  write_timeout: 30s
+  max_concurrent: 1000
+
+oidc:
+  enabled: true
+  issuer_url: ${OIDC_ISSUER_URL}
+  client_id: ${OIDC_CLIENT_ID}
+  client_secret: ${OIDC_CLIENT_SECRET}
+  redirect_url: https://auth.example.com/auth/callback
+  scopes:
+    - openid
+    - email
+    - profile
+  mappings:
+    - claim: email
+      pattern: "*@admin.example.com"
+      es_user: admin
+    - claim: email
+      pattern: "*@example.com"
+      es_user: readonly
+  default_es_user: readonly
+
+local_users:
+  enabled: true
+  users:
+    - username: ci-pipeline
+      password_bcrypt: ${CI_PASSWORD_BCRYPT}
+      es_user: ci_user
+    - username: monitoring
+      password_bcrypt: ${MONITORING_PASSWORD_BCRYPT}
+      es_user: monitoring_user
+
+session:
+  store: redis  # redis or memory
+  ttl: 24h
+  cookie_name: keyline_session
+  cookie_domain: .example.com
+  cookie_path: /
+  session_secret: ${SESSION_SECRET}
+  redis_url: ${REDIS_URL}
+  redis_password: ${REDIS_PASSWORD}
+  redis_db: 0
+
+elasticsearch:
+  users:
+    - username: admin
+      password: ${ES_ADMIN_PASSWORD}
+    - username: readonly
+      password: ${ES_READONLY_PASSWORD}
+    - username: ci_user
+      password: ${ES_CI_PASSWORD}
+    - username: monitoring_user
+      password: ${ES_MONITORING_PASSWORD}
+
+upstream:
+  url: http://kibana:5601
+  timeout: 30s
+  max_idle_conns: 100
+
+observability:
+  log_level: info
+  log_format: json
+  otel_enabled: true
+  otel_endpoint: http://otel-collector:4318
+  metrics_enabled: true
