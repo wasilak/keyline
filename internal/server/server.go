@@ -12,6 +12,7 @@ import (
 	"github.com/wasilak/cachego"
 	"github.com/yourusername/keyline/internal/auth"
 	"github.com/yourusername/keyline/internal/config"
+	"github.com/yourusername/keyline/internal/observability"
 	"github.com/yourusername/keyline/internal/transport"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"go.opentelemetry.io/otel"
@@ -115,7 +116,8 @@ func (s *Server) registerRoutes() {
 
 	// Metrics endpoint (if enabled)
 	if s.config.Observability.MetricsEnabled {
-		// TODO: Add Prometheus metrics endpoint
+		s.echo.GET("/metrics", observability.MetricsHandler())
+		slog.Info("Registered /metrics endpoint")
 	}
 
 	// Register mode-specific routes
