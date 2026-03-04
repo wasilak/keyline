@@ -154,7 +154,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Use sync.RWMutex for thread-safe access
     - _Requirements: 1.5, 1.6, 17.1, 17.2, 17.3_
 
-  - [ ] 3.2 Implement OIDC provider discovery
+  - [x] 3.2 Implement OIDC provider discovery
     - Create internal/auth/oidc.go with OIDCProvider struct
     - Implement discovery document fetch from {issuer}/.well-known/openid-configuration
     - Extract authorization_endpoint, token_endpoint, userinfo_endpoint, jwks_uri, issuer
