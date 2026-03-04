@@ -675,3 +675,47 @@ func (p *OIDCProvider) CreateSessionFromClaims(ctx context.Context, cachego cach
 
 	return sess, cookie, nil
 }
+
+// CompleteCallback completes the OIDC callback flow and returns the redirect URL
+// This method orchestrates the entire callback process:
+// 1. Validates callback parameters and state token
+// 2. Exchanges authorization code for tokens
+// 3. Validates ID token
+// 4. Creates session from user claims
+// 5. Returns original URL for redirect
+func (p *OIDCProvider) CompleteCallback(ctx context.Context, cachego cachego.CacheInterface, stateParam, code, errorParam, errorDesc string, sessionTTL time.Duration) (redirectURL string, cookie *http.Cookie, err error) {
+	// Handle callback and validate state
+	result, err := p.HandleCallback(ctx, cachego, stateParam, code, errorParam, errorDesc)
+	if err != nil {
+		return "", nil, err
+	}
+
+	// Exchange authorization code for tokens
+	tokenResp, err := p.ExchangeToken(ctx, result.Code, result.StateToken.CodeVerifier)
+	if err != nil {
+		return "", nil, fmt.Errorf("token exchange failed: %w", err)
+	}
+
+	// Validate ID token
+	claims, err := p.ValidateIDToken(ctx, tokenResp.IDToken)
+	if err != nil {
+		return "", nil, fmt.Errorf("ID token validation failed: %w", err)
+	}
+
+	// Create session from claims
+	_, cookie, err = p.CreateSessionFromClaims(ctx, cachego, claims, sessionTTL)
+	if err != nil {
+		return "", nil, fmt.Errorf("session creation failed: %w", err)
+	}
+
+	// Return original URL from state token for redirect
+	redirectURL = result.StateToken.OriginalURL
+
+	slog.InfoContext(ctx, "OIDC callback completed successfully",
+		slog.String("user_id", claims.Subject),
+		slog.String("email", claims.Email),
+		slog.String("redirect_url", redirectURL),
+	)
+
+	return redirectURL, cookie, nil
+}
