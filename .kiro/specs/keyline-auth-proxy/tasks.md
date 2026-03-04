@@ -57,7 +57,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify substitution works correctly
     - Verify missing variables cause startup failure
 
-  - [ ] 1.7 Initialize observability with loggergo and otelgo
+  - [x] 1.7 Initialize observability with loggergo and otelgo
     - Initialize loggergo in main.go with config values (log_level, log_format)
     - Initialize otelgo if otel_enabled=true with OTLP exporter
     - Store shutdown function for graceful cleanup

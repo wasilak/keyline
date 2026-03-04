@@ -59,22 +59,25 @@ func main() {
 
 	// Initialize global logger with loggergo
 	ctx := context.Background()
-	
+
 	logConfig := loggergo.Config{
 		Level: parseLogLevel(cfg.Observability.LogLevel),
 	}
-	
+
 	// Set format based on config - use loggergo types
 	if cfg.Observability.LogFormat == "json" {
 		logConfig.Format = loggergo.Types.LogFormatJSON
 	} else {
 		logConfig.Format = loggergo.Types.LogFormatText
 	}
-	
+
 	ctx, logger, err := loggergo.Init(ctx, logConfig)
 	if err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
+
+	// Set global slog logger for use throughout application
+	slog.SetDefault(logger)
 
 	logger.Info("Keyline starting",
 		slog.String("version", version),
@@ -87,6 +90,8 @@ func main() {
 	if cfg.Observability.OTelEnabled {
 		// Set environment variables for otelgo
 		os.Setenv("OTEL_SERVICE_NAME", cfg.Observability.OTelServiceName)
+		os.Setenv("OTEL_SERVICE_VERSION", cfg.Observability.OTelServiceVersion)
+		os.Setenv("OTEL_DEPLOYMENT_ENVIRONMENT", cfg.Observability.OTelEnvironment)
 		os.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", cfg.Observability.OTelEndpoint)
 		os.Setenv("OTEL_EXPORTER_OTLP_INSECURE", "true") // TODO: Make configurable
 
@@ -100,6 +105,9 @@ func main() {
 		} else {
 			logger.Info("OpenTelemetry tracing initialized",
 				slog.String("endpoint", cfg.Observability.OTelEndpoint),
+				slog.String("service_name", cfg.Observability.OTelServiceName),
+				slog.String("service_version", cfg.Observability.OTelServiceVersion),
+				slog.String("environment", cfg.Observability.OTelEnvironment),
 			)
 			defer func() {
 				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
