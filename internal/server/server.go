@@ -57,6 +57,15 @@ func New(cfg *config.Config, version string, cache cachego.CacheInterface, oidcP
 		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
 	}))
 
+	// 6. Concurrent request limiting
+	if cfg.Server.MaxConcurrent > 0 {
+		e.Use(observability.ConcurrentRequestLimiter(cfg.Server.MaxConcurrent))
+		slog.Info("Concurrent request limiting enabled", slog.Int("max_concurrent", cfg.Server.MaxConcurrent))
+	}
+
+	// 7. Request body size limiting (1MB)
+	e.Use(observability.RequestBodySizeLimiter(1024 * 1024)) // 1MB
+
 	// Configure timeouts
 	e.Server.ReadTimeout = cfg.Server.ReadTimeout
 	e.Server.WriteTimeout = cfg.Server.WriteTimeout
