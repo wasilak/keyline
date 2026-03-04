@@ -89,7 +89,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify state tokens have 5-minute TTL
     - Test with Redis backend
 
-  - [ ] 1.11 Implement session operations using cachego
+  - [x] 1.11 Implement session operations using cachego
     - Create internal/session/session.go with session helper functions
     - Implement CreateSession(ctx, cache, session) with manual span
     - Implement GetSession(ctx, cache, sessionID) with manual span

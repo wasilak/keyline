@@ -95,9 +95,19 @@ func DeleteSession(ctx context.Context, cache cachego.CacheInterface, sessionID 
 	ctx, span := tracer.Start(ctx, "session.delete")
 	defer span.End()
 
-	// Note: cachego doesn't have a Delete method, we'll need to set with empty data or zero TTL
-	// For now, we'll just log that we would delete it
-	slog.InfoContext(ctx, "Session delete requested (cachego doesn't support delete)",
+	key := keyPrefix + sessionID
+
+	// cachego doesn't have a Delete method, so we set an empty value
+	// This effectively removes the session from the cache
+	if err := cache.Set(key, []byte{}); err != nil {
+		slog.ErrorContext(ctx, "Failed to delete session",
+			slog.String("session_id", sessionID),
+			slog.String("error", err.Error()),
+		)
+		return fmt.Errorf("failed to delete session: %w", err)
+	}
+
+	slog.InfoContext(ctx, "Session deleted",
 		slog.String("session_id", sessionID),
 	)
 
