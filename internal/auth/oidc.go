@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -397,4 +398,228 @@ func (p *OIDCProvider) HandleCallback(ctx context.Context, cachego cachego.Cache
 	)
 
 	return result, nil
+}
+
+// TokenResponse represents the OIDC token response
+type TokenResponse struct {
+	IDToken      string `json:"id_token"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int    `json:"expires_in"`
+}
+
+// ExchangeToken exchanges an authorization code for tokens
+func (p *OIDCProvider) ExchangeToken(ctx context.Context, code, codeVerifier string) (*TokenResponse, error) {
+	doc := p.cache.GetDiscoveryDoc()
+	if doc == nil {
+		return nil, fmt.Errorf("discovery document not loaded")
+	}
+
+	slog.InfoContext(ctx, "Exchanging authorization code for tokens")
+
+	// Build token request
+	data := url.Values{}
+	data.Set("grant_type", "authorization_code")
+	data.Set("code", code)
+	data.Set("redirect_uri", p.config.RedirectURL)
+	data.Set("client_id", p.config.ClientID)
+	data.Set("client_secret", p.config.ClientSecret)
+	data.Set("code_verifier", codeVerifier)
+
+	// Create request with 30-second timeout
+	reqCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, doc.TokenEndpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create token request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Body = io.NopCloser(bytes.NewBufferString(data.Encode()))
+
+	// Make request
+	resp, err := p.httpClient.Do(req)
+	if err != nil {
+		slog.ErrorContext(ctx, "Token exchange request failed",
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("token exchange request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read token response: %w", err)
+	}
+
+	// Check status code
+	if resp.StatusCode != http.StatusOK {
+		slog.ErrorContext(ctx, "Token exchange failed",
+			slog.Int("status_code", resp.StatusCode),
+			slog.String("response", string(body)),
+		)
+		return nil, fmt.Errorf("token exchange failed with status %d", resp.StatusCode)
+	}
+
+	// Parse response
+	var tokenResp TokenResponse
+	if err := json.Unmarshal(body, &tokenResp); err != nil {
+		return nil, fmt.Errorf("failed to parse token response: %w", err)
+	}
+
+	slog.InfoContext(ctx, "Token exchange successful")
+
+	return &tokenResp, nil
+}
+
+// IDTokenClaims represents the claims in an ID token
+type IDTokenClaims struct {
+	Issuer    string                 `json:"iss"`
+	Subject   string                 `json:"sub"`
+	Audience  interface{}            `json:"aud"` // Can be string or []string
+	ExpiresAt int64                  `json:"exp"`
+	IssuedAt  int64                  `json:"iat"`
+	Email     string                 `json:"email,omitempty"`
+	Name      string                 `json:"name,omitempty"`
+	Claims    map[string]interface{} `json:"-"` // Store all claims
+}
+
+// ValidateIDToken validates an ID token and returns the claims
+func (p *OIDCProvider) ValidateIDToken(ctx context.Context, idToken string) (*IDTokenClaims, error) {
+	slog.InfoContext(ctx, "Validating ID token")
+
+	// Parse the JWT
+	token, err := jose.ParseSigned(idToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ID token: %w", err)
+	}
+
+	// Get JWKS
+	jwks, valid := p.cache.GetJWKS()
+	if !valid || jwks == nil {
+		return nil, fmt.Errorf("JWKS not available or expired")
+	}
+
+	// Verify signature with each key until one works
+	var claims map[string]interface{}
+	var verifyErr error
+
+	for _, key := range jwks.Keys {
+		output, err := token.Verify(&key)
+		if err != nil {
+			verifyErr = err
+			continue
+		}
+
+		// Parse claims
+		if err := json.Unmarshal(output, &claims); err != nil {
+			return nil, fmt.Errorf("failed to parse claims: %w", err)
+		}
+
+		verifyErr = nil
+		break
+	}
+
+	if verifyErr != nil {
+		slog.ErrorContext(ctx, "ID token signature verification failed",
+			slog.String("error", verifyErr.Error()),
+		)
+		return nil, fmt.Errorf("invalid token signature")
+	}
+
+	// Extract standard claims
+	idClaims := &IDTokenClaims{
+		Claims: claims,
+	}
+
+	// Extract issuer
+	if iss, ok := claims["iss"].(string); ok {
+		idClaims.Issuer = iss
+	}
+
+	// Extract subject
+	if sub, ok := claims["sub"].(string); ok {
+		idClaims.Subject = sub
+	}
+
+	// Extract audience (can be string or array)
+	idClaims.Audience = claims["aud"]
+
+	// Extract expiration
+	if exp, ok := claims["exp"].(float64); ok {
+		idClaims.ExpiresAt = int64(exp)
+	}
+
+	// Extract issued at
+	if iat, ok := claims["iat"].(float64); ok {
+		idClaims.IssuedAt = int64(iat)
+	}
+
+	// Extract email
+	if email, ok := claims["email"].(string); ok {
+		idClaims.Email = email
+	}
+
+	// Extract name
+	if name, ok := claims["name"].(string); ok {
+		idClaims.Name = name
+	}
+
+	// Validate issuer
+	if idClaims.Issuer != p.config.IssuerURL {
+		slog.ErrorContext(ctx, "ID token issuer mismatch",
+			slog.String("expected", p.config.IssuerURL),
+			slog.String("actual", idClaims.Issuer),
+		)
+		return nil, fmt.Errorf("invalid issuer")
+	}
+
+	// Validate audience
+	if !p.validateAudience(idClaims.Audience) {
+		slog.ErrorContext(ctx, "ID token audience mismatch",
+			slog.String("expected", p.config.ClientID),
+		)
+		return nil, fmt.Errorf("invalid audience")
+	}
+
+	// Validate expiration
+	now := time.Now().Unix()
+	if idClaims.ExpiresAt <= now {
+		slog.ErrorContext(ctx, "ID token expired",
+			slog.Int64("exp", idClaims.ExpiresAt),
+			slog.Int64("now", now),
+		)
+		return nil, fmt.Errorf("token expired")
+	}
+
+	slog.InfoContext(ctx, "ID token validated successfully",
+		slog.String("subject", idClaims.Subject),
+		slog.String("email", idClaims.Email),
+	)
+
+	return idClaims, nil
+}
+
+// validateAudience checks if the audience claim matches the client ID
+func (p *OIDCProvider) validateAudience(aud interface{}) bool {
+	switch v := aud.(type) {
+	case string:
+		return v == p.config.ClientID
+	case []interface{}:
+		for _, a := range v {
+			if str, ok := a.(string); ok && str == p.config.ClientID {
+				return true
+			}
+		}
+	case []string:
+		for _, a := range v {
+			if a == p.config.ClientID {
+				return true
+			}
+		}
+	}
+	return false
 }

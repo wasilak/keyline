@@ -224,7 +224,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Return 400 for invalid/expired/used state tokens
     - _Requirements: 3.5, 3.6, 3.7, 3.8_
 
-  - [ ] 3.11 Implement token exchange
+  - [x] 3.11 Implement token exchange
     - Implement exchangeToken method in OIDCProvider
     - Make POST request to token_endpoint with code, client_id, client_secret, redirect_uri, grant_type, code_verifier
     - Use 30-second timeout for request
@@ -232,7 +232,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Return 401 on token exchange failure
     - _Requirements: 3.9, 3.10, 17.7_
 
-  - [ ] 3.12 Implement ID token validation
+  - [x] 3.12 Implement ID token validation
     - Implement validateIDToken method in OIDCProvider
     - Verify ID token signature using JWKS public keys
     - Validate iss claim matches configured issuer_url
