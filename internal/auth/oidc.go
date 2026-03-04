@@ -35,13 +35,20 @@ func NewOIDCProvider(cfg *config.OIDCConfig, fullConfig *config.Config) (*OIDCPr
 		return nil, fmt.Errorf("OIDC is not enabled")
 	}
 
-	provider := &OIDCProvider{
-		config: cfg,
-		cache:  cache.NewOIDCCache(),
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+	// Create HTTP client with TLS certificate validation enabled
+	// This ensures all OIDC provider requests use HTTPS with proper cert validation
+	httpClient := &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: nil, // nil means use default TLS config with cert validation
 		},
-		mapper: mapper.NewCredentialMapper(fullConfig),
+	}
+
+	provider := &OIDCProvider{
+		config:     cfg,
+		cache:      cache.NewOIDCCache(),
+		httpClient: httpClient,
+		mapper:     mapper.NewCredentialMapper(fullConfig),
 	}
 
 	// Perform discovery during initialization
@@ -62,6 +69,11 @@ func NewOIDCProvider(cfg *config.OIDCConfig, fullConfig *config.Config) (*OIDCPr
 
 // discover fetches and validates the OIDC discovery document
 func (p *OIDCProvider) discover(ctx context.Context) error {
+	// Validate that issuer URL uses HTTPS
+	if !isHTTPS(p.config.IssuerURL) {
+		return fmt.Errorf("OIDC issuer URL must use HTTPS: %s", p.config.IssuerURL)
+	}
+
 	discoveryURL := p.config.IssuerURL + "/.well-known/openid-configuration"
 
 	slog.InfoContext(ctx, "Fetching OIDC discovery document",
@@ -147,6 +159,17 @@ func (p *OIDCProvider) fetchDiscoveryDocument(ctx context.Context, url string) (
 	}
 	if doc.JWKSURI == "" {
 		return nil, fmt.Errorf("discovery document missing jwks_uri")
+	}
+
+	// Validate that all endpoints use HTTPS
+	if !isHTTPS(doc.TokenEndpoint) {
+		return nil, fmt.Errorf("token_endpoint must use HTTPS: %s", doc.TokenEndpoint)
+	}
+	if !isHTTPS(doc.JWKSURI) {
+		return nil, fmt.Errorf("jwks_uri must use HTTPS: %s", doc.JWKSURI)
+	}
+	if doc.UserinfoEndpoint != "" && !isHTTPS(doc.UserinfoEndpoint) {
+		return nil, fmt.Errorf("userinfo_endpoint must use HTTPS: %s", doc.UserinfoEndpoint)
 	}
 
 	return &doc, nil
@@ -723,4 +746,13 @@ func (p *OIDCProvider) CompleteCallback(ctx context.Context, cachego cachego.Cac
 	)
 
 	return redirectURL, cookie, nil
+}
+
+// isHTTPS checks if a URL uses HTTPS scheme
+func isHTTPS(urlStr string) bool {
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		return false
+	}
+	return parsedURL.Scheme == "https"
 }
