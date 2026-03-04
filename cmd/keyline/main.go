@@ -131,7 +131,7 @@ func main() {
 	// Initialize OIDC provider if enabled
 	var oidcProvider *auth.OIDCProvider
 	if cfg.OIDC.Enabled {
-		oidcProvider, err = auth.NewOIDCProvider(&cfg.OIDC)
+		oidcProvider, err = auth.NewOIDCProvider(&cfg.OIDC, cfg)
 		if err != nil {
 			logger.Error("Failed to initialize OIDC provider", slog.String("error", err.Error()))
 			os.Exit(1)

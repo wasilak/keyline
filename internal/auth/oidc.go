@@ -14,6 +14,7 @@ import (
 	"github.com/wasilak/cachego"
 	"github.com/yourusername/keyline/internal/cache"
 	"github.com/yourusername/keyline/internal/config"
+	"github.com/yourusername/keyline/internal/mapper"
 	"github.com/yourusername/keyline/internal/session"
 	"github.com/yourusername/keyline/internal/state"
 	pkgcrypto "github.com/yourusername/keyline/pkg/crypto"
@@ -25,10 +26,11 @@ type OIDCProvider struct {
 	config     *config.OIDCConfig
 	cache      *cache.OIDCCache
 	httpClient *http.Client
+	mapper     *mapper.CredentialMapper
 }
 
 // NewOIDCProvider creates a new OIDC provider
-func NewOIDCProvider(cfg *config.OIDCConfig) (*OIDCProvider, error) {
+func NewOIDCProvider(cfg *config.OIDCConfig, fullConfig *config.Config) (*OIDCProvider, error) {
 	if !cfg.Enabled {
 		return nil, fmt.Errorf("OIDC is not enabled")
 	}
@@ -39,6 +41,7 @@ func NewOIDCProvider(cfg *config.OIDCConfig) (*OIDCProvider, error) {
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		mapper: mapper.NewCredentialMapper(fullConfig),
 	}
 
 	// Perform discovery during initialization
@@ -633,9 +636,11 @@ func (p *OIDCProvider) CreateSessionFromClaims(ctx context.Context, cachego cach
 		return nil, nil, fmt.Errorf("failed to generate session ID: %w", err)
 	}
 
-	// TODO: Map OIDC user to ES user using credential mapper
-	// For now, use a placeholder
-	esUser := "default_es_user"
+	// Map OIDC user to ES user using credential mapper
+	esUser, err := p.mapper.MapOIDCUser(ctx, claims.Claims)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to map OIDC user to ES user: %w", err)
+	}
 
 	// Create session
 	now := time.Now()
