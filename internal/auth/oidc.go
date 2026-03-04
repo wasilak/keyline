@@ -14,6 +14,7 @@ import (
 	"github.com/wasilak/cachego"
 	"github.com/yourusername/keyline/internal/cache"
 	"github.com/yourusername/keyline/internal/config"
+	"github.com/yourusername/keyline/internal/session"
 	"github.com/yourusername/keyline/internal/state"
 	pkgcrypto "github.com/yourusername/keyline/pkg/crypto"
 	"gopkg.in/square/go-jose.v2"
@@ -622,4 +623,55 @@ func (p *OIDCProvider) validateAudience(aud interface{}) bool {
 		}
 	}
 	return false
+}
+
+// CreateSessionFromClaims creates a session from validated ID token claims
+func (p *OIDCProvider) CreateSessionFromClaims(ctx context.Context, cachego cachego.CacheInterface, claims *IDTokenClaims, sessionTTL time.Duration) (*session.Session, *http.Cookie, error) {
+	// Generate cryptographically random session ID
+	sessionID, err := pkgcrypto.GenerateSessionID()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to generate session ID: %w", err)
+	}
+
+	// TODO: Map OIDC user to ES user using credential mapper
+	// For now, use a placeholder
+	esUser := "default_es_user"
+
+	// Create session
+	now := time.Now()
+	sess := &session.Session{
+		ID:        sessionID,
+		UserID:    claims.Subject,
+		Username:  claims.Email,
+		Email:     claims.Email,
+		ESUser:    esUser,
+		Claims:    claims.Claims,
+		CreatedAt: now,
+		ExpiresAt: now.Add(sessionTTL),
+	}
+
+	// Store session
+	if err := session.CreateSession(ctx, cachego, sess); err != nil {
+		return nil, nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	// Create session cookie
+	cookie := &http.Cookie{
+		Name:     "keyline_session", // TODO: Make configurable
+		Value:    sessionID,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   int(sessionTTL.Seconds()),
+	}
+
+	slog.InfoContext(ctx, "Session created from OIDC user",
+		slog.String("user_id", claims.Subject),
+		slog.String("email", claims.Email),
+		slog.String("es_user", esUser),
+		slog.Duration("ttl", sessionTTL),
+	)
+
+	return sess, cookie, nil
 }
