@@ -1,5 +1,6 @@
 # Binaries
 bin/
+keyline
 *.exe
 *.exe~
 *.dll
@@ -12,12 +13,15 @@ bin/
 # Output of the go coverage tool
 *.out
 coverage.html
+coverage.txt
+*.coverprofile
 
 # Dependency directories
 vendor/
 
 # Go workspace file
 go.work
+go.work.sum
 
 # IDE
 .idea/
@@ -36,3 +40,14 @@ config/*.local.yaml
 
 # Logs
 *.log
+
+# Temporary files
+*.tmp
+*.temp
+.env
+.env.local
+.env.*.local
+
+# Debug files
+debug
+__debug_bin
