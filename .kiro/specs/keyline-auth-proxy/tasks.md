@@ -146,7 +146,7 @@ This implementation plan converts the Keyline design into actionable coding task
 
 
 - [ ] 3. Phase 2: OIDC Authentication (Week 2)
-  - [ ] 3.1 Implement OIDC cache for Discovery Document and JWKS
+  - [x] 3.1 Implement OIDC cache for Discovery Document and JWKS
     - Create internal/cache/oidc.go with OIDCCache struct
     - Implement caching for Discovery Document
     - Implement caching for JWKS with expiry tracking
