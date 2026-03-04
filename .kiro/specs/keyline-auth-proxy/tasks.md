@@ -122,7 +122,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify 5-minute TTL, cryptographic randomness (32 bytes)
     - Verify deletion after use or expiration
 
-  - [ ] 1.15 Implement basic HTTP server with Echo and middleware
+  - [x] 1.15 Implement basic HTTP server with Echo and middleware
     - Create internal/server/server.go with Server struct
     - Initialize Echo instance
     - Add otelecho middleware for automatic request tracing
