@@ -18,20 +18,20 @@ This implementation plan converts the Keyline design into actionable coding task
     - Create Makefile with build, test, lint, and run targets
     - _Requirements: All requirements (foundation)_
 
-  - [ ] 1.2 Implement configuration types and schema
+  - [x] 1.2 Implement configuration types and schema
     - Create internal/config/config.go with all configuration structs
     - Define ServerConfig, OIDCConfig, LocalUsersConfig, SessionConfig, ElasticsearchConfig, UpstreamConfig, ObservabilityConfig
     - Add struct tags for Viper mapstructure binding
     - _Requirements: 12.1, 12.5, 20.1_
 
-  - [ ] 1.3 Implement configuration loader with environment variable substitution
+  - [x] 1.3 Implement configuration loader with environment variable substitution
     - Create internal/config/loader.go with LoadConfig function
     - Implement ${VAR_NAME} environment variable substitution using Viper
     - Handle missing environment variables with descriptive errors
     - Support --config flag and CONFIG_FILE environment variable
     - _Requirements: 12.1, 12.2, 12.3, 12.4_
 
-  - [ ] 1.4 Implement configuration validator
+  - [x] 1.4 Implement configuration validator
     - Create internal/config/validator.go with ValidateConfig function
     - Validate required fields based on enabled features (OIDC, local users, mode)
     - Validate session_secret is at least 32 bytes
@@ -55,14 +55,14 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify substitution works correctly
     - Verify missing variables cause startup failure
 
-  - [ ] 1.7 Implement structured logging setup
+  - [x] 1.7 Implement structured logging setup
     - Create internal/observability/logger.go with NewLogger function
     - Configure log/slog with JSON or text format based on config
     - Set log level from configuration (debug, info, warn, error)
     - Add context fields helper functions
     - _Requirements: 14.1, 14.7, 14.8, 14.9_
 
-  - [ ] 1.8 Implement SessionStore interface and in-memory implementation
+  - [x] 1.8 Implement SessionStore interface and in-memory implementation
     - Create internal/session/store.go with SessionStore interface
     - Define Session struct with all required fields
     - Create internal/session/store_memory.go with InMemorySessionStore
@@ -71,7 +71,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Implement background cleanup goroutine for expired sessions (every 5 minutes)
     - _Requirements: 4.2, 4.5, 4.6, 4.7, 4.10, 17.4_
 
-  - [ ] 1.9 Implement Redis SessionStore implementation
+  - [x] 1.9 Implement Redis SessionStore implementation
     - Create internal/session/store_redis.go with RedisSessionStore
     - Connect to Redis using configured redis_url, password, and db
     - Implement Create with JSON serialization and TTL
@@ -95,7 +95,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify Redis key TTL matches session expiration
     - Verify state tokens have 5-minute TTL
 
-  - [ ] 1.12 Implement StateTokenStore interface and implementations
+  - [x] 1.12 Implement StateTokenStore interface and implementations
     - Create internal/state/store.go with StateTokenStore interface
     - Define StateToken struct with ID, OriginalURL, CodeVerifier, CreatedAt, Used
     - Create internal/state/store_memory.go with InMemoryStateTokenStore
@@ -118,7 +118,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify 5-minute TTL, cryptographic randomness (32 bytes)
     - Verify deletion after use or expiration
 
-  - [ ] 1.15 Implement basic HTTP server with Echo
+  - [x] 1.15 Implement basic HTTP server with Echo
     - Create internal/server/server.go with Server struct
     - Initialize Echo instance with middleware (logger, recover, CORS)
     - Configure read/write timeouts from config
@@ -126,7 +126,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Add signal handling for SIGTERM and SIGINT
     - _Requirements: 15.9, 15.10_
 
-  - [ ] 1.16 Implement health check endpoint
+  - [x] 1.16 Implement health check endpoint
     - Create /healthz endpoint handler
     - Return 200 with JSON {status: "healthy", version: "x.y.z"}
     - Check session store accessibility
