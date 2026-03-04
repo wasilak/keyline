@@ -65,7 +65,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Configure trace provider with service name, version, environment
     - _Requirements: 14.1, 14.7, 14.8, 14.9, 19.1, 19.8, 19.9_
 
-  - [ ] 1.8 Initialize cachego backend
+  - [x] 1.8 Initialize cachego backend
     - Create internal/cache/cache.go with InitCache function
     - Initialize Redis backend if cache.backend=redis
     - Initialize memory backend if cache.backend=memory
