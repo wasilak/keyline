@@ -110,8 +110,18 @@ func DeleteStateToken(ctx context.Context, cache cachego.CacheInterface, tokenID
 	ctx, span := tracer.Start(ctx, "state.delete")
 	defer span.End()
 
-	// Note: cachego doesn't have a Delete method, we'll just log
-	slog.InfoContext(ctx, "State token delete requested (cachego doesn't support delete)",
+	key := keyPrefix + tokenID
+
+	// cachego doesn't have a Delete method, so we set an empty value
+	if err := cache.Set(key, []byte{}); err != nil {
+		slog.ErrorContext(ctx, "Failed to delete state token",
+			slog.String("token_id", tokenID),
+			slog.String("error", err.Error()),
+		)
+		return fmt.Errorf("failed to delete state token: %w", err)
+	}
+
+	slog.InfoContext(ctx, "State token deleted",
 		slog.String("token_id", tokenID),
 	)
 

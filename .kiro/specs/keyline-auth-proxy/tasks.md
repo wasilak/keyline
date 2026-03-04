@@ -98,7 +98,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Serialize sessions to JSON with key prefix "session:"
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
 
-  - [ ] 1.12 Implement state token operations using cachego
+  - [x] 1.12 Implement state token operations using cachego
     - Create internal/state/state.go with state token helper functions
     - Implement StoreStateToken(ctx, cache, token) with manual span
     - Implement GetStateToken(ctx, cache, tokenID) with manual span (marks as used)
