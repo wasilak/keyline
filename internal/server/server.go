@@ -12,6 +12,7 @@ import (
 	"github.com/wasilak/cachego"
 	"github.com/yourusername/keyline/internal/auth"
 	"github.com/yourusername/keyline/internal/config"
+	"github.com/yourusername/keyline/internal/transport"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"go.opentelemetry.io/otel"
 )
@@ -23,6 +24,8 @@ type Server struct {
 	version      string
 	cache        cachego.CacheInterface
 	oidcProvider *auth.OIDCProvider
+	authEngine   *auth.Engine
+	adapter      interface{} // Transport adapter (ForwardAuth or Standalone)
 }
 
 // New creates a new server instance
@@ -57,12 +60,41 @@ func New(cfg *config.Config, version string, cache cachego.CacheInterface, oidcP
 	e.Server.ReadTimeout = cfg.Server.ReadTimeout
 	e.Server.WriteTimeout = cfg.Server.WriteTimeout
 
+	// Create authentication engine
+	authEngine, err := auth.NewEngine(cfg, cache, oidcProvider)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create auth engine: %w", err)
+	}
+
 	s := &Server{
 		echo:         e,
 		config:       cfg,
 		version:      version,
 		cache:        cache,
 		oidcProvider: oidcProvider,
+		authEngine:   authEngine,
+	}
+
+	// Create and configure transport adapter based on mode
+	switch cfg.Server.Mode {
+	case "forward_auth":
+		adapter, err := transport.NewForwardAuthAdapter(cfg, cache, authEngine)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create forward auth adapter: %w", err)
+		}
+		s.adapter = adapter
+		slog.Info("Configured ForwardAuth mode adapter")
+
+	case "standalone":
+		adapter, err := transport.NewStandaloneProxyAdapter(cfg, cache, authEngine)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create standalone proxy adapter: %w", err)
+		}
+		s.adapter = adapter
+		slog.Info("Configured Standalone proxy mode adapter")
+
+	default:
+		return nil, fmt.Errorf("invalid server mode: %s (must be 'forward_auth' or 'standalone')", cfg.Server.Mode)
 	}
 
 	// Register routes
@@ -73,12 +105,32 @@ func New(cfg *config.Config, version string, cache cachego.CacheInterface, oidcP
 
 // registerRoutes registers all HTTP routes
 func (s *Server) registerRoutes() {
-	// Health check endpoint
+	// Health check endpoint (always available)
 	s.echo.GET("/healthz", s.handleHealth)
+
+	// Auth endpoints (always available)
+	s.echo.GET("/auth/callback", s.handleCallback)
+	s.echo.GET("/auth/logout", s.handleLogout)
+	s.echo.POST("/auth/logout", s.handleLogout)
 
 	// Metrics endpoint (if enabled)
 	if s.config.Observability.MetricsEnabled {
 		// TODO: Add Prometheus metrics endpoint
+	}
+
+	// Register mode-specific routes
+	switch s.config.Server.Mode {
+	case "forward_auth":
+		// In forward_auth mode, all other requests go through the adapter
+		adapter := s.adapter.(transport.Adapter)
+		s.echo.Any("/*", adapter.HandleRequest)
+		slog.Info("Registered ForwardAuth catch-all route")
+
+	case "standalone":
+		// In standalone mode, all other requests are proxied after authentication
+		adapter := s.adapter.(transport.Adapter)
+		s.echo.Any("/*", adapter.HandleRequest)
+		slog.Info("Registered Standalone proxy catch-all route")
 	}
 }
 

@@ -248,7 +248,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify signature validation, iss/aud/exp checks
     - Verify any validation failure returns 401
 
-  - [ ] 3.14 Implement session creation from OIDC user
+  - [x] 3.14 Implement session creation from OIDC user
     - Extract user claims from validated ID token
     - Generate cryptographically random session ID
     - Create Session with user identity, mapped ES user, expiration
@@ -264,7 +264,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify cookie has correct security attributes
     - Verify session stored with all required fields
 
-  - [ ] 3.16 Implement redirect to original URL after authentication
+  - [x] 3.16 Implement redirect to original URL after authentication
     - After session creation, retrieve original URL from state token
     - Return 302 redirect to original URL
     - Include Set-Cookie header with session cookie
@@ -277,16 +277,16 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify all steps execute in correct order
     - Verify state token, PKCE, token exchange, validation, session creation
 
-  - [ ] 3.18 Add OIDC health check to /healthz endpoint
+  - [x] 3.18 Add OIDC health check to /healthz endpoint
     - When OIDC is enabled, verify Discovery Document was loaded
     - Return 503 if Discovery Document not loaded
     - _Requirements: 11.5, 11.6_
 
-- [ ] 4. Checkpoint - Phase 2 Complete
+- [x] 4. Checkpoint - Phase 2 Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Phase 3: Basic Authentication (Week 2)
-  - [ ] 5.1 Implement Basic Auth credential parsing
+- [x] 5. Phase 3: Basic Authentication (Week 2)
+  - [x] 5.1 Implement Basic Auth credential parsing
     - Create internal/auth/basic.go with BasicAuthProvider struct
     - Implement Authenticate method
     - Extract Authorization header from request
@@ -294,18 +294,18 @@ This implementation plan converts the Keyline design into actionable coding task
     - Return 401 with WWW-Authenticate header if decoding fails
     - _Requirements: 5.1, 5.2_
 
-  - [ ] 5.2 Implement username and password extraction
+  - [x] 5.2 Implement username and password extraction
     - Split decoded credentials on ":" separator
     - Extract username and password
     - Handle edge cases (missing separator, empty values)
     - _Requirements: 5.3_
 
-  - [ ] 5.3 Implement local user lookup
+  - [x] 5.3 Implement local user lookup
     - Search configured LocalUser list for matching username
     - Return 401 with WWW-Authenticate header if username not found
     - _Requirements: 5.4, 5.5_
 
-  - [ ] 5.4 Implement bcrypt password validation
+  - [x] 5.4 Implement bcrypt password validation
     - Use bcrypt.CompareHashAndPassword for timing-safe comparison
     - Compare provided password against stored password_bcrypt
     - Return 401 with WWW-Authenticate header if validation fails
@@ -318,13 +318,13 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify base64 decoding, username lookup, bcrypt validation
     - Verify timing-safe comparison
 
-  - [ ] 5.6 Implement ES user mapping for local users
+  - [x] 5.6 Implement ES user mapping for local users
     - Retrieve es_user value from matched LocalUser
     - Return AuthResult with authenticated user and mapped ES user
     - Do not create session (Basic Auth is stateless)
     - _Requirements: 5.8, 5.9_
 
-  - [ ] 5.7 Implement ES credential mapper
+  - [x] 5.7 Implement ES credential mapper
     - Create internal/mapper/credentials.go with CredentialMapper struct
     - Implement MapOIDCUser method with claim extraction and pattern matching
     - Implement MapLocalUser method (simple lookup)
@@ -332,7 +332,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Return error if ES user not found in configuration
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9_
 
-  - [ ] 5.8 Implement wildcard pattern matching for OIDC mappings
+  - [x] 5.8 Implement wildcard pattern matching for OIDC mappings
     - Add matchPattern function to CredentialMapper
     - Support * wildcard matching (e.g., "*@admin.example.com")
     - Evaluate mappings in configuration order
@@ -346,7 +346,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify mappings evaluated in order
     - Verify first match wins, default used if no match
 
-  - [ ] 5.10 Implement ES credential encoding and injection
+  - [x] 5.10 Implement ES credential encoding and injection
     - Encode ES credentials as Basic auth (base64 of username:password)
     - Add X-Es-Authorization header with "Basic {encoded_credentials}"
     - Never log ES credentials in plaintext
@@ -361,13 +361,13 @@ This implementation plan converts the Keyline design into actionable coding task
 - [ ] 6. Checkpoint - Phase 3 Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Phase 4: Transport Adapters (Week 3)
-  - [ ] 7.1 Implement TransportAdapter interface
+- [x] 7. Phase 4: Transport Adapters (Week 3)
+  - [x] 7.1 Implement TransportAdapter interface
     - Create internal/transport/adapter.go with TransportAdapter interface
     - Define RequestContext struct for normalized request information
     - _Requirements: 7.1, 7.2, 7.3, 8.1, 8.2, 8.3_
 
-  - [ ] 7.2 Implement header normalization for ForwardAuth mode
+  - [x] 7.2 Implement header normalization for ForwardAuth mode
     - Create internal/transport/forward_auth.go with ForwardAuthAdapter
     - Implement normalizeHeaders method
     - Support X-Forwarded-* headers (Traefik)
@@ -382,7 +382,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify both produce same RequestContext
     - Test with various method, path, host combinations
 
-  - [ ] 7.4 Implement authentication engine
+  - [x] 7.4 Implement authentication engine
     - Create internal/auth/engine.go with AuthEngine struct
     - Implement Authenticate method with authentication precedence logic
     - Check session cookie first, then Basic Auth header, then initiate OIDC flow
@@ -397,7 +397,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify Basic Auth attempted when no session
     - Verify OIDC flow initiated when no credentials
 
-  - [ ] 7.6 Implement session validation in authentication engine
+  - [x] 7.6 Implement session validation in authentication engine
     - Extract session cookie from request
     - Retrieve session from SessionStore
     - Check if session exists and is not expired
@@ -412,7 +412,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify valid sessions are used
     - Verify expired sessions are deleted and treated as unauthenticated
 
-  - [ ] 7.8 Implement ForwardAuth response handler
+  - [x] 7.8 Implement ForwardAuth response handler
     - Implement HandleRequest method in ForwardAuthAdapter
     - Normalize headers to RequestContext
     - Delegate to AuthEngine for authentication
@@ -431,13 +431,13 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify 401/302 for unauthenticated
     - Verify no proxying occurs
 
-  - [ ] 7.10 Implement callback handling in ForwardAuth mode
+  - [x] 7.10 Implement callback handling in ForwardAuth mode
     - Detect /auth/callback path from X-Forwarded-Uri or X-Original-URI
     - Process OIDC callback
     - Return 302 with Set-Cookie header
     - _Requirements: 7.6_
 
-  - [ ] 7.11 Implement standalone proxy adapter
+  - [x] 7.11 Implement standalone proxy adapter
     - Create internal/transport/standalone.go with StandaloneProxyAdapter
     - Initialize httputil.ReverseProxy with configured upstream URL
     - Implement HandleRequest method
@@ -446,7 +446,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Do not proxy /auth/callback, /auth/logout, /healthz
     - _Requirements: 9.1, 9.2, 9.3, 9.4_
 
-  - [ ] 7.12 Implement request preservation in standalone proxy
+  - [x] 7.12 Implement request preservation in standalone proxy
     - Preserve HTTP method, path, query parameters
     - Preserve request headers (except hop-by-hop headers)
     - Preserve request body
@@ -462,7 +462,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify X-Es-Authorization header added
     - Verify internal endpoints not proxied
 
-  - [ ] 7.14 Implement response preservation in standalone proxy
+  - [x] 7.14 Implement response preservation in standalone proxy
     - Stream response body from upstream to client
     - Preserve response status code
     - Preserve response headers (except hop-by-hop headers)
@@ -474,20 +474,20 @@ This implementation plan converts the Keyline design into actionable coding task
     - Generate random upstream responses
     - Verify status code, headers, body preserved
 
-  - [ ] 7.16 Implement upstream error handling
+  - [x] 7.16 Implement upstream error handling
     - Return 502 Bad Gateway if upstream connection fails
     - Return 504 Gateway Timeout if upstream times out
     - Log errors with upstream URL and error details
     - _Requirements: 9.11, 9.12, 15.7_
 
-  - [ ] 7.17 Implement WebSocket upgrade support
+  - [x] 7.17 Implement WebSocket upgrade support
     - Detect WebSocket upgrade requests (Upgrade: websocket header)
     - Forward upgrade headers to upstream
     - Establish bidirectional connection
     - Stream data in both directions
     - _Requirements: 9.13_
 
-  - [ ] 7.18 Implement logout endpoint
+  - [x] 7.18 Implement logout endpoint
     - Create /auth/logout handler
     - Extract session ID from session cookie
     - Delete session from SessionStore
