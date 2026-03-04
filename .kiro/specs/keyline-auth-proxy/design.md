@@ -11,20 +11,22 @@ Keyline is a unified authentication proxy service that replaces the existing Aut
 - **Deployment Flexibility**: Work with Traefik, Nginx, or as standalone proxy
 - **Security First**: Implement PKCE, secure session management, and cryptographic best practices
 - **Production Ready**: Built-in observability, health checks, and graceful shutdown
-- **Reuse elastauth Foundation**: Leverage existing Go/Echo/Viper/Redis infrastructure
+- **Full Observability**: OpenTelemetry tracing and structured logging from day one
+- **Unified Caching**: Single cache interface for sessions, state tokens, and OIDC data
 
 ### Technology Stack
 
-- **Language**: Go 1.26+
-- **Web Framework**: Echo v4 (existing in elastauth)
-- **Configuration**: Viper (existing in elastauth)
-- **Session Storage**: Redis + in-memory with AES encryption (existing cache layer)
-- **Logging**: log/slog with structured fields
-- **Tracing**: OpenTelemetry Go SDK (existing integration)
-- **Metrics**: Prometheus client
+- **Language**: Go 1.22+
+- **Web Framework**: Echo v4
+- **Configuration**: Viper
+- **Cache Layer**: cachego (unified interface for Redis/in-memory)
+- **Logging**: loggergo (global slog setup)
+- **Echo Logging**: slog-echo (request logging middleware)
+- **Tracing**: otelgo (OpenTelemetry setup)
+- **Echo Tracing**: otelecho (request tracing middleware)
 - **OIDC**: coreos/go-oidc v3 + golang.org/x/oauth2
 - **Proxy**: net/http/httputil.ReverseProxy
-- **Crypto**: crypto/rand, bcrypt, AES-256-GCM
+- **Crypto**: crypto/rand, bcrypt
 
 
 ## Architecture
@@ -35,6 +37,13 @@ Keyline is a unified authentication proxy service that replaces the existing Aut
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Keyline Service                          │
 ├─────────────────────────────────────────────────────────────────┤
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │              Observability Layer                           │  │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │  │
+│  │  │   otelecho   │  │  slog-echo   │  │   loggergo   │    │  │
+│  │  │ (tracing MW) │  │ (logging MW) │  │ (global slog)│    │  │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘    │  │
+│  └───────────────────────────────────────────────────────────┘  │
 │                                                                   │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │              Transport Adapter Layer                       │  │
@@ -58,22 +67,29 @@ Keyline is a unified authentication proxy service that replaces the existing Aut
 │  └─────────────────────────────────────────────────────────────┘  │
 │                                                                   │
 │  ┌───────────────────────────────────────────────────────────┐  │
-│  │                  Storage Layer                             │  │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │  │
-│  │  │   Session    │  │  State Token │  │     OIDC     │    │  │
-│  │  │    Store     │  │    Store     │  │    Cache     │    │  │
-│  │  │ (Redis/Mem)  │  │ (Redis/Mem)  │  │  (In-Memory) │    │  │
-│  │  └──────────────┘  └──────────────┘  └──────────────┘    │  │
+│  │                  Cache Layer (cachego)                     │  │
+│  │  ┌──────────────────────────────────────────────────────┐ │  │
+│  │  │  Unified Cache Interface (Redis or Memory backend)   │ │  │
+│  │  │  - Sessions (session:{id})                           │ │  │
+│  │  │  - State Tokens (state:{id})                         │ │  │
+│  │  │  - OIDC Discovery (oidc:discovery:{issuer})          │ │  │
+│  │  │  - JWKS (oidc:jwks:{issuer})                         │ │  │
+│  │  └──────────────────────────────────────────────────────┘ │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                                                                   │
 └─────────────────────────────────────────────────────────────────┘
          │                      │                      │
          ▼                      ▼                      ▼
-   OIDC Provider          Session Store          Protected Service
+   OIDC Provider          Cache Backend          Protected Service
    (Okta, etc.)          (Redis/Memory)         (Kibana, ES, etc.)
 ```
 
 ### Component Responsibilities
+
+#### Observability Layer
+- **otelecho**: Automatic OpenTelemetry tracing for all HTTP requests
+- **slog-echo**: Automatic structured logging for all HTTP requests with trace correlation
+- **loggergo**: Global slog configuration (JSON/text format, log levels)
 
 #### Transport Adapter Layer
 - **ForwardAuth Adapter**: Handles Traefik X-Forwarded-* headers, returns auth decisions
@@ -81,15 +97,18 @@ Keyline is a unified authentication proxy service that replaces the existing Aut
 - **Standalone Proxy**: Proxies authenticated requests to upstream, handles WebSocket upgrades
 
 #### Core Authentication Engine
-- **OIDC Handler**: Manages authorization flow, token exchange, ID token validation
+- **OIDC Handler**: Manages authorization flow, token exchange, ID token validation (with manual spans)
 - **Basic Auth Validator**: Validates local user credentials using bcrypt
-- **Session Manager**: Creates, validates, extends, and deletes user sessions
+- **Session Manager**: Creates, validates, extends, and deletes user sessions (with manual spans)
 - **ES Credential Mapper**: Maps authenticated users to Elasticsearch credentials
 
-#### Storage Layer
-- **Session Store**: Persists sessions with TTL (Redis or in-memory)
-- **State Token Store**: Stores CSRF tokens for OIDC flow (Redis or in-memory)
-- **OIDC Cache**: Caches Discovery Document and JWKS in memory
+#### Cache Layer (cachego)
+- **Unified Interface**: Single cache interface for all storage needs
+- **Sessions**: Stores user sessions with TTL (key: `session:{id}`)
+- **State Tokens**: Stores OIDC CSRF tokens with 5-minute TTL (key: `state:{id}`)
+- **OIDC Discovery**: Caches discovery documents (key: `oidc:discovery:{issuer}`)
+- **JWKS**: Caches JSON Web Key Sets (key: `oidc:jwks:{issuer}`)
+- **Backend Agnostic**: Supports Redis or in-memory backends via configuration
 
 
 ### Deployment Mode Flows
@@ -238,62 +257,67 @@ type User struct {
 }
 ```
 
-#### SessionStore Interface
+#### Cache Layer (cachego)
 
 ```go
-// SessionStore defines the interface for session storage
-type SessionStore interface {
-    // Create stores a new session
-    Create(ctx context.Context, session *Session) error
+// Keyline uses cachego for all caching needs (sessions, state tokens, OIDC data)
+// The cache backend (Redis or memory) is configured at startup
+
+// Session operations
+func CreateSession(ctx context.Context, cache cachego.Cache, session *Session) error {
+    ctx, span := tracer.Start(ctx, "session.create")
+    defer span.End()
     
-    // Get retrieves a session by ID
-    Get(ctx context.Context, sessionID string) (*Session, error)
+    data, _ := json.Marshal(session)
+    key := fmt.Sprintf("session:%s", session.ID)
+    ttl := time.Until(session.ExpiresAt)
     
-    // Delete removes a session
-    Delete(ctx context.Context, sessionID string) error
+    slog.InfoContext(ctx, "Creating session",
+        slog.String("username", session.Username),
+        slog.String("es_user", session.ESUser),
+    )
     
-    // Cleanup removes expired sessions (for in-memory store)
-    Cleanup(ctx context.Context) error
+    return cache.Set(ctx, key, data, ttl)
+}
+
+// State token operations
+func StoreStateToken(ctx context.Context, cache cachego.Cache, token *StateToken) error {
+    ctx, span := tracer.Start(ctx, "state.store")
+    defer span.End()
     
-    // Health checks if the store is accessible
-    Health(ctx context.Context) error
+    data, _ := json.Marshal(token)
+    key := fmt.Sprintf("state:%s", token.ID)
+    
+    return cache.Set(ctx, key, data, 5*time.Minute)
+}
+
+// OIDC cache operations
+func CacheDiscoveryDocument(ctx context.Context, cache cachego.Cache, issuer string, doc *DiscoveryDocument) error {
+    data, _ := json.Marshal(doc)
+    key := fmt.Sprintf("oidc:discovery:%s", issuer)
+    
+    return cache.Set(ctx, key, data, 24*time.Hour)
 }
 
 // Session represents a user session
 type Session struct {
-    ID              string            // Session identifier
-    UserID          string            // User identifier
-    Username        string            // Username
-    Email           string            // Email address
-    ESUser          string            // Mapped ES user
-    Claims          map[string]any    // User claims
-    CreatedAt       time.Time         // Creation timestamp
-    ExpiresAt       time.Time         // Expiration timestamp
-}
-```
-
-#### StateTokenStore Interface
-
-```go
-// StateTokenStore defines the interface for OIDC state token storage
-type StateTokenStore interface {
-    // Store saves a state token with original URL
-    Store(ctx context.Context, token *StateToken) error
-    
-    // Get retrieves and marks a state token as used
-    Get(ctx context.Context, tokenID string) (*StateToken, error)
-    
-    // Delete removes a state token
-    Delete(ctx context.Context, tokenID string) error
+    ID              string                 `json:"id"`
+    UserID          string                 `json:"user_id"`
+    Username        string                 `json:"username"`
+    Email           string                 `json:"email"`
+    ESUser          string                 `json:"es_user"`
+    Claims          map[string]interface{} `json:"claims"`
+    CreatedAt       time.Time              `json:"created_at"`
+    ExpiresAt       time.Time              `json:"expires_at"`
 }
 
 // StateToken represents an OIDC state token
 type StateToken struct {
-    ID              string            // Token identifier
-    OriginalURL     string            // Original request URL
-    CodeVerifier    string            // PKCE code verifier
-    CreatedAt       time.Time         // Creation timestamp
-    Used            bool              // Whether token was used
+    ID           string    `json:"id"`
+    OriginalURL  string    `json:"original_url"`
+    CodeVerifier string    `json:"code_verifier"`
+    CreatedAt    time.Time `json:"created_at"`
+    Used         bool      `json:"used"`
 }
 ```
 
@@ -327,23 +351,24 @@ type RequestContext struct {
 ```go
 // OIDCProvider implements OIDC authentication
 type OIDCProvider struct {
-    config          *OIDCConfig
-    provider        *oidc.Provider
-    oauth2Config    *oauth2.Config
-    verifier        *oidc.IDTokenVerifier
-    stateStore      StateTokenStore
-    sessionStore    SessionStore
-    mapper          *CredentialMapper
-    logger          *slog.Logger
+    config       *OIDCConfig
+    provider     *oidc.Provider
+    oauth2Config *oauth2.Config
+    verifier     *oidc.IDTokenVerifier
+    cache        cachego.Cache
+    mapper       *CredentialMapper
 }
 
-// Key methods:
-// - Authenticate: Initiates OIDC flow or handles callback
-// - HandleCallback: Processes OIDC callback
-// - exchangeToken: Exchanges authorization code for tokens
-// - validateIDToken: Validates ID token signature and claims
+// Key methods (all take context.Context as first parameter):
+// - Authenticate: Initiates OIDC flow or handles callback (with manual span)
+// - HandleCallback: Processes OIDC callback (with manual span)
+// - exchangeToken: Exchanges authorization code for tokens (with manual span)
+// - validateIDToken: Validates ID token signature and claims (with manual span)
 // - generateState: Creates cryptographically secure state token
 // - generatePKCE: Creates PKCE code verifier and challenge
+//
+// All methods use slog.InfoContext(ctx, ...) for logging
+// All critical operations create manual spans for tracing
 ```
 
 #### BasicAuthProvider
@@ -351,15 +376,16 @@ type OIDCProvider struct {
 ```go
 // BasicAuthProvider implements Basic Auth for local users
 type BasicAuthProvider struct {
-    config          *LocalUsersConfig
-    mapper          *CredentialMapper
-    logger          *slog.Logger
+    config *LocalUsersConfig
+    mapper *CredentialMapper
 }
 
-// Key methods:
-// - Authenticate: Validates Basic Auth credentials
+// Key methods (all take context.Context as first parameter):
+// - Authenticate: Validates Basic Auth credentials (with manual span)
 // - validatePassword: Uses bcrypt timing-safe comparison
 // - findUser: Looks up user by username
+//
+// All methods use slog.InfoContext(ctx, ...) for logging
 ```
 
 #### SessionManager
@@ -367,16 +393,18 @@ type BasicAuthProvider struct {
 ```go
 // SessionManager handles session lifecycle
 type SessionManager struct {
-    store           SessionStore
-    config          *SessionConfig
-    logger          *slog.Logger
+    cache  cachego.Cache
+    config *SessionConfig
 }
 
-// Key methods:
-// - CreateSession: Generates session ID and stores session
-// - ValidateSession: Retrieves and validates session
-// - DeleteSession: Removes session from store
+// Key methods (all take context.Context as first parameter):
+// - CreateSession: Generates session ID and stores in cache (with manual span)
+// - ValidateSession: Retrieves and validates session (with manual span)
+// - DeleteSession: Removes session from cache (with manual span)
 // - ExtendSession: Updates session expiration (optional)
+//
+// All methods use slog.InfoContext(ctx, ...) for logging
+// All operations create manual spans for tracing
 ```
 
 #### CredentialMapper
@@ -493,6 +521,7 @@ type Config struct {
     OIDC            OIDCConfig            `mapstructure:"oidc"`
     LocalUsers      LocalUsersConfig      `mapstructure:"local_users"`
     Session         SessionConfig         `mapstructure:"session"`
+    Cache           CacheConfig           `mapstructure:"cache"`
     Elasticsearch   ElasticsearchConfig   `mapstructure:"elasticsearch"`
     Upstream        UpstreamConfig        `mapstructure:"upstream"`
     Observability   ObservabilityConfig   `mapstructure:"observability"`
@@ -541,41 +570,35 @@ type LocalUser struct {
 
 // SessionConfig contains session management settings
 type SessionConfig struct {
-    Store           string                `mapstructure:"store"` // redis, memory
+    Store           string                `mapstructure:"store"` // redis, memory (for cachego backend)
     TTL             time.Duration         `mapstructure:"ttl"`
     CookieName      string                `mapstructure:"cookie_name"`
     CookieDomain    string                `mapstructure:"cookie_domain"`
     CookiePath      string                `mapstructure:"cookie_path"`
+    SessionSecret   string                `mapstructure:"session_secret"`
+}
+
+// CacheConfig contains cache backend settings (for cachego)
+type CacheConfig struct {
+    Backend         string                `mapstructure:"backend"` // redis, memory
     RedisURL        string                `mapstructure:"redis_url"`
     RedisPassword   string                `mapstructure:"redis_password"`
     RedisDB         int                   `mapstructure:"redis_db"`
 }
 
-// ElasticsearchConfig contains ES credential settings
-type ElasticsearchConfig struct {
-    Users           []ESUser              `mapstructure:"users"`
-}
-
-// ESUser represents an Elasticsearch user
-type ESUser struct {
-    Username        string                `mapstructure:"username"`
-    Password        string                `mapstructure:"password"`
-}
-
-// UpstreamConfig contains upstream proxy settings
-type UpstreamConfig struct {
-    URL             string                `mapstructure:"url"`
-    Timeout         time.Duration         `mapstructure:"timeout"`
-    MaxIdleConns    int                   `mapstructure:"max_idle_conns"`
-}
-
 // ObservabilityConfig contains logging and tracing settings
 type ObservabilityConfig struct {
+    // loggergo settings
     LogLevel        string                `mapstructure:"log_level"`
     LogFormat       string                `mapstructure:"log_format"` // json, text
+    
+    // otelgo settings
     OTelEnabled     bool                  `mapstructure:"otel_enabled"`
     OTelEndpoint    string                `mapstructure:"otel_endpoint"`
-    MetricsEnabled  bool                  `mapstructure:"metrics_enabled"`
+    OTelServiceName string                `mapstructure:"otel_service_name"`
+    OTelServiceVersion string             `mapstructure:"otel_service_version"`
+    OTelEnvironment string                `mapstructure:"otel_environment"`
+    OTelTraceRatio  float64               `mapstructure:"otel_trace_ratio"` // 0.0 to 1.0
 }
 ```
 
@@ -619,11 +642,14 @@ local_users:
       es_user: monitoring_user
 
 session:
-  store: redis  # redis or memory
   ttl: 24h
   cookie_name: keyline_session
   cookie_domain: .example.com
   cookie_path: /
+  session_secret: ${SESSION_SECRET}  # Must be at least 32 bytes
+
+cache:
+  backend: redis  # redis or memory (for cachego)
   redis_url: ${REDIS_URL}
   redis_password: ${REDIS_PASSWORD}
   redis_db: 0
@@ -645,11 +671,17 @@ upstream:
   max_idle_conns: 100
 
 observability:
+  # loggergo settings
   log_level: info
   log_format: json
+  
+  # otelgo settings
   otel_enabled: true
   otel_endpoint: http://otel-collector:4318
-  metrics_enabled: true
+  otel_service_name: keyline
+  otel_service_version: ${VERSION}
+  otel_environment: production
+  otel_trace_ratio: 1.0  # 0.0 to 1.0 (1.0 = 100% sampling)
 ```
 
 
