@@ -207,7 +207,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify code_challenge is correctly derived from code_verifier using S256
     - Verify verifier is cryptographically random
 
-  - [ ] 3.9 Implement OIDC authorization flow initiation
+  - [x] 3.9 Implement OIDC authorization flow initiation
     - Implement Authenticate method in OIDCProvider
     - Generate state token and store with original URL
     - Generate PKCE code_verifier and code_challenge

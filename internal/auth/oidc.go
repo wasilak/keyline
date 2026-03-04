@@ -7,10 +7,14 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"time"
 
+	"github.com/wasilak/cachego"
 	"github.com/yourusername/keyline/internal/cache"
 	"github.com/yourusername/keyline/internal/config"
+	"github.com/yourusername/keyline/internal/state"
+	pkgcrypto "github.com/yourusername/keyline/pkg/crypto"
 	"gopkg.in/square/go-jose.v2"
 )
 
@@ -246,4 +250,87 @@ func (p *OIDCProvider) startJWKSRefresh() {
 // GetJWKS returns the cached JWKS
 func (p *OIDCProvider) GetJWKS() (*jose.JSONWebKeySet, bool) {
 	return p.cache.GetJWKS()
+}
+
+// Authenticate initiates the OIDC authorization flow
+func (p *OIDCProvider) Authenticate(ctx context.Context, cachego cachego.CacheInterface, originalURL string) (string, error) {
+	// Generate state token
+	stateID, err := pkgcrypto.GenerateStateToken()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate state token: %w", err)
+	}
+
+	// Generate PKCE pair
+	pkce, err := pkgcrypto.GeneratePKCE()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate PKCE: %w", err)
+	}
+
+	// Create state token
+	token := &state.Token{
+		ID:           stateID,
+		OriginalURL:  originalURL,
+		CodeVerifier: pkce.Verifier,
+		CreatedAt:    time.Now(),
+		Used:         false,
+	}
+
+	// Store state token
+	if err := state.StoreStateToken(ctx, cachego, token); err != nil {
+		return "", fmt.Errorf("failed to store state token: %w", err)
+	}
+
+	// Build authorization URL
+	authURL, err := p.buildAuthorizationURL(stateID, pkce.Challenge)
+	if err != nil {
+		return "", fmt.Errorf("failed to build authorization URL: %w", err)
+	}
+
+	slog.InfoContext(ctx, "OIDC authorization flow initiated",
+		slog.String("state_token_id", stateID),
+		slog.String("original_url", originalURL),
+	)
+
+	return authURL, nil
+}
+
+// buildAuthorizationURL builds the OIDC authorization URL with all required parameters
+func (p *OIDCProvider) buildAuthorizationURL(state, codeChallenge string) (string, error) {
+	doc := p.cache.GetDiscoveryDoc()
+	if doc == nil {
+		return "", fmt.Errorf("discovery document not loaded")
+	}
+
+	// Build query parameters
+	params := url.Values{}
+	params.Set("client_id", p.config.ClientID)
+	params.Set("redirect_uri", p.config.RedirectURL)
+	params.Set("response_type", "code")
+	params.Set("scope", joinScopes(p.config.Scopes))
+	params.Set("state", state)
+	params.Set("code_challenge", codeChallenge)
+	params.Set("code_challenge_method", "S256")
+
+	authURL := doc.AuthorizationEndpoint + "?" + params.Encode()
+	return authURL, nil
+}
+
+// joinScopes joins scope strings with spaces
+func joinScopes(scopes []string) string {
+	if len(scopes) == 0 {
+		return "openid"
+	}
+	return joinStrings(scopes, " ")
+}
+
+// joinStrings joins strings with a separator
+func joinStrings(strs []string, sep string) string {
+	if len(strs) == 0 {
+		return ""
+	}
+	result := strs[0]
+	for i := 1; i < len(strs); i++ {
+		result += sep + strs[i]
+	}
+	return result
 }
