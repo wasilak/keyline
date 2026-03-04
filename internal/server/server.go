@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	slogecho "github.com/samber/slog-echo"
 	"github.com/wasilak/cachego"
+	"github.com/yourusername/keyline/internal/auth"
 	"github.com/yourusername/keyline/internal/config"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"go.opentelemetry.io/otel"
@@ -17,14 +18,15 @@ import (
 
 // Server represents the Keyline server
 type Server struct {
-	echo    *echo.Echo
-	config  *config.Config
-	version string
-	cache   cachego.CacheInterface
+	echo         *echo.Echo
+	config       *config.Config
+	version      string
+	cache        cachego.CacheInterface
+	oidcProvider *auth.OIDCProvider
 }
 
 // New creates a new server instance
-func New(cfg *config.Config, version string, cache cachego.CacheInterface) (*Server, error) {
+func New(cfg *config.Config, version string, cache cachego.CacheInterface, oidcProvider *auth.OIDCProvider) (*Server, error) {
 	// Create Echo instance
 	e := echo.New()
 	e.HideBanner = true
@@ -56,10 +58,11 @@ func New(cfg *config.Config, version string, cache cachego.CacheInterface) (*Ser
 	e.Server.WriteTimeout = cfg.Server.WriteTimeout
 
 	s := &Server{
-		echo:    e,
-		config:  cfg,
-		version: version,
-		cache:   cache,
+		echo:         e,
+		config:       cfg,
+		version:      version,
+		cache:        cache,
+		oidcProvider: oidcProvider,
 	}
 
 	// Register routes
@@ -123,7 +126,31 @@ func (s *Server) handleHealth(c echo.Context) error {
 		"version": s.version,
 	}
 
-	// TODO: Check OIDC provider health (if enabled)
+	// Check OIDC provider health (if enabled)
+	if s.config.OIDC.Enabled {
+		if s.oidcProvider == nil {
+			slog.ErrorContext(ctx, "Health check failed - OIDC enabled but provider not initialized")
+			return c.JSON(http.StatusServiceUnavailable, map[string]interface{}{
+				"status": "unhealthy",
+				"error":  "OIDC provider not initialized",
+			})
+		}
+
+		// Check if discovery document was loaded
+		doc := s.oidcProvider.GetDiscoveryDoc()
+		if doc == nil {
+			slog.ErrorContext(ctx, "Health check failed - OIDC discovery document not loaded")
+			return c.JSON(http.StatusServiceUnavailable, map[string]interface{}{
+				"status": "unhealthy",
+				"error":  "OIDC discovery document not loaded",
+			})
+		}
+
+		health["oidc"] = map[string]interface{}{
+			"status": "healthy",
+			"issuer": doc.Issuer,
+		}
+	}
 
 	slog.InfoContext(ctx, "Health check",
 		slog.String("status", "healthy"),

@@ -12,6 +12,7 @@ import (
 
 	"github.com/wasilak/loggergo"
 	"github.com/wasilak/otelgo/tracing"
+	"github.com/yourusername/keyline/internal/auth"
 	"github.com/yourusername/keyline/internal/cache"
 	"github.com/yourusername/keyline/internal/config"
 	"github.com/yourusername/keyline/internal/server"
@@ -127,8 +128,22 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize OIDC provider if enabled
+	var oidcProvider *auth.OIDCProvider
+	if cfg.OIDC.Enabled {
+		oidcProvider, err = auth.NewOIDCProvider(&cfg.OIDC)
+		if err != nil {
+			logger.Error("Failed to initialize OIDC provider", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+		logger.Info("OIDC provider initialized",
+			slog.String("issuer", cfg.OIDC.IssuerURL),
+			slog.String("client_id", cfg.OIDC.ClientID),
+		)
+	}
+
 	// Create and start server
-	srv, err := server.New(cfg, version, cache)
+	srv, err := server.New(cfg, version, cache, oidcProvider)
 	if err != nil {
 		logger.Error("Failed to create server", slog.String("error", err.Error()))
 		os.Exit(1)
