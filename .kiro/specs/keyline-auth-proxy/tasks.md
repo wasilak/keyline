@@ -177,7 +177,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Retry up to 3 times with exponential backoff on initial fetch failure
     - _Requirements: 1.6, 1.7, 15.4, 15.5_
 
-  - [ ] 3.5 Implement cryptographic random generation utilities
+  - [x] 3.5 Implement cryptographic random generation utilities
     - Create pkg/crypto/random.go with GenerateRandomBytes function
     - Use crypto/rand for cryptographically secure randomness
     - Implement GenerateStateToken (32 bytes)
@@ -193,7 +193,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify uniqueness across generations
     - Verify no predictable patterns
 
-  - [ ] 3.7 Implement PKCE generation
+  - [x] 3.7 Implement PKCE generation
     - Add GeneratePKCE function to pkg/crypto/random.go
     - Generate code_verifier (43-128 characters, URL-safe)
     - Derive code_challenge using S256 method (SHA256 hash, base64url-encoded)
