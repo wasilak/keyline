@@ -80,6 +80,20 @@ func Validate(cfg *Config) error {
 		}
 	}
 
+	// Validate cache configuration
+	if cfg.Cache.Backend == "" {
+		errors = append(errors, "cache.backend is required (redis or memory)")
+	} else if cfg.Cache.Backend != "redis" && cfg.Cache.Backend != "memory" {
+		errors = append(errors, "cache.backend must be either 'redis' or 'memory'")
+	}
+
+	// Validate Redis configuration if backend is redis
+	if cfg.Cache.Backend == "redis" {
+		if cfg.Cache.RedisURL == "" {
+			errors = append(errors, "cache.redis_url is required when cache.backend is redis")
+		}
+	}
+
 	// Validate Elasticsearch users
 	if len(cfg.Elasticsearch.Users) == 0 {
 		errors = append(errors, "at least one Elasticsearch user must be configured")

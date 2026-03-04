@@ -10,6 +10,7 @@ type Config struct {
 	OIDC          OIDCConfig          `mapstructure:"oidc"`
 	LocalUsers    LocalUsersConfig    `mapstructure:"local_users"`
 	Session       SessionConfig       `mapstructure:"session"`
+	Cache         CacheConfig         `mapstructure:"cache"`
 	Elasticsearch ElasticsearchConfig `mapstructure:"elasticsearch"`
 	Upstream      UpstreamConfig      `mapstructure:"upstream"`
 	Observability ObservabilityConfig `mapstructure:"observability"`
@@ -58,15 +59,19 @@ type LocalUser struct {
 
 // SessionConfig contains session management settings
 type SessionConfig struct {
-	Store         string        `mapstructure:"store"` // redis, memory
 	TTL           time.Duration `mapstructure:"ttl"`
 	CookieName    string        `mapstructure:"cookie_name"`
 	CookieDomain  string        `mapstructure:"cookie_domain"`
 	CookiePath    string        `mapstructure:"cookie_path"`
 	SessionSecret string        `mapstructure:"session_secret"`
-	RedisURL      string        `mapstructure:"redis_url"`
-	RedisPassword string        `mapstructure:"redis_password"`
-	RedisDB       int           `mapstructure:"redis_db"`
+}
+
+// CacheConfig contains cache backend settings (for cachego)
+type CacheConfig struct {
+	Backend       string `mapstructure:"backend"` // redis, memory
+	RedisURL      string `mapstructure:"redis_url"`
+	RedisPassword string `mapstructure:"redis_password"`
+	RedisDB       int    `mapstructure:"redis_db"`
 }
 
 // ElasticsearchConfig contains ES credential settings
@@ -89,9 +94,18 @@ type UpstreamConfig struct {
 
 // ObservabilityConfig contains logging and tracing settings
 type ObservabilityConfig struct {
-	LogLevel       string `mapstructure:"log_level"`
-	LogFormat      string `mapstructure:"log_format"` // json, text
-	OTelEnabled    bool   `mapstructure:"otel_enabled"`
-	OTelEndpoint   string `mapstructure:"otel_endpoint"`
-	MetricsEnabled bool   `mapstructure:"metrics_enabled"`
+	// loggergo settings
+	LogLevel  string `mapstructure:"log_level"`
+	LogFormat string `mapstructure:"log_format"` // json, text
+
+	// otelgo settings
+	OTelEnabled        bool    `mapstructure:"otel_enabled"`
+	OTelEndpoint       string  `mapstructure:"otel_endpoint"`
+	OTelServiceName    string  `mapstructure:"otel_service_name"`
+	OTelServiceVersion string  `mapstructure:"otel_service_version"`
+	OTelEnvironment    string  `mapstructure:"otel_environment"`
+	OTelTraceRatio     float64 `mapstructure:"otel_trace_ratio"` // 0.0 to 1.0
+
+	// Metrics
+	MetricsEnabled bool `mapstructure:"metrics_enabled"`
 }

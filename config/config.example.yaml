@@ -35,12 +35,14 @@ local_users:
       es_user: monitoring_user
 
 session:
-  store: redis  # redis or memory
   ttl: 24h
   cookie_name: keyline_session
   cookie_domain: .example.com
   cookie_path: /
   session_secret: ${SESSION_SECRET}
+
+cache:
+  backend: redis  # redis or memory
   redis_url: ${REDIS_URL}
   redis_password: ${REDIS_PASSWORD}
   redis_db: 0
@@ -62,8 +64,17 @@ upstream:
   max_idle_conns: 100
 
 observability:
+  # loggergo settings
   log_level: info
-  log_format: json
+  log_format: json  # json or text
+  
+  # otelgo settings
   otel_enabled: true
   otel_endpoint: http://otel-collector:4318
+  otel_service_name: keyline
+  otel_service_version: ${VERSION}
+  otel_environment: production
+  otel_trace_ratio: 1.0  # 0.0 to 1.0 (1.0 = 100% sampling)
+  
+  # Metrics
   metrics_enabled: true

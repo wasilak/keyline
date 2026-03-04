@@ -2,9 +2,9 @@
 
 ## Overview
 
-This implementation plan converts the Keyline design into actionable coding tasks following a 6-phase approach. The implementation leverages existing elastauth infrastructure (Echo, Viper, Redis, OpenTelemetry) and builds a unified authentication proxy supporting dual authentication modes (OIDC + Basic Auth) and three deployment modes (forwardAuth, auth_request, standalone proxy).
+This implementation plan converts the Keyline design into actionable coding tasks following a 6-phase approach. The implementation uses modern Go observability libraries (loggergo, otelgo, cachego) and builds a unified authentication proxy supporting dual authentication modes (OIDC + Basic Auth) and three deployment modes (forwardAuth, auth_request, standalone proxy).
 
-**Technology Stack**: Go 1.26+, Echo v4, Viper, Redis, coreos/go-oidc, gopter (property testing)
+**Technology Stack**: Go 1.22+, Echo v4, Viper, cachego, loggergo, otelgo, slog-echo, otelecho, coreos/go-oidc, gopter (property testing)
 
 **Implementation Timeline**: 4 weeks (6 phases)
 
@@ -13,15 +13,16 @@ This implementation plan converts the Keyline design into actionable coding task
 - [-] 1. Phase 1: Core Infrastructure Setup (Week 1)
   - [x] 1.1 Initialize Go project structure and dependencies
     - Create project directory structure (cmd/, internal/, pkg/, integration/, docs/)
-    - Initialize go.mod with Go 1.26+ and required dependencies
-    - Add dependencies: Echo v4, Viper, Redis client, coreos/go-oidc, gopter, OpenTelemetry, Prometheus client
+    - Initialize go.mod with Go 1.22+ and required dependencies
+    - Add dependencies: Echo v4, Viper, cachego, loggergo, otelgo, slog-echo, otelecho, coreos/go-oidc, gopter
     - Create Makefile with build, test, lint, and run targets
     - _Requirements: All requirements (foundation)_
 
   - [x] 1.2 Implement configuration types and schema
     - Create internal/config/config.go with all configuration structs
-    - Define ServerConfig, OIDCConfig, LocalUsersConfig, SessionConfig, ElasticsearchConfig, UpstreamConfig, ObservabilityConfig
+    - Define ServerConfig, OIDCConfig, LocalUsersConfig, SessionConfig, CacheConfig, ElasticsearchConfig, UpstreamConfig, ObservabilityConfig
     - Add struct tags for Viper mapstructure binding
+    - Add otelgo-specific fields (service_name, service_version, environment, trace_ratio)
     - _Requirements: 12.1, 12.5, 20.1_
 
   - [x] 1.3 Implement configuration loader with environment variable substitution
@@ -38,6 +39,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Validate password_bcrypt values are valid bcrypt hashes
     - Validate redirect_url is valid HTTPS URL
     - Validate at least one authentication method is enabled
+    - Validate cache backend configuration (redis_url if backend=redis)
     - Return descriptive errors for each validation failure
     - _Requirements: 12.5, 12.6, 12.7, 12.8, 12.9, 12.10, 12.11, 17.1, 20.2, 20.3, 20.4, 20.5, 20.6, 20.7, 20.8, 20.9_
 
@@ -55,52 +57,54 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify substitution works correctly
     - Verify missing variables cause startup failure
 
-  - [x] 1.7 Implement structured logging setup
-    - Create internal/observability/logger.go with NewLogger function
-    - Configure log/slog with JSON or text format based on config
-    - Set log level from configuration (debug, info, warn, error)
-    - Add context fields helper functions
-    - _Requirements: 14.1, 14.7, 14.8, 14.9_
+  - [ ] 1.7 Initialize observability with loggergo and otelgo
+    - Initialize loggergo in main.go with config values (log_level, log_format)
+    - Initialize otelgo if otel_enabled=true with OTLP exporter
+    - Store shutdown function for graceful cleanup
+    - Set global slog logger for use throughout application
+    - Configure trace provider with service name, version, environment
+    - _Requirements: 14.1, 14.7, 14.8, 14.9, 19.1, 19.8, 19.9_
 
-  - [x] 1.8 Implement SessionStore interface and in-memory implementation
-    - Create internal/session/store.go with SessionStore interface
-    - Define Session struct with all required fields
-    - Create internal/session/store_memory.go with InMemorySessionStore
-    - Implement Create, Get, Delete, Cleanup, Health methods
-    - Use sync.RWMutex for thread-safe map access
-    - Implement background cleanup goroutine for expired sessions (every 5 minutes)
-    - _Requirements: 4.2, 4.5, 4.6, 4.7, 4.10, 17.4_
+  - [ ] 1.8 Initialize cachego backend
+    - Create internal/cache/cache.go with InitCache function
+    - Initialize Redis backend if cache.backend=redis
+    - Initialize memory backend if cache.backend=memory
+    - Return cachego.Cache interface
+    - Test connection and return error if initialization fails
+    - _Requirements: 16.1, 16.2, 16.9, 17.1_
 
-  - [x] 1.9 Implement Redis SessionStore implementation
-    - Create internal/session/store_redis.go with RedisSessionStore
-    - Connect to Redis using configured redis_url, password, and db
-    - Implement Create with JSON serialization and TTL
-    - Implement Get with JSON deserialization
-    - Implement Delete to remove Redis key
-    - Implement Health to ping Redis
-    - Use connection pooling (min 5, max 20 connections)
-    - _Requirements: 4.9, 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.9_
-
-  - [ ]* 1.10 Write property test for Redis session serialization
-    - **Property 19: Redis Session Serialization Round-Trip**
+  - [ ]* 1.9 Write property test for cache serialization
+    - **Property 19: Cache Serialization Round-Trip**
     - **Validates: Requirements 16.3, 16.5**
-    - Generate random sessions
-    - Verify serialize-deserialize produces equivalent session
-    - Test with gopter minimum 100 iterations
+    - Generate random sessions and state tokens
+    - Verify serialize-deserialize produces equivalent objects
+    - Test with both memory and Redis backends
+    - Use gopter minimum 100 iterations
 
-  - [ ]* 1.11 Write property test for Redis TTL consistency
-    - **Property 20: Redis Key TTL Consistency**
+  - [ ]* 1.10 Write property test for cache TTL consistency
+    - **Property 20: Cache Key TTL Consistency**
     - **Validates: Requirements 16.4, 16.8**
     - Generate random sessions with various TTLs
-    - Verify Redis key TTL matches session expiration
+    - Verify cache key TTL matches session expiration
     - Verify state tokens have 5-minute TTL
+    - Test with Redis backend
 
-  - [x] 1.12 Implement StateTokenStore interface and implementations
-    - Create internal/state/store.go with StateTokenStore interface
-    - Define StateToken struct with ID, OriginalURL, CodeVerifier, CreatedAt, Used
-    - Create internal/state/store_memory.go with InMemoryStateTokenStore
-    - Create internal/state/store_redis.go with RedisStateTokenStore
-    - Use "state:" key prefix for Redis
+  - [ ] 1.11 Implement session operations using cachego
+    - Create internal/session/session.go with session helper functions
+    - Implement CreateSession(ctx, cache, session) with manual span
+    - Implement GetSession(ctx, cache, sessionID) with manual span
+    - Implement DeleteSession(ctx, cache, sessionID) with manual span
+    - Use slog.InfoContext(ctx, ...) for all logging
+    - Serialize sessions to JSON with key prefix "session:"
+    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
+
+  - [ ] 1.12 Implement state token operations using cachego
+    - Create internal/state/state.go with state token helper functions
+    - Implement StoreStateToken(ctx, cache, token) with manual span
+    - Implement GetStateToken(ctx, cache, tokenID) with manual span (marks as used)
+    - Implement DeleteStateToken(ctx, cache, tokenID) with manual span
+    - Use slog.InfoContext(ctx, ...) for all logging
+    - Serialize tokens to JSON with key prefix "state:"
     - Set 5-minute TTL for all state tokens
     - _Requirements: 3.2, 3.5, 3.7, 3.8, 16.7, 16.8_
 
@@ -109,7 +113,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - **Validates: Requirements 3.5, 3.6, 3.7, 3.8, 13.14, 13.15**
     - Generate random state tokens
     - Verify first use succeeds, second use fails
-    - Test with both memory and Redis stores
+    - Test with both memory and Redis backends
 
   - [ ]* 1.14 Write property test for state token lifecycle
     - **Property 2: State Token Lifecycle**
@@ -118,19 +122,22 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify 5-minute TTL, cryptographic randomness (32 bytes)
     - Verify deletion after use or expiration
 
-  - [x] 1.15 Implement basic HTTP server with Echo
+  - [ ] 1.15 Implement basic HTTP server with Echo and middleware
     - Create internal/server/server.go with Server struct
-    - Initialize Echo instance with middleware (logger, recover, CORS)
+    - Initialize Echo instance
+    - Add otelecho middleware for automatic request tracing
+    - Add slog-echo middleware for automatic request logging
+    - Add middleware: RequestID, Recover, CORS
     - Configure read/write timeouts from config
     - Implement graceful shutdown with 30-second timeout
     - Add signal handling for SIGTERM and SIGINT
-    - _Requirements: 15.9, 15.10_
+    - _Requirements: 15.9, 15.10, 19.2, 19.3, 19.7_
 
-  - [x] 1.16 Implement health check endpoint
+  - [ ] 1.16 Implement health check endpoint
     - Create /healthz endpoint handler
     - Return 200 with JSON {status: "healthy", version: "x.y.z"}
-    - Check session store accessibility
-    - Return 503 if session store unavailable
+    - Check cache accessibility using cache.Exists(ctx, "healthcheck")
+    - Return 503 if cache unavailable
     - Endpoint requires no authentication
     - _Requirements: 11.1, 11.2, 11.3, 11.4_
 

@@ -69,10 +69,12 @@ func substituteEnvVars(cfg *Config) error {
 	if err := substituteString(&cfg.Session.SessionSecret); err != nil {
 		return err
 	}
-	if err := substituteString(&cfg.Session.RedisURL); err != nil {
+
+	// Cache config
+	if err := substituteString(&cfg.Cache.RedisURL); err != nil {
 		return err
 	}
-	if err := substituteString(&cfg.Session.RedisPassword); err != nil {
+	if err := substituteString(&cfg.Cache.RedisPassword); err != nil {
 		return err
 	}
 
