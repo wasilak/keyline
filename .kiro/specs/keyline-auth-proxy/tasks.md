@@ -133,7 +133,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Add signal handling for SIGTERM and SIGINT
     - _Requirements: 15.9, 15.10, 19.2, 19.3, 19.7_
 
-  - [ ] 1.16 Implement health check endpoint
+  - [x] 1.16 Implement health check endpoint
     - Create /healthz endpoint handler
     - Return 200 with JSON {status: "healthy", version: "x.y.z"}
     - Check cache accessibility using cache.Exists(ctx, "healthcheck")

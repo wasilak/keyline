@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	slogecho "github.com/samber/slog-echo"
+	"github.com/wasilak/cachego"
 	"github.com/yourusername/keyline/internal/config"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"go.opentelemetry.io/otel"
@@ -19,10 +20,11 @@ type Server struct {
 	echo    *echo.Echo
 	config  *config.Config
 	version string
+	cache   cachego.CacheInterface
 }
 
 // New creates a new server instance
-func New(cfg *config.Config, version string) (*Server, error) {
+func New(cfg *config.Config, version string, cache cachego.CacheInterface) (*Server, error) {
 	// Create Echo instance
 	e := echo.New()
 	e.HideBanner = true
@@ -57,6 +59,7 @@ func New(cfg *config.Config, version string) (*Server, error) {
 		echo:    e,
 		config:  cfg,
 		version: version,
+		cache:   cache,
 	}
 
 	// Register routes
@@ -85,12 +88,41 @@ func (s *Server) handleHealth(c echo.Context) error {
 	ctx, span := tracer.Start(ctx, "healthz")
 	defer span.End()
 
+	// Check cache accessibility
+	testKey := "healthcheck"
+	testValue := []byte("ok")
+
+	// Try to set and get a test value
+	if err := s.cache.Set(testKey, testValue); err != nil {
+		slog.ErrorContext(ctx, "Health check failed - cache unavailable",
+			slog.String("error", err.Error()),
+		)
+		return c.JSON(http.StatusServiceUnavailable, map[string]interface{}{
+			"status": "unhealthy",
+			"error":  "cache unavailable",
+		})
+	}
+
+	// Try to get the test value back
+	if _, found, err := s.cache.Get(testKey); err != nil || !found {
+		slog.ErrorContext(ctx, "Health check failed - cache read error",
+			slog.String("error", err.Error()),
+			slog.Bool("found", found),
+		)
+		return c.JSON(http.StatusServiceUnavailable, map[string]interface{}{
+			"status": "unhealthy",
+			"error":  "cache read error",
+		})
+	}
+
+	// Clean up test key (best effort)
+	_ = s.cache.Set(testKey, []byte{})
+
 	health := map[string]interface{}{
 		"status":  "healthy",
 		"version": s.version,
 	}
 
-	// TODO: Check cache accessibility
 	// TODO: Check OIDC provider health (if enabled)
 
 	slog.InfoContext(ctx, "Health check",

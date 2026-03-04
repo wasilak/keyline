@@ -12,6 +12,7 @@ import (
 
 	"github.com/wasilak/loggergo"
 	"github.com/wasilak/otelgo/tracing"
+	"github.com/yourusername/keyline/internal/cache"
 	"github.com/yourusername/keyline/internal/config"
 	"github.com/yourusername/keyline/internal/server"
 )
@@ -119,8 +120,15 @@ func main() {
 		}
 	}
 
+	// Initialize cache backend
+	cache, err := cache.InitCache(ctx, &cfg.Cache)
+	if err != nil {
+		logger.Error("Failed to initialize cache", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
 	// Create and start server
-	srv, err := server.New(cfg, version)
+	srv, err := server.New(cfg, version, cache)
 	if err != nil {
 		logger.Error("Failed to create server", slog.String("error", err.Error()))
 		os.Exit(1)
