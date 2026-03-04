@@ -334,3 +334,67 @@ func joinStrings(strs []string, sep string) string {
 	}
 	return result
 }
+
+// CallbackResult represents the result of processing an OIDC callback
+type CallbackResult struct {
+	StateToken   *state.Token
+	Code         string
+	Error        string
+	ErrorMessage string
+}
+
+// HandleCallback processes the OIDC callback
+func (p *OIDCProvider) HandleCallback(ctx context.Context, cachego cachego.CacheInterface, stateParam, code, errorParam, errorDesc string) (*CallbackResult, error) {
+	result := &CallbackResult{
+		Code:         code,
+		Error:        errorParam,
+		ErrorMessage: errorDesc,
+	}
+
+	// Check for error from OIDC provider
+	if errorParam != "" {
+		slog.WarnContext(ctx, "OIDC callback received error",
+			slog.String("error", errorParam),
+			slog.String("error_description", errorDesc),
+		)
+		return result, fmt.Errorf("OIDC provider error: %s - %s", errorParam, errorDesc)
+	}
+
+	// Validate state parameter
+	if stateParam == "" {
+		slog.WarnContext(ctx, "OIDC callback missing state parameter")
+		return result, fmt.Errorf("missing state parameter")
+	}
+
+	// Retrieve state token
+	token, err := state.GetStateToken(ctx, cachego, stateParam)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to retrieve state token",
+			slog.String("error", err.Error()),
+		)
+		return result, fmt.Errorf("failed to retrieve state token: %w", err)
+	}
+
+	if token == nil {
+		slog.WarnContext(ctx, "Invalid or expired state token",
+			slog.String("state_token_id", stateParam),
+		)
+		return result, fmt.Errorf("invalid or expired state token")
+	}
+
+	// State token is automatically marked as used and deleted by GetStateToken
+	result.StateToken = token
+
+	// Validate code parameter
+	if code == "" {
+		slog.WarnContext(ctx, "OIDC callback missing code parameter")
+		return result, fmt.Errorf("missing code parameter")
+	}
+
+	slog.InfoContext(ctx, "OIDC callback validated successfully",
+		slog.String("state_token_id", stateParam),
+		slog.String("original_url", token.OriginalURL),
+	)
+
+	return result, nil
+}
