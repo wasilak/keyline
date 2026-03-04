@@ -11,6 +11,7 @@ import (
 
 	"github.com/yourusername/keyline/internal/cache"
 	"github.com/yourusername/keyline/internal/config"
+	"gopkg.in/square/go-jose.v2"
 )
 
 // OIDCProvider implements OIDC authentication
@@ -38,6 +39,14 @@ func NewOIDCProvider(cfg *config.OIDCConfig) (*OIDCProvider, error) {
 	if err := provider.discover(context.Background()); err != nil {
 		return nil, fmt.Errorf("OIDC discovery failed: %w", err)
 	}
+
+	// Fetch and cache JWKS during initialization
+	if err := provider.fetchJWKS(context.Background()); err != nil {
+		return nil, fmt.Errorf("JWKS fetch failed: %w", err)
+	}
+
+	// Start background JWKS refresh goroutine
+	go provider.startJWKSRefresh()
 
 	return provider, nil
 }
@@ -137,4 +146,104 @@ func (p *OIDCProvider) fetchDiscoveryDocument(ctx context.Context, url string) (
 // GetDiscoveryDoc returns the cached discovery document
 func (p *OIDCProvider) GetDiscoveryDoc() *cache.DiscoveryDocument {
 	return p.cache.GetDiscoveryDoc()
+}
+
+// fetchJWKS fetches and caches the JWKS from the OIDC provider
+func (p *OIDCProvider) fetchJWKS(ctx context.Context) error {
+	doc := p.cache.GetDiscoveryDoc()
+	if doc == nil {
+		return fmt.Errorf("discovery document not loaded")
+	}
+
+	slog.InfoContext(ctx, "Fetching JWKS",
+		slog.String("jwks_uri", doc.JWKSURI),
+	)
+
+	var lastErr error
+
+	// Retry up to 3 times with exponential backoff
+	for attempt := 1; attempt <= 3; attempt++ {
+		jwks, err := p.fetchJWKSFromURL(ctx, doc.JWKSURI)
+		if err == nil {
+			// Cache JWKS with 24-hour expiry
+			p.cache.SetJWKS(jwks, 24*time.Hour)
+
+			slog.InfoContext(ctx, "JWKS fetched and cached successfully",
+				slog.Int("key_count", len(jwks.Keys)),
+			)
+
+			return nil
+		}
+
+		lastErr = err
+
+		if attempt < 3 {
+			// Exponential backoff: 1s, 2s, 4s
+			backoff := time.Duration(1<<uint(attempt-1)) * time.Second
+			slog.WarnContext(ctx, "JWKS fetch attempt failed, retrying",
+				slog.Int("attempt", attempt),
+				slog.Duration("backoff", backoff),
+				slog.String("error", err.Error()),
+			)
+			time.Sleep(backoff)
+		}
+	}
+
+	return fmt.Errorf("JWKS fetch failed after 3 attempts: %w", lastErr)
+}
+
+// fetchJWKSFromURL fetches JWKS from the given URL
+func (p *OIDCProvider) fetchJWKSFromURL(ctx context.Context, url string) (*jose.JSONWebKeySet, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := p.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch JWKS: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	jwks, err := cache.ParseJWKS(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse JWKS: %w", err)
+	}
+
+	return jwks, nil
+}
+
+// startJWKSRefresh starts a background goroutine to refresh JWKS every 24 hours
+func (p *OIDCProvider) startJWKSRefresh() {
+	ticker := time.NewTicker(24 * time.Hour)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		ctx := context.Background()
+
+		slog.InfoContext(ctx, "Starting JWKS background refresh")
+
+		if err := p.fetchJWKS(ctx); err != nil {
+			// Log warning but continue with cached JWKS
+			slog.WarnContext(ctx, "JWKS refresh failed, continuing with cached JWKS",
+				slog.String("error", err.Error()),
+			)
+		} else {
+			slog.InfoContext(ctx, "JWKS refresh successful")
+		}
+	}
+}
+
+// GetJWKS returns the cached JWKS
+func (p *OIDCProvider) GetJWKS() (*jose.JSONWebKeySet, bool) {
+	return p.cache.GetJWKS()
 }

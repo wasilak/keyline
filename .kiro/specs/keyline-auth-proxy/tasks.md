@@ -169,7 +169,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Generate discovery documents with various issuer values
     - Verify mismatch causes startup failure
 
-  - [ ] 3.4 Implement JWKS fetching and caching
+  - [x] 3.4 Implement JWKS fetching and caching
     - Fetch JWKS from jwks_uri during initialization
     - Parse and cache public keys for signature verification
     - Implement background refresh every 24 hours
