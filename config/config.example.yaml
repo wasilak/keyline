@@ -1,31 +1,89 @@
+# Keyline Authentication Proxy - Example Configuration
+# 
+# This file demonstrates all available configuration options for Keyline.
+# Environment variables can be substituted using ${VAR_NAME} syntax.
+# 
+# For production use:
+# 1. Copy this file to config.yaml
+# 2. Set all required environment variables
+# 3. Adjust settings for your environment
+# 4. Validate with: keyline --validate-config
+
+# ============================================================================
+# Server Configuration
+# ============================================================================
 server:
+  # Port to listen on (default: 9000)
   port: 9000
-  mode: forward_auth  # forward_auth or standalone
+  
+  # Deployment mode:
+  # - forward_auth: For use with Traefik/Nginx ForwardAuth
+  # - standalone: Standalone reverse proxy mode
+  mode: forward_auth
+  
+  # HTTP timeouts
   read_timeout: 30s
   write_timeout: 30s
+  
+  # Maximum concurrent requests (0 = unlimited)
+  # Requests exceeding this limit receive 503 Service Unavailable
   max_concurrent: 1000
 
+# ============================================================================
+# OIDC Authentication Configuration
+# ============================================================================
 oidc:
+  # Enable OIDC authentication
   enabled: true
+  
+  # OIDC provider issuer URL (e.g., https://accounts.google.com)
+  # Must be HTTPS for security
   issuer_url: ${OIDC_ISSUER_URL}
+  
+  # OAuth2 client credentials
   client_id: ${OIDC_CLIENT_ID}
   client_secret: ${OIDC_CLIENT_SECRET}
+  
+  # Redirect URL for OAuth2 callback
+  # Must match the redirect URI configured in your OIDC provider
   redirect_url: https://auth.example.com/auth/callback
+  
+  # OAuth2 scopes to request
   scopes:
     - openid
     - email
     - profile
+  
+  # Claim-based ES user mappings
+  # Evaluated in order - first match wins
+  # Supports wildcard patterns with *
   mappings:
     - claim: email
       pattern: "*@admin.example.com"
       es_user: admin
     - claim: email
+      pattern: "john.doe@example.com"
+      es_user: superuser
+    - claim: email
       pattern: "*@example.com"
       es_user: readonly
+    - claim: groups
+      pattern: "elasticsearch-admins"
+      es_user: admin
+  
+  # Default ES user if no mappings match
   default_es_user: readonly
 
+# ============================================================================
+# Local Users Configuration (Basic Auth)
+# ============================================================================
 local_users:
+  # Enable local user authentication
+  # Useful for service accounts, CI/CD, monitoring
   enabled: true
+  
+  # Local user definitions
+  # Generate bcrypt hashes with: htpasswd -bnBC 10 "" password | tr -d ':\n'
   users:
     - username: ci-pipeline
       password_bcrypt: ${CI_PASSWORD_BCRYPT}
@@ -34,20 +92,51 @@ local_users:
       password_bcrypt: ${MONITORING_PASSWORD_BCRYPT}
       es_user: monitoring_user
 
+# ============================================================================
+# Session Management Configuration
+# ============================================================================
 session:
+  # Session time-to-live (duration format: 1h, 30m, 24h)
   ttl: 24h
+  
+  # Session cookie name
   cookie_name: keyline_session
+  
+  # Cookie domain (use .example.com for subdomain sharing)
   cookie_domain: .example.com
+  
+  # Cookie path
   cookie_path: /
+  
+  # Session secret for cookie signing (minimum 32 bytes)
+  # Generate with: openssl rand -base64 32
   session_secret: ${SESSION_SECRET}
 
+# ============================================================================
+# Cache Backend Configuration
+# ============================================================================
 cache:
-  backend: redis  # redis or memory
+  # Cache backend: redis or memory
+  # Use redis for production (session persistence across restarts)
+  # Use memory for development/testing
+  backend: redis
+  
+  # Redis connection URL
+  # Format: redis://[:password@]host[:port][/database]
   redis_url: ${REDIS_URL}
+  
+  # Redis password (if not included in redis_url)
   redis_password: ${REDIS_PASSWORD}
+  
+  # Redis database number (0-15)
   redis_db: 0
 
+# ============================================================================
+# Elasticsearch Credentials Configuration
+# ============================================================================
 elasticsearch:
+  # ES user credentials for credential mapping
+  # These are the actual ES users that will be used to authenticate to ES
   users:
     - username: admin
       password: ${ES_ADMIN_PASSWORD}
@@ -58,23 +147,99 @@ elasticsearch:
     - username: monitoring_user
       password: ${ES_MONITORING_PASSWORD}
 
+# ============================================================================
+# Upstream Configuration (Standalone Mode Only)
+# ============================================================================
 upstream:
+  # Upstream service URL (e.g., Kibana, Elasticsearch)
   url: http://kibana:5601
+  
+  # Request timeout
   timeout: 30s
+  
+  # Maximum idle connections in pool
   max_idle_conns: 100
 
+# ============================================================================
+# Observability Configuration
+# ============================================================================
 observability:
-  # loggergo settings
-  log_level: info
+  # Logging configuration (loggergo)
+  log_level: info  # debug, info, warn, error
   log_format: json  # json or text
   
-  # otelgo settings
+  # OpenTelemetry configuration (otelgo)
   otel_enabled: true
   otel_endpoint: http://otel-collector:4318
   otel_service_name: keyline
   otel_service_version: ${VERSION}
   otel_environment: production
-  otel_trace_ratio: 1.0  # 0.0 to 1.0 (1.0 = 100% sampling)
   
-  # Metrics
+  # Trace sampling ratio (0.0 to 1.0)
+  # 1.0 = 100% sampling (all requests traced)
+  # 0.1 = 10% sampling (1 in 10 requests traced)
+  otel_trace_ratio: 1.0
+  
+  # Prometheus metrics
   metrics_enabled: true
+
+# ============================================================================
+# Example Configurations for Different Scenarios
+# ============================================================================
+
+# Example 1: ForwardAuth with Traefik
+# -------------------------------------
+# server:
+#   mode: forward_auth
+# 
+# Traefik configuration:
+# http:
+#   middlewares:
+#     keyline-auth:
+#       forwardAuth:
+#         address: http://keyline:9000
+#         authResponseHeaders:
+#           - X-Es-Authorization
+
+# Example 2: Standalone Proxy for Kibana
+# ---------------------------------------
+# server:
+#   mode: standalone
+# upstream:
+#   url: http://kibana:5601
+
+# Example 3: OIDC with Google
+# ----------------------------
+# oidc:
+#   enabled: true
+#   issuer_url: https://accounts.google.com
+#   client_id: your-client-id.apps.googleusercontent.com
+#   client_secret: ${GOOGLE_CLIENT_SECRET}
+#   redirect_url: https://auth.example.com/auth/callback
+#   scopes:
+#     - openid
+#     - email
+#     - profile
+
+# Example 4: Memory Cache for Development
+# ----------------------------------------
+# cache:
+#   backend: memory
+
+# Example 5: Multiple OIDC Claim Mappings
+# ----------------------------------------
+# oidc:
+#   mappings:
+#     - claim: email
+#       pattern: "*@admin.example.com"
+#       es_user: admin
+#     - claim: groups
+#       pattern: "elasticsearch-admins"
+#       es_user: admin
+#     - claim: department
+#       pattern: "engineering"
+#       es_user: developer
+#     - claim: email
+#       pattern: "*"
+#       es_user: readonly
+
