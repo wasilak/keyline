@@ -28,15 +28,15 @@ func createTestCache() cachego.CacheInterface {
 func createTestContext(method, path string, headers map[string]string) (echo.Context, *httptest.ResponseRecorder) {
 	e := echo.New()
 	req := httptest.NewRequest(method, path, nil)
-	
+
 	// Add headers
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
-	
+
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	
+
 	return c, rec
 }
 
@@ -50,11 +50,11 @@ func createMockAuthEngine(authenticated bool, redirectURL string, statusCode int
 			Enabled: false,
 		},
 	}
-	
+
 	cache := createTestCache()
-	
+
 	engine, _ := auth.NewEngine(cfg, cache, nil)
-	
+
 	return engine
 }
 
@@ -398,7 +398,7 @@ func TestStandaloneBuildOriginalURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest("GET", tt.path+tt.query, nil)
 			req.Host = tt.host
-			
+
 			// Simulate TLS for HTTPS
 			if tt.scheme == "https" {
 				req.TLS = &tls.ConnectionState{}

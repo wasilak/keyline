@@ -624,7 +624,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Test in-memory store cleanup
     - _Requirements: 4.1-4.10_
 
-  - [ ] 11.5 Write unit tests for ES credential mapper
+  - [x] 11.5 Write unit tests for ES credential mapper
     - Test OIDC claim extraction
     - Test wildcard pattern matching
     - Test mapping evaluation order
@@ -634,7 +634,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Test missing credentials error
     - _Requirements: 6.1-6.12_
 
-  - [ ] 11.6 Write unit tests for transport adapters
+  - [x] 11.6 Write unit tests for transport adapters
     - Test header normalization (Traefik and Nginx)
     - Test ForwardAuth response format
     - Test standalone proxy request preservation
@@ -642,14 +642,14 @@ This implementation plan converts the Keyline design into actionable coding task
     - Test upstream error handling
     - _Requirements: 7.1-7.8, 8.1-8.6, 9.1-9.14_
 
-  - [ ] 11.7 Write unit tests for logout functionality
+  - [x] 11.7 Write unit tests for logout functionality
     - Test logout with valid session
     - Test logout without session
     - Test cookie clearing
     - Test OIDC provider logout redirect
     - _Requirements: 10.1-10.6_
 
-  - [ ] 11.8 Write unit tests for health check endpoint
+  - [x] 11.8 Write unit tests for health check endpoint
     - Test healthy response
     - Test unhealthy session store
     - Test unhealthy OIDC (discovery not loaded)
