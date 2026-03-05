@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  keyline:
+    image: keyline:latest
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./config/test-config-forwardauth.yaml:/etc/keyline/config.yaml
+    command: ["--config", "/etc/keyline/config.yaml"]
+
+  traefik:
+    image: traefik:v2.10
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik.yaml:/etc/traefik/traefik.yaml
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+
+  whoami:
+    image: traefik/whoami
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.localhost`)"
+      - "traefik.http.routers.whoami.middlewares=keyline-auth"
+      - "traefik.http.middlewares.keyline-auth.forwardauth.address=http://keyline:9000"
+      - "traefik.http.middlewares.keyline-auth.forwardauth.authResponseHeaders=X-Es-Authorization"

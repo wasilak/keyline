@@ -1,0 +1,41 @@
+server:
+  port: 9000
+  mode: standalone
+  read_timeout: 30s
+  write_timeout: 30s
+  max_concurrent: 1000
+
+local_users:
+  enabled: true
+  users:
+    - username: testuser
+      password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy  # password: "password"
+      es_user: test_es_user
+
+oidc:
+  enabled: false
+
+session:
+  ttl: 24h
+  cookie_name: keyline_session
+  cookie_domain: localhost
+  cookie_path: /
+  session_secret: this-is-a-test-secret-at-least-32-bytes-long
+
+cache:
+  backend: memory
+
+elasticsearch:
+  users:
+    - username: test_es_user
+      password: test_password
+
+upstream:
+  url: http://httpbin.org  # Using httpbin as a test upstream
+  timeout: 30s
+  max_idle_conns: 100
+
+observability:
+  log_level: info
+  log_format: text
+  otel_enabled: false
