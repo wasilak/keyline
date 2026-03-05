@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build artifacts
+bin/
+keyline
+*.exe
+
+# Test files
+*_test.go
+integration/
+
+# CI/CD
+.github/
+
+# Kiro
+.kiro/
+
+# Misc
+.DS_Store
+*.log
