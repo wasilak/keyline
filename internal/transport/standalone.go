@@ -16,6 +16,7 @@ import (
 	"github.com/wasilak/cachego"
 	"github.com/yourusername/keyline/internal/auth"
 	"github.com/yourusername/keyline/internal/config"
+	"go.opentelemetry.io/otel"
 )
 
 // StandaloneProxyAdapter handles standalone proxy mode
@@ -128,6 +129,14 @@ func (a *StandaloneProxyAdapter) HandleRequest(c echo.Context) error {
 		slog.String("es_user", result.ESUser),
 		slog.String("upstream", a.upstreamURL.String()),
 	)
+
+	// Create span for upstream proxy request
+	tracer := otel.Tracer("keyline")
+	ctx, span := tracer.Start(ctx, "keyline.proxy.request")
+	defer span.End()
+
+	// Update request context with span
+	c.SetRequest(c.Request().WithContext(ctx))
 
 	// Add X-Es-Authorization header
 	c.Request().Header.Set("X-Es-Authorization", result.ESAuthHeader)

@@ -18,6 +18,7 @@ import (
 	"github.com/yourusername/keyline/internal/session"
 	"github.com/yourusername/keyline/internal/state"
 	pkgcrypto "github.com/yourusername/keyline/pkg/crypto"
+	"go.opentelemetry.io/otel"
 	"gopkg.in/square/go-jose.v2"
 )
 
@@ -122,6 +123,11 @@ func (p *OIDCProvider) discover(ctx context.Context) error {
 
 // fetchDiscoveryDocument fetches the discovery document from the OIDC provider
 func (p *OIDCProvider) fetchDiscoveryDocument(ctx context.Context, url string) (*cache.DiscoveryDocument, error) {
+	// Create span for discovery document fetch
+	tracer := otel.Tracer("keyline")
+	ctx, span := tracer.Start(ctx, "keyline.oidc.discovery")
+	defer span.End()
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -226,6 +232,11 @@ func (p *OIDCProvider) fetchJWKS(ctx context.Context) error {
 
 // fetchJWKSFromURL fetches JWKS from the given URL
 func (p *OIDCProvider) fetchJWKSFromURL(ctx context.Context, url string) (*jose.JSONWebKeySet, error) {
+	// Create span for JWKS fetch
+	tracer := otel.Tracer("keyline")
+	ctx, span := tracer.Start(ctx, "keyline.oidc.jwks")
+	defer span.End()
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -438,6 +449,11 @@ type TokenResponse struct {
 
 // ExchangeToken exchanges an authorization code for tokens
 func (p *OIDCProvider) ExchangeToken(ctx context.Context, code, codeVerifier string) (*TokenResponse, error) {
+	// Create span for token exchange
+	tracer := otel.Tracer("keyline")
+	ctx, span := tracer.Start(ctx, "keyline.oidc.token")
+	defer span.End()
+
 	doc := p.cache.GetDiscoveryDoc()
 	if doc == nil {
 		return nil, fmt.Errorf("discovery document not loaded")
