@@ -509,8 +509,8 @@ This implementation plan converts the Keyline design into actionable coding task
 - [ ] 8. Checkpoint - Phase 4 Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Phase 5: Observability (Week 3)
-  - [ ] 9.1 Implement Prometheus metrics
+- [-] 9. Phase 5: Observability (Week 3)
+  - [x] 9.1 Implement Prometheus metrics
     - Create internal/observability/metrics.go with metrics definitions
     - Add counter for authentication attempts (labels: method, result)
     - Add histogram for authentication request duration (labels: method)
@@ -522,32 +522,32 @@ This implementation plan converts the Keyline design into actionable coding task
     - Add counter for errors (labels: error_type)
     - _Requirements: 18.2, 18.3, 18.4, 18.5, 18.6, 18.7, 18.8, 18.9_
 
-  - [ ] 9.2 Implement /metrics endpoint
+  - [x] 9.2 Implement /metrics endpoint
     - Create /metrics endpoint handler
     - Expose Prometheus metrics in text format
     - Endpoint requires no authentication
     - _Requirements: 18.1, 18.10_
 
-  - [ ] 9.3 Implement OpenTelemetry tracing initialization
+  - [x] 9.3 Implement OpenTelemetry tracing initialization
     - Create internal/observability/tracing.go with InitTracer function
     - Initialize OTLP exporter with configured endpoint
     - Configure trace provider with W3C Trace Context propagation
     - Return no-op tracer if initialization fails (log warning)
     - _Requirements: 19.1, 19.8, 19.9_
 
-  - [ ] 9.4 Implement request tracing spans
+  - [x] 9.4 Implement request tracing spans
     - Create span for each incoming request (name: "keyline.request")
     - Add span attributes: http.method, http.url, http.status_code, auth.method, auth.result
     - Propagate trace context using W3C Trace Context headers
     - _Requirements: 19.2, 19.3, 19.7_
 
-  - [ ] 9.5 Implement child spans for operations
+  - [x] 9.5 Implement child spans for operations
     - Create child span for OIDC provider requests (name: "keyline.oidc.{endpoint}")
     - Create child span for SessionStore operations (name: "keyline.session.{operation}")
     - Create child span for upstream proxy requests (name: "keyline.proxy.request")
     - _Requirements: 19.4, 19.5, 19.6_
 
-  - [ ] 9.6 Enhance structured logging with context fields
+  - [x] 9.6 Enhance structured logging with context fields
     - Add authentication event logging with username, method, source_ip, result
     - Add OIDC flow event logging with state_token_id, callback_result, error_details
     - Add session event logging with hashed session_id, action, username
@@ -556,26 +556,26 @@ This implementation plan converts the Keyline design into actionable coding task
     - Never log sensitive values (passwords, tokens, credentials, full session IDs)
     - _Requirements: 14.2, 14.3, 14.4, 14.5, 14.6, 14.10_
 
-  - [ ] 9.7 Implement error handling with structured logging
+  - [x] 9.7 Implement error handling with structured logging
     - Log session store failures at ERROR level with service unavailable response
     - Log OIDC provider failures at ERROR level with appropriate response
     - Log configuration errors at ERROR level during startup
     - Log unexpected errors at ERROR level with stack trace
     - _Requirements: 15.1, 15.2, 15.3, 15.8_
 
-  - [ ] 9.8 Implement concurrent request limiting
+  - [x] 9.8 Implement concurrent request limiting
     - Add middleware to track concurrent requests
     - Limit to configured max_concurrent (default 1000)
     - Return 503 "Server overloaded" when limit reached
     - Update concurrent requests gauge metric
     - _Requirements: 17.5, 17.6_
 
-  - [ ] 9.9 Implement request body size limiting
+  - [x] 9.9 Implement request body size limiting
     - Add middleware to limit request body size to 1MB
     - Return 413 "Request too large" if exceeded
     - _Requirements: 17.9, 17.10_
 
-  - [ ] 9.10 Implement HTTPS enforcement for OIDC provider
+  - [x] 9.10 Implement HTTPS enforcement for OIDC provider
     - Configure HTTP client for OIDC provider with TLS certificate validation
     - Use HTTPS for all OIDC provider requests (token_endpoint, userinfo_endpoint, jwks_uri)
     - Fail requests if TLS validation fails
@@ -588,18 +588,18 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify all use HTTPS
     - Verify TLS certificate validation enabled
 
-- [ ] 10. Checkpoint - Phase 5 Complete
+- [x] 10. Checkpoint - Phase 5 Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 11. Phase 6: Testing & Documentation (Week 4)
-  - [ ] 11.1 Write unit tests for configuration loading
+- [-] 11. Phase 6: Testing & Documentation (Week 4)
+  - [x] 11.1 Write unit tests for configuration loading
     - Test configuration file loading
     - Test environment variable substitution
     - Test missing environment variable handling
     - Test configuration validation for all error cases
     - _Requirements: 12.1-12.11, 20.1-20.9_
 
-  - [ ] 11.2 Write unit tests for OIDC provider
+  - [x] 11.2 Write unit tests for OIDC provider
     - Test discovery document fetch and validation
     - Test JWKS fetch and caching
     - Test authorization flow initiation
@@ -608,14 +608,14 @@ This implementation plan converts the Keyline design into actionable coding task
     - Test ID token validation failure
     - _Requirements: 1.1-1.7, 3.1-3.16_
 
-  - [ ] 11.3 Write unit tests for Basic Auth provider
+  - [x] 11.3 Write unit tests for Basic Auth provider
     - Test credential decoding
     - Test username lookup
     - Test password validation with bcrypt
     - Test invalid credentials handling
     - _Requirements: 5.1-5.9_
 
-  - [ ] 11.4 Write unit tests for session management
+  - [x] 11.4 Write unit tests for session management
     - Test session creation with cryptographic random ID
     - Test session validation with valid session
     - Test session validation with expired session

@@ -63,7 +63,7 @@ func GetSession(ctx context.Context, cache cachego.CacheInterface, sessionID str
 		return nil, fmt.Errorf("failed to retrieve session: %w", err)
 	}
 
-	if !found {
+	if !found || len(data) == 0 {
 		slog.InfoContext(ctx, "Session not found",
 			slog.String("session_id_hash", observability.HashSessionID(sessionID)),
 			slog.String("action", "not_found"),
