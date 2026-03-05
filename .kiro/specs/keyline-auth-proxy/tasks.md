@@ -141,7 +141,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Endpoint requires no authentication
     - _Requirements: 11.1, 11.2, 11.3, 11.4_
 
-- [ ] 2. Checkpoint - Phase 1 Complete
+- [x] 2. Checkpoint - Phase 1 Complete
   - Ensure all tests pass, ask the user if questions arise.
 
 
@@ -358,7 +358,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Generate random authenticated users (OIDC and Basic)
     - Verify ES user mapping, credential retrieval, encoding, header injection
 
-- [ ] 6. Checkpoint - Phase 3 Complete
+- [x] 6. Checkpoint - Phase 3 Complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 7. Phase 4: Transport Adapters (Week 3)
@@ -506,7 +506,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify subsequent requests treated as unauthenticated
 
 
-- [ ] 8. Checkpoint - Phase 4 Complete
+- [x] 8. Checkpoint - Phase 4 Complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [-] 9. Phase 5: Observability (Week 3)
@@ -655,7 +655,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Test unhealthy OIDC (discovery not loaded)
     - _Requirements: 11.1-11.6_
 
-  - [ ] 11.9 Write integration test for complete OIDC flow
+  - [x] 11.9 Write integration test for complete OIDC flow
     - Setup mock OIDC provider
     - Test unauthenticated request triggers redirect
     - Test callback with valid code creates session
@@ -664,7 +664,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Test logout clears session
     - _Requirements: 1.1-1.7, 3.1-3.16, 4.1-4.10, 10.1-10.6_
 
-  - [ ] 11.10 Write integration test for Basic Auth flow
+  - [x] 11.10 Write integration test for Basic Auth flow
     - Setup Keyline with local users
     - Test valid credentials authenticate successfully
     - Test invalid username returns 401
@@ -672,7 +672,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Test ES credential mapping
     - _Requirements: 5.1-5.9, 6.7-6.11_
 
-  - [ ] 11.11 Write integration test for ForwardAuth mode
+  - [x] 11.11 Write integration test for ForwardAuth mode
     - Setup Keyline in forwardAuth mode
     - Test with Traefik headers
     - Test with Nginx headers
@@ -681,7 +681,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Test callback handling
     - _Requirements: 7.1-7.8, 8.1-8.6_
 
-  - [ ] 11.12 Write integration test for standalone proxy mode
+  - [x] 11.12 Write integration test for standalone proxy mode
     - Setup Keyline in standalone mode with mock upstream
     - Test authenticated request is proxied
     - Test unauthenticated request triggers auth flow
@@ -690,7 +690,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Test WebSocket upgrade
     - _Requirements: 9.1-9.14_
 
-  - [ ] 11.13 Write integration test for Redis session store
+  - [x] 11.13 Write integration test for Redis session store
     - Setup Keyline with Redis (testcontainers)
     - Test session creation and retrieval
     - Test session expiration with TTL
@@ -698,21 +698,21 @@ This implementation plan converts the Keyline design into actionable coding task
     - Test connection failure handling
     - _Requirements: 16.1-16.10_
 
-  - [ ] 11.14 Write integration test for observability
+  - [x] 11.14 Write integration test for observability
     - Test Prometheus metrics are exposed
     - Test metrics are updated correctly
     - Test OpenTelemetry spans are created
     - Test structured logging includes context fields
     - _Requirements: 14.1-14.10, 18.1-18.10, 19.1-19.9_
 
-  - [ ] 11.15 Create example configuration file
+  - [x] 11.15 Create example configuration file
     - Create config/config.example.yaml with all configuration options
     - Include comments explaining each option
     - Show examples for OIDC, local users, Redis, standalone mode
     - Include environment variable placeholders
     - _Requirements: All configuration requirements_
 
-  - [ ] 11.16 Write deployment documentation
+  - [x] 11.16 Write deployment documentation
     - Create docs/deployment.md
     - Document Kubernetes deployment with Helm
     - Document Docker deployment
@@ -722,7 +722,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Include health check and readiness probe configuration
     - _Requirements: All deployment-related requirements_
 
-  - [ ] 11.17 Write configuration reference documentation
+  - [x] 11.17 Write configuration reference documentation
     - Create docs/configuration.md
     - Document all configuration options with types and defaults
     - Document environment variable substitution
@@ -731,7 +731,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Document deployment modes
     - _Requirements: 12.1-12.11, 20.1-20.12_
 
-  - [ ] 11.18 Write troubleshooting guide
+  - [x] 11.18 Write troubleshooting guide
     - Create docs/troubleshooting.md
     - Document common configuration errors
     - Document OIDC provider connection issues
@@ -740,7 +740,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Document logging and debugging tips
     - _Requirements: 14.1-14.10, 15.1-15.10_
 
-  - [ ] 11.19 Write README with quick start guide
+  - [x] 11.19 Write README with quick start guide
     - Create README.md with project overview
     - Document features and architecture
     - Provide quick start guide with Docker
@@ -749,7 +749,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Document building from source
     - _Requirements: All requirements (overview)_
 
-  - [ ] 11.20 Create Dockerfile with multi-stage build
+  - [x] 11.20 Create Dockerfile with multi-stage build
     - Create Dockerfile with Go build stage
     - Use minimal base image (alpine or distroless)
     - Copy binary and example config
@@ -758,45 +758,45 @@ This implementation plan converts the Keyline design into actionable coding task
     - Document build and run commands
     - _Requirements: Deployment requirements_
 
-  - [ ] 11.21 Create Makefile for common tasks
+  - [x] 11.21 Create Makefile for common tasks
     - Add targets: build, test, lint, run, docker-build, docker-run
     - Add target for running property tests
     - Add target for running integration tests
     - Add target for generating test coverage report
     - _Requirements: Development workflow_
 
-  - [ ] 11.22 Implement --validate-config flag
+  - [x] 11.22 Implement --validate-config flag
     - Add command-line flag to validate configuration without starting server
     - Load and validate configuration
     - Print validation results
     - Exit with code 0 on success, 1 on failure
     - _Requirements: 20.10, 20.11, 20.12_
 
-- [ ] 12. Checkpoint - Phase 6 Complete
+- [x] 12. Checkpoint - Phase 6 Complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 13. Final Integration and Verification
-  - [ ] 13.1 Run complete test suite
+  - [x] 13.1 Run complete test suite
     - Run all unit tests: `go test -v -race ./...`
     - Run all property tests: `go test -v -tags=property ./...`
     - Run all integration tests: `go test -v -tags=integration ./integration/...`
     - Verify all tests pass
     - Generate coverage report and verify >80% coverage
 
-  - [ ] 13.2 Build and test Docker image
+  - [x] 13.2 Build and test Docker image
     - Build Docker image: `docker build -t keyline:latest .`
     - Run container with example config
     - Verify health check endpoint responds
     - Verify metrics endpoint responds
     - Test with real OIDC provider (optional)
 
-  - [ ] 13.3 Verify all 23 correctness properties are tested
+  - [x] 13.3 Verify all 23 correctness properties are tested
     - Review property test coverage
     - Ensure all 23 properties from design document are implemented
     - Verify minimum 100 iterations per property test
     - Document any properties that cannot be tested and why
 
-  - [ ] 13.4 Manual testing with real services
+  - [x] 13.4 Manual testing with real services
     - Test OIDC flow with real OIDC provider (Okta, Auth0, etc.)
     - Test Basic Auth with real credentials
     - Test ForwardAuth mode with Traefik
@@ -806,7 +806,7 @@ This implementation plan converts the Keyline design into actionable coding task
     - Test logout functionality
     - Test graceful shutdown
 
-  - [ ] 13.5 Security review
+  - [x] 13.5 Security review
     - Verify no plaintext logging of sensitive values
     - Verify cryptographic randomness for tokens and session IDs
     - Verify bcrypt timing-safe password comparison
@@ -816,14 +816,14 @@ This implementation plan converts the Keyline design into actionable coding task
     - Verify PKCE implementation
     - Review error messages for information disclosure
 
-  - [ ] 13.6 Performance testing
+  - [x] 13.6 Performance testing
     - Test concurrent request handling
     - Test session store performance (memory and Redis)
     - Test OIDC provider request caching
     - Verify connection pooling works correctly
     - Test graceful degradation under load
 
-- [ ] 14. Final Checkpoint - Implementation Complete
+- [-] 14. Final Checkpoint - Implementation Complete
   - Ensure all tests pass, ask the user if questions arise.
 
 
