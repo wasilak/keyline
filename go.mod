@@ -1,6 +1,6 @@
 module github.com/yourusername/keyline
 
-go 1.25.4
+go 1.26
 
 require (
 	github.com/labstack/echo/v4 v4.15.1
