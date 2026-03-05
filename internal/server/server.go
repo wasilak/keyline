@@ -40,6 +40,8 @@ func New(cfg *config.Config, version string, cache cachego.CacheInterface, oidcP
 	// 1. otelecho - tracing middleware (first to capture everything)
 	if cfg.Observability.OTelEnabled {
 		e.Use(otelecho.Middleware(cfg.Observability.OTelServiceName))
+		// Add custom request tracing middleware for additional attributes
+		e.Use(observability.RequestTracingMiddleware())
 	}
 
 	// 2. slog-echo - logging middleware with trace correlation

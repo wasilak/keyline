@@ -5,6 +5,9 @@ import (
 	"sync/atomic"
 
 	"github.com/labstack/echo/v4"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // ConcurrentRequestLimiter creates middleware that limits concurrent requests
@@ -54,6 +57,81 @@ func RequestBodySizeLimiter(maxBytes int64) echo.MiddlewareFunc {
 			c.Request().Body = http.MaxBytesReader(c.Response(), c.Request().Body, maxBytes)
 
 			return next(c)
+		}
+	}
+}
+
+// AuthSpanEnhancer creates middleware that adds authentication attributes to the current span
+// This middleware should be placed after authentication has occurred
+func AuthSpanEnhancer() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Execute the handler first
+			err := next(c)
+
+			// Get the current span from context
+			span := trace.SpanFromContext(c.Request().Context())
+			if span.IsRecording() {
+				// Add authentication attributes if available
+				if authMethod := c.Get("auth_method"); authMethod != nil {
+					span.SetAttributes(attribute.String("auth.method", authMethod.(string)))
+				}
+				if authResult := c.Get("auth_result"); authResult != nil {
+					span.SetAttributes(attribute.String("auth.result", authResult.(string)))
+				}
+				if username := c.Get("username"); username != nil {
+					span.SetAttributes(attribute.String("auth.username", username.(string)))
+				}
+			}
+
+			return err
+		}
+	}
+}
+
+// RequestTracingMiddleware creates middleware that ensures proper span attributes
+// This complements otelecho middleware by adding custom attributes
+func RequestTracingMiddleware() echo.MiddlewareFunc {
+	tracer := otel.Tracer("keyline")
+
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			ctx := c.Request().Context()
+
+			// Create a child span for the request (otelecho already creates parent)
+			// This allows us to add custom attributes
+			ctx, span := tracer.Start(ctx, "keyline.request")
+			defer span.End()
+
+			// Update request context
+			c.SetRequest(c.Request().WithContext(ctx))
+
+			// Add standard HTTP attributes (otelecho does this too, but we ensure they're present)
+			span.SetAttributes(
+				attribute.String("http.method", c.Request().Method),
+				attribute.String("http.url", c.Request().URL.String()),
+				attribute.String("http.target", c.Request().URL.Path),
+				attribute.String("http.host", c.Request().Host),
+			)
+
+			// Execute handler
+			err := next(c)
+
+			// Add response status code
+			span.SetAttributes(attribute.Int("http.status_code", c.Response().Status))
+
+			// Add authentication attributes if available
+			if authMethod := c.Get("auth_method"); authMethod != nil {
+				span.SetAttributes(attribute.String("auth.method", authMethod.(string)))
+			}
+			if authResult := c.Get("auth_result"); authResult != nil {
+				span.SetAttributes(attribute.String("auth.result", authResult.(string)))
+			}
+			if username := c.Get("username"); username != nil {
+				span.SetAttributes(attribute.String("auth.username", username.(string)))
+			}
+
+			return err
 		}
 	}
 }
