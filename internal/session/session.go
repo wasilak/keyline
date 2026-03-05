@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/wasilak/cachego"
+	"github.com/yourusername/keyline/internal/observability"
 	"go.opentelemetry.io/otel"
 )
 
@@ -35,8 +36,10 @@ func CreateSession(ctx context.Context, cache cachego.CacheInterface, session *S
 	}
 
 	slog.InfoContext(ctx, "Session created",
+		slog.String("session_id_hash", observability.HashSessionID(session.ID)),
 		slog.String("username", session.Username),
 		slog.String("es_user", session.ESUser),
+		slog.String("action", "created"),
 		slog.Duration("ttl", time.Until(session.ExpiresAt)),
 	)
 
@@ -62,7 +65,8 @@ func GetSession(ctx context.Context, cache cachego.CacheInterface, sessionID str
 
 	if !found {
 		slog.InfoContext(ctx, "Session not found",
-			slog.String("session_id", sessionID),
+			slog.String("session_id_hash", observability.HashSessionID(sessionID)),
+			slog.String("action", "not_found"),
 		)
 		return nil, nil
 	}
@@ -75,15 +79,19 @@ func GetSession(ctx context.Context, cache cachego.CacheInterface, sessionID str
 	// Check if session is expired
 	if session.IsExpired() {
 		slog.InfoContext(ctx, "Session expired, deleting",
-			slog.String("session_id", sessionID),
+			slog.String("session_id_hash", observability.HashSessionID(sessionID)),
+			slog.String("username", session.Username),
+			slog.String("action", "expired"),
 		)
 		_ = DeleteSession(ctx, cache, sessionID)
 		return nil, nil
 	}
 
 	slog.InfoContext(ctx, "Session retrieved",
+		slog.String("session_id_hash", observability.HashSessionID(session.ID)),
 		slog.String("username", session.Username),
 		slog.String("es_user", session.ESUser),
+		slog.String("action", "validated"),
 	)
 
 	return &session, nil
@@ -108,7 +116,8 @@ func DeleteSession(ctx context.Context, cache cachego.CacheInterface, sessionID 
 	}
 
 	slog.InfoContext(ctx, "Session deleted",
-		slog.String("session_id", sessionID),
+		slog.String("session_id_hash", observability.HashSessionID(sessionID)),
+		slog.String("action", "deleted"),
 	)
 
 	return nil

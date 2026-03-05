@@ -11,6 +11,7 @@ import (
 	"github.com/wasilak/cachego"
 	"github.com/yourusername/keyline/internal/auth"
 	"github.com/yourusername/keyline/internal/config"
+	"github.com/yourusername/keyline/internal/observability"
 )
 
 // ForwardAuthAdapter handles Traefik/Nginx forwardAuth mode
@@ -70,6 +71,7 @@ func (a *ForwardAuthAdapter) HandleRequest(c echo.Context) error {
 		Cookies:             reqCtx.Cookies,
 		OriginalURL:         reqCtx.OriginalURL,
 		AuthorizationHeader: c.Request().Header.Get("Authorization"),
+		SourceIP:            observability.ExtractSourceIP(c.Request()),
 	}
 
 	// Delegate to auth engine

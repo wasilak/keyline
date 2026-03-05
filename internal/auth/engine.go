@@ -57,6 +57,7 @@ type EngineRequest struct {
 	Cookies             []*http.Cookie
 	OriginalURL         string
 	AuthorizationHeader string
+	SourceIP            string // Source IP address for logging
 }
 
 // EngineResult contains authentication result
@@ -80,6 +81,7 @@ func (e *Engine) Authenticate(ctx context.Context, req *EngineRequest) *EngineRe
 		slog.String("method", req.Method),
 		slog.String("path", req.Path),
 		slog.String("host", req.Host),
+		slog.String("source_ip", req.SourceIP),
 	)
 
 	// 1. Check session cookie first (highest precedence)
@@ -166,6 +168,9 @@ func (e *Engine) authenticateWithSession(ctx context.Context, req *EngineRequest
 
 	slog.InfoContext(ctx, "Session authentication successful",
 		slog.String("username", sess.Username),
+		slog.String("method", "session"),
+		slog.String("source_ip", req.SourceIP),
+		slog.String("result", "success"),
 		slog.String("es_user", sess.ESUser),
 	)
 
@@ -216,6 +221,9 @@ func (e *Engine) authenticateWithBasicAuth(ctx context.Context, req *EngineReque
 
 	slog.InfoContext(ctx, "Basic Auth authentication successful",
 		slog.String("username", authResult.Username),
+		slog.String("method", "basic"),
+		slog.String("source_ip", req.SourceIP),
+		slog.String("result", "success"),
 		slog.String("es_user", authResult.ESUser),
 	)
 

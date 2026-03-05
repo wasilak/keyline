@@ -16,6 +16,7 @@ import (
 	"github.com/wasilak/cachego"
 	"github.com/yourusername/keyline/internal/auth"
 	"github.com/yourusername/keyline/internal/config"
+	"github.com/yourusername/keyline/internal/observability"
 	"go.opentelemetry.io/otel"
 )
 
@@ -96,6 +97,7 @@ func (a *StandaloneProxyAdapter) HandleRequest(c echo.Context) error {
 		Cookies:             c.Request().Cookies(),
 		OriginalURL:         originalURL,
 		AuthorizationHeader: c.Request().Header.Get("Authorization"),
+		SourceIP:            observability.ExtractSourceIP(c.Request()),
 	}
 
 	// Authenticate request

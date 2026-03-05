@@ -87,6 +87,19 @@ func main() {
 		slog.String("log_format", cfg.Observability.LogFormat),
 	)
 
+	// Log configuration details
+	localUsersCount := 0
+	if cfg.LocalUsers.Enabled {
+		localUsersCount = len(cfg.LocalUsers.Users)
+	}
+	logger.Info("Configuration loaded",
+		slog.String("config_file", configFile),
+		slog.Bool("oidc_enabled", cfg.OIDC.Enabled),
+		slog.Int("local_users_count", localUsersCount),
+		slog.String("mode", cfg.Server.Mode),
+		slog.String("cache_backend", cfg.Cache.Backend),
+	)
+
 	// Initialize OpenTelemetry tracing with otelgo
 	var traceProvider interface{ Shutdown(context.Context) error }
 	if cfg.Observability.OTelEnabled {
