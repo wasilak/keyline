@@ -25,10 +25,11 @@ import (
 
 // OIDCProvider implements OIDC authentication
 type OIDCProvider struct {
-	config     *config.OIDCConfig
-	cache      *cache.OIDCCache
-	httpClient *http.Client
-	mapper     *mapper.CredentialMapper
+	config        *config.OIDCConfig
+	sessionConfig *config.SessionConfig
+	cache         *cache.OIDCCache
+	httpClient    *http.Client
+	mapper        *mapper.CredentialMapper
 }
 
 // NewOIDCProvider creates a new OIDC provider
@@ -47,10 +48,11 @@ func NewOIDCProvider(cfg *config.OIDCConfig, fullConfig *config.Config) (*OIDCPr
 	}
 
 	provider := &OIDCProvider{
-		config:     cfg,
-		cache:      cache.NewOIDCCache(),
-		httpClient: httpClient,
-		mapper:     mapper.NewCredentialMapper(fullConfig),
+		config:        cfg,
+		sessionConfig: &fullConfig.Session,
+		cache:         cache.NewOIDCCache(),
+		httpClient:    httpClient,
+		mapper:        mapper.NewCredentialMapper(fullConfig),
 	}
 
 	// Perform discovery during initialization
@@ -701,13 +703,25 @@ func (p *OIDCProvider) CreateSessionFromClaims(ctx context.Context, cachego cach
 	}
 
 	// Create session cookie
+	// Use session config for cookie settings
+	cookieName := p.sessionConfig.CookieName
+	if cookieName == "" {
+		cookieName = "keyline_session"
+	}
+	
+	cookiePath := p.sessionConfig.CookiePath
+	if cookiePath == "" {
+		cookiePath = "/"
+	}
+	
 	// For localhost testing, set Secure=false (cookies with Secure=true won't be sent over HTTP)
 	isLocalhost := isHTTPSOrLocalhostHTTP(p.config.RedirectURL) && !strings.HasPrefix(p.config.RedirectURL, "https://")
 	
 	cookie := &http.Cookie{
-		Name:     "keyline_session", // TODO: Make configurable
+		Name:     cookieName,
 		Value:    sessionID,
-		Path:     "/",
+		Path:     cookiePath,
+		Domain:   p.sessionConfig.CookieDomain,
 		HttpOnly: true,
 		Secure:   !isLocalhost, // false for localhost HTTP, true for HTTPS
 		SameSite: http.SameSiteLaxMode,

@@ -1,0 +1,160 @@
+# Complete Keyline Configuration with Role Mappings
+
+server:
+  port: 9000
+  mode: standalone  # or forward_auth
+  read_timeout: 30s
+  write_timeout: 30s
+  max_concurrent: 1000
+
+# ============================================
+# OIDC Configuration with Role Mappings
+# ============================================
+oidc:
+  enabled: true
+  issuer_url: https://your-tenant.okta.com
+  client_id: ${OIDC_CLIENT_ID}
+  client_secret: ${OIDC_CLIENT_SECRET}
+  redirect_url: https://auth.example.com/auth/callback
+  scopes:
+    - openid
+    - email
+    - profile
+  
+  # OIDC -> Elasticsearch User Mappings
+  # Evaluated in order - first match wins
+  mappings:
+    # Map admin emails to ES admin user
+    - claim: email                          # Which OIDC claim to check
+      pattern: "*@admin.example.com"        # Wildcard pattern to match
+      es_user: es_admin                     # ES user to map to
+    
+    # Map specific user to power user
+    - claim: email
+      pattern: "john.doe@example.com"
+      es_user: es_power_user
+    
+    # Map by preferred_username claim
+    - claim: preferred_username
+      pattern: "admin"
+      es_user: es_admin
+    
+    # Map developers to dev ES user
+    - claim: email
+      pattern: "*@dev.example.com"
+      es_user: es_developer
+    
+    # Map by groups claim (if your OIDC provider sends groups)
+    - claim: groups
+      pattern: "*admin*"
+      es_user: es_admin
+    
+    # Map everyone else to readonly
+    - claim: email
+      pattern: "*@example.com"
+      es_user: es_readonly
+  
+  # Default ES user if no mapping matches
+  default_es_user: es_readonly
+
+# ============================================
+# Local Users Configuration with Role Mappings
+# ============================================
+local_users:
+  enabled: true
+  users:
+    # CI/CD pipeline user -> maps to ci_user ES role
+    - username: ci-pipeline
+      password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
+      es_user: es_ci_user
+    
+    # Monitoring system -> maps to monitoring ES role
+    - username: monitoring
+      password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
+      es_user: es_monitoring
+    
+    # Admin user -> maps to admin ES role
+    - username: admin
+      password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
+      es_user: es_admin
+    
+    # Developer user -> maps to developer ES role
+    - username: developer
+      password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
+      es_user: es_developer
+    
+    # Readonly user -> maps to readonly ES role
+    - username: readonly
+      password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
+      es_user: es_readonly
+
+# ============================================
+# Elasticsearch Users (Credentials)
+# ============================================
+# These are the actual ES users that Keyline will use
+# to authenticate to Elasticsearch
+elasticsearch:
+  users:
+    # Admin user with full permissions
+    - username: es_admin
+      password: ${ES_ADMIN_PASSWORD}
+    
+    # Power user with most permissions
+    - username: es_power_user
+      password: ${ES_POWER_USER_PASSWORD}
+    
+    # Developer with read/write on dev indices
+    - username: es_developer
+      password: ${ES_DEVELOPER_PASSWORD}
+    
+    # CI user with specific permissions
+    - username: es_ci_user
+      password: ${ES_CI_PASSWORD}
+    
+    # Monitoring user with monitoring permissions
+    - username: es_monitoring
+      password: ${ES_MONITORING_PASSWORD}
+    
+    # Readonly user with only read permissions
+    - username: es_readonly
+      password: ${ES_READONLY_PASSWORD}
+
+# ============================================
+# Session Configuration
+# ============================================
+session:
+  ttl: 24h
+  cookie_name: keyline_session
+  cookie_domain: .example.com
+  cookie_path: /
+  session_secret: ${SESSION_SECRET}  # Must be at least 32 bytes
+
+# ============================================
+# Cache Configuration
+# ============================================
+cache:
+  backend: redis  # or memory
+  redis_url: ${REDIS_URL}
+  redis_password: ${REDIS_PASSWORD}
+  redis_db: 0
+
+# ============================================
+# Upstream Configuration (for standalone mode)
+# ============================================
+upstream:
+  url: http://elasticsearch:9200  # or http://kibana:5601
+  timeout: 30s
+  max_idle_conns: 100
+
+# ============================================
+# Observability Configuration
+# ============================================
+observability:
+  log_level: info
+  log_format: json
+  otel_enabled: true
+  otel_endpoint: http://otel-collector:4318
+  otel_service_name: keyline
+  otel_service_version: 1.0.0
+  otel_environment: production
+  otel_trace_ratio: 1.0

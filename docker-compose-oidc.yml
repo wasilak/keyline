@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Setup container to generate SSL certificates
   setup:

@@ -138,6 +138,63 @@ docker run -p 9000:9000 \
 curl -u testuser:password http://localhost:9000/get
 ```
 
+### Testing with Authenticated Elasticsearch Cluster
+
+The main docker-compose.yml now uses Elasticsearch 9.3 with full security (SSL + authentication) following official Elastic documentation:
+
+```bash
+# 1. Edit .env file to set passwords (or use defaults: changeme)
+# ELASTIC_PASSWORD=changeme
+# KIBANA_PASSWORD=changeme
+
+# 2. Start the cluster (setup container will configure SSL certs and passwords)
+docker-compose up -d
+
+# 3. Wait for setup to complete and cluster to be healthy
+docker-compose logs -f keyline-setup
+
+# 4. Once setup is done, copy the CA certificate for testing
+docker cp keyline-es01:/usr/share/elasticsearch/config/certs/ca/ca.crt .
+
+# 5. Verify cluster is running with authentication (note: HTTPS)
+curl --cacert ca.crt -u elastic:changeme https://localhost:9200/_cluster/health?pretty
+
+# 6. Set environment variable for Keyline
+export ES_PASSWORD=changeme
+
+# 7. Update config/es-auth-test.yaml to use HTTPS:
+#    upstream:
+#      url: https://localhost:9200
+
+# 8. Start Keyline with ES auth config
+./bin/keyline --config config/es-auth-test.yaml
+
+# 9. Test through Keyline
+curl -u testuser:password http://localhost:9000/_cluster/health?pretty
+curl -u testuser:password http://localhost:9000/_cat/nodes?v
+
+# 10. Stop the cluster when done
+docker-compose down
+
+# 11. To completely remove data and start fresh
+docker-compose down -v
+```
+
+The docker-compose.yml creates a 3-node cluster with:
+- keyline-es01 on port 9200 (primary node)
+- keyline-es02 (internal only)
+- keyline-es03 (internal only)
+- SSL/TLS enabled with auto-generated certificates
+- Authentication enabled with username `elastic` and password from `ELASTIC_PASSWORD` env var
+- A setup container that automatically configures security on first run
+
+**Alternative**: For simpler local testing without SSL, use Elasticsearch 8.x:
+
+```bash
+# Use the ES 8.x compose file (if available)
+docker-compose -f docker-compose-es8-auth.yml up -d
+```
+
 ### Docker Compose with Traefik
 
 ```bash
