@@ -1,10 +1,58 @@
 version: '3.8'
 
 services:
+  # Setup container to generate SSL certificates
+  setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION:-9.3.1}
+    container_name: keyline-forwardauth-setup
+    volumes:
+      - keyline_forwardauth_certs:/usr/share/elasticsearch/config/certs
+    user: "0"
+    command: >
+      bash -c '
+        if [ x${ELASTIC_PASSWORD} == x ]; then
+          echo "Set the ELASTIC_PASSWORD environment variable in the .env file";
+          exit 1;
+        fi;
+        if [ ! -f config/certs/ca.zip ]; then
+          echo "Creating CA";
+          bin/elasticsearch-certutil ca --silent --pem -out config/certs/ca.zip;
+          unzip config/certs/ca.zip -d config/certs;
+        fi;
+        if [ ! -f config/certs/certs.zip ]; then
+          echo "Creating certs";
+          echo -ne \
+          "instances:\n"\
+          "  - name: keyline-forwardauth-es01\n"\
+          "    dns:\n"\
+          "      - keyline-forwardauth-es01\n"\
+          "      - localhost\n"\
+          "    ip:\n"\
+          "      - 127.0.0.1\n"\
+          > config/certs/instances.yml;
+          bin/elasticsearch-certutil cert --silent --pem -out config/certs/certs.zip --in config/certs/instances.yml --ca-cert config/certs/ca/ca.crt --ca-key config/certs/ca/ca.key;
+          unzip config/certs/certs.zip -d config/certs;
+        fi;
+        echo "Setting file permissions"
+        chown -R root:root config/certs;
+        find . -type d -exec chmod 750 \{\} \;;
+        find . -type f -exec chmod 640 \{\} \;;
+        echo "Waiting for Elasticsearch availability";
+        until curl -s --cacert config/certs/ca/ca.crt https://keyline-forwardauth-es01:9200 | grep -q "missing authentication credentials"; do sleep 30; done;
+        echo "All done!";
+      '
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f config/certs/keyline-forwardauth-es01/keyline-forwardauth-es01.crt ]"]
+      interval: 1s
+      timeout: 5s
+      retries: 120
+    networks:
+      - keyline-forwardauth-net
+
   # Traefik reverse proxy with forward auth
   traefik:
     image: traefik:v3.2
-    container_name: keyline-traefik
+    container_name: keyline-forwardauth-traefik
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
@@ -17,7 +65,9 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
-      - keyline-net
+      - keyline-forwardauth-net
+    depends_on:
+      - keyline
 
   # Keyline in forward auth mode
   keyline:
@@ -29,41 +79,76 @@ services:
     environment:
       - ES_PASSWORD=${ELASTIC_PASSWORD:-changeme}
     networks:
-      - keyline-net
+      - keyline-forwardauth-net
     depends_on:
-      - keyline-es01
+      keyline-forwardauth-es01:
+        condition: service_healthy
 
-  # Elasticsearch cluster (single node for testing)
-  keyline-es01:
+  # Elasticsearch single node with SSL
+  keyline-forwardauth-es01:
+    depends_on:
+      setup:
+        condition: service_healthy
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION:-9.3.1}
-    container_name: keyline-es01
-    environment:
-      - node.name=keyline-es01
-      - cluster.name=keyline-cluster
-      - discovery.type=single-node
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-changeme}
-      - xpack.security.enabled=true
-      - xpack.security.http.ssl.enabled=false
-      - xpack.license.self_generated.type=trial
+    container_name: keyline-forwardauth-es01
+    volumes:
+      - keyline_forwardauth_certs:/usr/share/elasticsearch/config/certs
+      - keyline_forwardauth_es01_data:/usr/share/elasticsearch/data
     ports:
       - "9200:9200"
-    networks:
-      - keyline-net
+    environment:
+      - node.name=keyline-forwardauth-es01
+      - cluster.name=keyline-forwardauth-cluster
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-changeme}
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=certs/keyline-forwardauth-es01/keyline-forwardauth-es01.key
+      - xpack.security.http.ssl.certificate=certs/keyline-forwardauth-es01/keyline-forwardauth-es01.crt
+      - xpack.security.http.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.key=certs/keyline-forwardauth-es01/keyline-forwardauth-es01.key
+      - xpack.security.transport.ssl.certificate=certs/keyline-forwardauth-es01/keyline-forwardauth-es01.crt
+      - xpack.security.transport.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.license.self_generated.type=trial
+    mem_limit: 1073741824
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     healthcheck:
-      test: ["CMD-SHELL", "curl -u elastic:${ELASTIC_PASSWORD:-changeme} http://localhost:9200/_cluster/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s --cacert config/certs/ca/ca.crt https://localhost:9200 | grep -q 'missing authentication credentials'",
+        ]
       interval: 10s
-      timeout: 5s
-      retries: 30
+      timeout: 10s
+      retries: 120
+    networks:
+      - keyline-forwardauth-net
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.elasticsearch.rule=Host(`es.localhost`)"
       - "traefik.http.routers.elasticsearch.entrypoints=web"
       - "traefik.http.services.elasticsearch.loadbalancer.server.port=9200"
+      - "traefik.http.services.elasticsearch.loadbalancer.server.scheme=https"
+      - "traefik.http.services.elasticsearch.loadbalancer.serversTransport=insecure"
       # Forward auth middleware
       - "traefik.http.routers.elasticsearch.middlewares=keyline-auth"
       - "traefik.http.middlewares.keyline-auth.forwardauth.address=http://keyline:9000/auth/verify"
-      - "traefik.http.middlewares.keyline-auth.forwardauth.authResponseHeaders=X-Es-Authorization"
+      - "traefik.http.middlewares.keyline-auth.forwardauth.authResponseHeaders=Authorization"
+      # Allow insecure TLS for self-signed certs
+      - "traefik.http.serversTransports.insecure.insecureSkipVerify=true"
+
+volumes:
+  keyline_forwardauth_certs:
+    driver: local
+  keyline_forwardauth_es01_data:
+    driver: local
 
 networks:
-  keyline-net:
+  keyline-forwardauth-net:
     driver: bridge
