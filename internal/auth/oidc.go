@@ -70,9 +70,9 @@ func NewOIDCProvider(cfg *config.OIDCConfig, fullConfig *config.Config) (*OIDCPr
 
 // discover fetches and validates the OIDC discovery document
 func (p *OIDCProvider) discover(ctx context.Context) error {
-	// Validate that issuer URL uses HTTPS
-	if !isHTTPS(p.config.IssuerURL) {
-		return fmt.Errorf("OIDC issuer URL must use HTTPS: %s", p.config.IssuerURL)
+	// Validate that issuer URL uses HTTPS (or HTTP for localhost)
+	if !isHTTPSOrLocalhostHTTP(p.config.IssuerURL) {
+		return fmt.Errorf("OIDC issuer URL must use HTTPS (or HTTP for localhost/127.0.0.1): %s", p.config.IssuerURL)
 	}
 
 	discoveryURL := p.config.IssuerURL + "/.well-known/openid-configuration"
@@ -167,15 +167,15 @@ func (p *OIDCProvider) fetchDiscoveryDocument(ctx context.Context, url string) (
 		return nil, fmt.Errorf("discovery document missing jwks_uri")
 	}
 
-	// Validate that all endpoints use HTTPS
-	if !isHTTPS(doc.TokenEndpoint) {
-		return nil, fmt.Errorf("token_endpoint must use HTTPS: %s", doc.TokenEndpoint)
+	// Validate that all endpoints use HTTPS (or HTTP for localhost)
+	if !isHTTPSOrLocalhostHTTP(doc.TokenEndpoint) {
+		return nil, fmt.Errorf("token_endpoint must use HTTPS (or HTTP for localhost): %s", doc.TokenEndpoint)
 	}
-	if !isHTTPS(doc.JWKSURI) {
-		return nil, fmt.Errorf("jwks_uri must use HTTPS: %s", doc.JWKSURI)
+	if !isHTTPSOrLocalhostHTTP(doc.JWKSURI) {
+		return nil, fmt.Errorf("jwks_uri must use HTTPS (or HTTP for localhost): %s", doc.JWKSURI)
 	}
-	if doc.UserinfoEndpoint != "" && !isHTTPS(doc.UserinfoEndpoint) {
-		return nil, fmt.Errorf("userinfo_endpoint must use HTTPS: %s", doc.UserinfoEndpoint)
+	if doc.UserinfoEndpoint != "" && !isHTTPSOrLocalhostHTTP(doc.UserinfoEndpoint) {
+		return nil, fmt.Errorf("userinfo_endpoint must use HTTPS (or HTTP for localhost): %s", doc.UserinfoEndpoint)
 	}
 
 	return &doc, nil
@@ -764,11 +764,24 @@ func (p *OIDCProvider) CompleteCallback(ctx context.Context, cachego cachego.Cac
 	return redirectURL, cookie, nil
 }
 
-// isHTTPS checks if a URL uses HTTPS scheme
-func isHTTPS(urlStr string) bool {
+// isHTTPSOrLocalhostHTTP checks if a URL uses HTTPS or HTTP for localhost
+// For production, HTTPS should be enforced, but for local testing we allow HTTP for localhost/127.0.0.1
+func isHTTPSOrLocalhostHTTP(urlStr string) bool {
 	parsedURL, err := url.Parse(urlStr)
 	if err != nil {
 		return false
 	}
-	return parsedURL.Scheme == "https"
+	
+	// Allow HTTPS for all hosts
+	if parsedURL.Scheme == "https" {
+		return true
+	}
+	
+	// Allow HTTP only for localhost and 127.0.0.1
+	if parsedURL.Scheme == "http" {
+		hostname := parsedURL.Hostname()
+		return hostname == "localhost" || hostname == "127.0.0.1"
+	}
+	
+	return false
 }

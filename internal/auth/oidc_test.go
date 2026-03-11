@@ -436,7 +436,7 @@ func TestValidateAudience(t *testing.T) {
 	}
 }
 
-func TestIsHTTPS(t *testing.T) {
+func TestIsHTTPSOrLocalhostHTTP(t *testing.T) {
 	tests := []struct {
 		name string
 		url  string
@@ -448,13 +448,28 @@ func TestIsHTTPS(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "HTTP URL",
+			name: "HTTP URL (non-localhost)",
 			url:  "http://example.com",
 			want: false,
 		},
 		{
+			name: "HTTP localhost",
+			url:  "http://localhost:8090",
+			want: true,
+		},
+		{
+			name: "HTTP 127.0.0.1",
+			url:  "http://127.0.0.1:8090",
+			want: true,
+		},
+		{
 			name: "HTTPS with path",
 			url:  "https://example.com/path",
+			want: true,
+		},
+		{
+			name: "HTTP localhost with path",
+			url:  "http://localhost:8090/default",
 			want: true,
 		},
 		{
@@ -471,9 +486,9 @@ func TestIsHTTPS(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := isHTTPS(tt.url)
+			got := isHTTPSOrLocalhostHTTP(tt.url)
 			if got != tt.want {
-				t.Errorf("isHTTPS(%q) = %v, want %v", tt.url, got, tt.want)
+				t.Errorf("isHTTPSOrLocalhostHTTP(%q) = %v, want %v", tt.url, got, tt.want)
 			}
 		})
 	}
