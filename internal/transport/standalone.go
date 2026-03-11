@@ -118,14 +118,22 @@ func (a *StandaloneProxyAdapter) HandleRequest(c echo.Context) error {
 		// Basic Auth failure or other error
 		slog.WarnContext(ctx, "Authentication failed",
 			slog.Int("status_code", result.StatusCode),
+			slog.String("error", result.Error.Error()),
 		)
+
+		// Determine appropriate error message
+		errorMessage := "Authentication required"
+		if engineReq.AuthorizationHeader != "" {
+			// Credentials were provided but invalid
+			errorMessage = "Authentication failed: invalid credentials"
+		}
 
 		if result.StatusCode == http.StatusUnauthorized {
 			c.Response().Header().Set("WWW-Authenticate", `Basic realm="Keyline"`)
 		}
 
 		return c.JSON(result.StatusCode, map[string]string{
-			"error": "Authentication required",
+			"error": errorMessage,
 		})
 	}
 
