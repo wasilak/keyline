@@ -35,7 +35,7 @@ oidc:
 session:
   ttl: 24h
   cookie_name: keyline_session
-  cookie_domain: localhost
+  cookie_domain: .localhost
   cookie_path: /
   session_secret: this-is-a-test-secret-at-least-32-bytes-long
 
