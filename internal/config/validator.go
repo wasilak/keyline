@@ -32,11 +32,13 @@ func Validate(cfg *Config) error {
 		if cfg.OIDC.RedirectURL == "" {
 			errors = append(errors, "oidc.redirect_url is required when OIDC is enabled")
 		} else {
-			// Validate redirect URL is HTTPS
+			// Validate redirect URL is HTTPS (allow HTTP for localhost/127.0.0.1 for testing)
 			if u, err := url.Parse(cfg.OIDC.RedirectURL); err != nil {
 				errors = append(errors, fmt.Sprintf("oidc.redirect_url is not a valid URL: %v", err))
-			} else if u.Scheme != "https" {
-				errors = append(errors, "oidc.redirect_url must use HTTPS")
+			} else if u.Scheme != "https" && u.Scheme != "http" {
+				errors = append(errors, "oidc.redirect_url must use HTTP or HTTPS")
+			} else if u.Scheme == "http" && u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1" {
+				errors = append(errors, "oidc.redirect_url must use HTTPS (HTTP only allowed for localhost/127.0.0.1)")
 			}
 		}
 	}
