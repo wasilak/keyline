@@ -8,8 +8,8 @@ local_users:
   enabled: true
   users:
     - username: testuser
-      password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
-      es_user: test_es_user
+      password_bcrypt: $2a$10$.5DtVFvSJulN385UxctyseY7skwExS1tRZbCeV2p43g8vkDVsAAEu  # password: "password"
+      es_user: elastic
 
 oidc:
   enabled: false
@@ -26,10 +26,10 @@ cache:
 
 elasticsearch:
   users:
-    - username: test_es_user
-      password: test_password
+    - username: elastic
+      password: ${ES_PASSWORD}
 
 observability:
-  log_level: info
+  log_level: debug
   log_format: text
   otel_enabled: false

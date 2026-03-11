@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # Traefik reverse proxy with forward auth
+  traefik:
+    image: traefik:v2.10
+    container_name: keyline-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--log.level=DEBUG"
+    ports:
+      - "8080:80"      # HTTP entry point
+      - "8081:8080"    # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - keyline-net
+
+  # Keyline in forward auth mode
+  keyline:
+    build: .
+    container_name: keyline-forwardauth
+    command: ["/keyline", "--config", "/config/config-forwardauth.yaml"]
+    volumes:
+      - ./config/test-config-forwardauth.yaml:/config/config-forwardauth.yaml:ro
+    environment:
+      - ES_PASSWORD=${ELASTIC_PASSWORD:-changeme}
+    networks:
+      - keyline-net
+    depends_on:
+      - keyline-es01
+
+  # Elasticsearch cluster (single node for testing)
+  keyline-es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION:-9.3.1}
+    container_name: keyline-es01
+    environment:
+      - node.name=keyline-es01
+      - cluster.name=keyline-cluster
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-changeme}
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.license.self_generated.type=trial
+    ports:
+      - "9200:9200"
+    networks:
+      - keyline-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -u elastic:${ELASTIC_PASSWORD:-changeme} http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.elasticsearch.rule=Host(`es.localhost`)"
+      - "traefik.http.routers.elasticsearch.entrypoints=web"
+      - "traefik.http.services.elasticsearch.loadbalancer.server.port=9200"
+      # Forward auth middleware
+      - "traefik.http.routers.elasticsearch.middlewares=keyline-auth"
+      - "traefik.http.middlewares.keyline-auth.forwardauth.address=http://keyline:9000/auth/verify"
+      - "traefik.http.middlewares.keyline-auth.forwardauth.authResponseHeaders=X-Es-Authorization"
+
+networks:
+  keyline-net:
+    driver: bridge
