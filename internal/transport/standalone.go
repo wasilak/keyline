@@ -165,6 +165,18 @@ func (a *StandaloneProxyAdapter) director(req *http.Request) {
 	req.URL.Host = a.upstreamURL.Host
 	req.Host = a.upstreamURL.Host
 
+	// Replace Authorization header with ES credentials
+	// The X-Es-Authorization header contains the ES user's credentials
+	esAuth := req.Header.Get("X-Es-Authorization")
+	if esAuth != "" {
+		// Remove the original Authorization header (client's auth to Keyline)
+		req.Header.Del("Authorization")
+		// Set the Authorization header with ES credentials
+		req.Header.Set("Authorization", esAuth)
+		// Remove the X-Es-Authorization header (internal use only)
+		req.Header.Del("X-Es-Authorization")
+	}
+
 	// Remove hop-by-hop headers
 	a.removeHopByHopHeaders(req.Header)
 
