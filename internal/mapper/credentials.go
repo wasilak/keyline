@@ -38,21 +38,54 @@ func (m *CredentialMapper) MapOIDCUser(ctx context.Context, claims map[string]in
 			continue
 		}
 
-		// Convert claim value to string
-		claimStr, ok := claimValue.(string)
-		if !ok {
-			slog.DebugContext(ctx, "Claim value is not a string",
+		// Handle different claim value types
+		var matched bool
+		var matchedValue string
+
+		switch v := claimValue.(type) {
+		case string:
+			// String claim (e.g., email, role)
+			if m.matchPattern(v, mapping.Pattern) {
+				matched = true
+				matchedValue = v
+			}
+
+		case []interface{}:
+			// Array claim (e.g., groups)
+			// Check if any element in the array matches the pattern
+			for _, elem := range v {
+				if str, ok := elem.(string); ok {
+					if m.matchPattern(str, mapping.Pattern) {
+						matched = true
+						matchedValue = str
+						break
+					}
+				}
+			}
+
+		case []string:
+			// String array claim
+			for _, str := range v {
+				if m.matchPattern(str, mapping.Pattern) {
+					matched = true
+					matchedValue = str
+					break
+				}
+			}
+
+		default:
+			slog.DebugContext(ctx, "Claim value type not supported",
 				slog.String("claim", mapping.Claim),
 				slog.Any("value", claimValue),
+				slog.String("type", fmt.Sprintf("%T", claimValue)),
 			)
 			continue
 		}
 
-		// Check if pattern matches
-		if m.matchPattern(claimStr, mapping.Pattern) {
+		if matched {
 			slog.InfoContext(ctx, "OIDC user mapped to ES user",
 				slog.String("claim", mapping.Claim),
-				slog.String("claim_value", claimStr),
+				slog.String("claim_value", matchedValue),
 				slog.String("pattern", mapping.Pattern),
 				slog.String("es_user", mapping.ESUser),
 			)

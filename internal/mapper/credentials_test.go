@@ -153,6 +153,81 @@ func TestMapOIDCUser(t *testing.T) {
 			claims:       map[string]interface{}{"preferred_username": "admin"},
 			expectedUser: "admin",
 		},
+		{
+			name: "array claim with match",
+			config: &config.Config{
+				OIDC: config.OIDCConfig{
+					Mappings: []config.OIDCMapping{
+						{Claim: "groups", Pattern: "admin", ESUser: "admin"},
+					},
+				},
+			},
+			claims:       map[string]interface{}{"groups": []interface{}{"users", "admin", "developers"}},
+			expectedUser: "admin",
+		},
+		{
+			name: "array claim with wildcard match",
+			config: &config.Config{
+				OIDC: config.OIDCConfig{
+					Mappings: []config.OIDCMapping{
+						{Claim: "groups", Pattern: "*-admins", ESUser: "admin"},
+					},
+				},
+			},
+			claims:       map[string]interface{}{"groups": []interface{}{"users", "elasticsearch-admins", "developers"}},
+			expectedUser: "admin",
+		},
+		{
+			name: "array claim no match",
+			config: &config.Config{
+				OIDC: config.OIDCConfig{
+					Mappings: []config.OIDCMapping{
+						{Claim: "groups", Pattern: "admin", ESUser: "admin"},
+					},
+					DefaultESUser: "readonly",
+				},
+			},
+			claims:       map[string]interface{}{"groups": []interface{}{"users", "developers"}},
+			expectedUser: "readonly",
+		},
+		{
+			name: "string array claim with match",
+			config: &config.Config{
+				OIDC: config.OIDCConfig{
+					Mappings: []config.OIDCMapping{
+						{Claim: "groups", Pattern: "admin", ESUser: "admin"},
+					},
+				},
+			},
+			claims:       map[string]interface{}{"groups": []string{"users", "admin", "developers"}},
+			expectedUser: "admin",
+		},
+		{
+			name: "array claim first match wins",
+			config: &config.Config{
+				OIDC: config.OIDCConfig{
+					Mappings: []config.OIDCMapping{
+						{Claim: "groups", Pattern: "admin", ESUser: "superuser"},
+						{Claim: "groups", Pattern: "developers", ESUser: "dev_user"},
+					},
+				},
+			},
+			claims:       map[string]interface{}{"groups": []interface{}{"developers", "admin"}},
+			expectedUser: "superuser",
+		},
+		{
+			name: "empty array claim uses default",
+			config: &config.Config{
+				OIDC: config.OIDCConfig{
+					Mappings: []config.OIDCMapping{
+						{Claim: "groups", Pattern: "admin", ESUser: "admin"},
+					},
+					DefaultESUser: "readonly",
+				},
+			},
+			claims:       map[string]interface{}{"groups": []interface{}{}},
+			expectedUser: "readonly",
+		},
 	}
 
 	for _, tt := range tests {
