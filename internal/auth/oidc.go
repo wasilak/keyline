@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/wasilak/cachego"
@@ -700,12 +701,15 @@ func (p *OIDCProvider) CreateSessionFromClaims(ctx context.Context, cachego cach
 	}
 
 	// Create session cookie
+	// For localhost testing, set Secure=false (cookies with Secure=true won't be sent over HTTP)
+	isLocalhost := isHTTPSOrLocalhostHTTP(p.config.RedirectURL) && !strings.HasPrefix(p.config.RedirectURL, "https://")
+	
 	cookie := &http.Cookie{
 		Name:     "keyline_session", // TODO: Make configurable
 		Value:    sessionID,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   !isLocalhost, // false for localhost HTTP, true for HTTPS
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(sessionTTL.Seconds()),
 	}
