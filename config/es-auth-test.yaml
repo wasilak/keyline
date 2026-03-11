@@ -20,7 +20,7 @@ local_users:
   enabled: true
   users:
     - username: testuser
-      password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy  # password: "password"
+      password_bcrypt: $2a$10$.5DtVFvSJulN385UxctyseY7skwExS1tRZbCeV2p43g8vkDVsAAEu  # password: "password"
       es_user: elastic  # Change this to your ES username
 
 # OIDC disabled for simple testing
