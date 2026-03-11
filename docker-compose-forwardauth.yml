@@ -59,6 +59,7 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--log.level=DEBUG"
+      - "--serversTransport.insecureSkipVerify=true"
     ports:
       - "8080:80"      # HTTP entry point
       - "8081:8080"    # Traefik dashboard
@@ -67,22 +68,10 @@ services:
     networks:
       - keyline-forwardauth-net
     depends_on:
-      - keyline
-
-  # Keyline in forward auth mode
-  keyline:
-    build: .
-    container_name: keyline-forwardauth
-    command: ["/keyline", "--config", "/config/config-forwardauth.yaml"]
-    volumes:
-      - ./config/test-config-forwardauth.yaml:/config/config-forwardauth.yaml:ro
-    environment:
-      - ES_PASSWORD=${ELASTIC_PASSWORD:-changeme}
-    networks:
-      - keyline-forwardauth-net
-    depends_on:
       keyline-forwardauth-es01:
         condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # Elasticsearch single node with SSL
   keyline-forwardauth-es01:
@@ -135,13 +124,10 @@ services:
       - "traefik.http.routers.elasticsearch.entrypoints=web"
       - "traefik.http.services.elasticsearch.loadbalancer.server.port=9200"
       - "traefik.http.services.elasticsearch.loadbalancer.server.scheme=https"
-      - "traefik.http.services.elasticsearch.loadbalancer.serversTransport=insecure"
-      # Forward auth middleware
+      # Forward auth middleware - points to Keyline running on host
       - "traefik.http.routers.elasticsearch.middlewares=keyline-auth"
-      - "traefik.http.middlewares.keyline-auth.forwardauth.address=http://keyline:9000/auth/verify"
+      - "traefik.http.middlewares.keyline-auth.forwardauth.address=http://host.docker.internal:9000/auth/verify"
       - "traefik.http.middlewares.keyline-auth.forwardauth.authResponseHeaders=Authorization"
-      # Allow insecure TLS for self-signed certs
-      - "traefik.http.serversTransports.insecure.insecureSkipVerify=true"
 
 volumes:
   keyline_forwardauth_certs:
