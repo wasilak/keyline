@@ -58,7 +58,9 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.forwardedHeaders.trustedIPs=0.0.0.0/0,::/0"
       - "--log.level=DEBUG"
+      # Configure default servers transport to skip TLS verification
       - "--serversTransport.insecureSkipVerify=true"
     ports:
       - "8080:80"      # HTTP entry point

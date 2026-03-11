@@ -192,14 +192,14 @@ func (a *ForwardAuthAdapter) buildResponse(c echo.Context, result *auth.EngineRe
 	ctx := c.Request().Context()
 
 	if result.Authenticated {
-		// Authentication successful - return 200 with X-Es-Authorization header
+		// Authentication successful - return 200 with Authorization header
 		slog.InfoContext(ctx, "ForwardAuth authentication successful",
 			slog.String("username", result.Username),
 			slog.String("es_user", result.ESUser),
 		)
 
-		// Set X-Es-Authorization header
-		c.Response().Header().Set("X-Es-Authorization", result.ESAuthHeader)
+		// Set Authorization header for Traefik to forward to upstream
+		c.Response().Header().Set("Authorization", result.ESAuthHeader)
 
 		// Preserve Cookie headers from original request
 		for _, cookie := range c.Request().Cookies() {
