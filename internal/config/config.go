@@ -87,9 +87,10 @@ type ESUser struct {
 
 // UpstreamConfig contains upstream proxy settings
 type UpstreamConfig struct {
-	URL          string        `mapstructure:"url"`
-	Timeout      time.Duration `mapstructure:"timeout"`
-	MaxIdleConns int           `mapstructure:"max_idle_conns"`
+	URL                string        `mapstructure:"url"`
+	Timeout            time.Duration `mapstructure:"timeout"`
+	MaxIdleConns       int           `mapstructure:"max_idle_conns"`
+	InsecureSkipVerify bool          `mapstructure:"insecure_skip_verify"` // Skip TLS certificate verification (default: false)
 }
 
 // ObservabilityConfig contains logging and tracing settings

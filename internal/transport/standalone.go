@@ -2,6 +2,7 @@ package transport
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log/slog"
@@ -52,6 +53,9 @@ func NewStandaloneProxyAdapter(cfg *config.Config, cache cachego.CacheInterface,
 			MaxIdleConnsPerHost: cfg.Upstream.MaxIdleConns,
 			IdleConnTimeout:     90 * time.Second,
 			TLSHandshakeTimeout: 10 * time.Second,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: cfg.Upstream.InsecureSkipVerify,
+			},
 		},
 		ErrorHandler: adapter.errorHandler,
 	}
@@ -189,26 +193,50 @@ func (a *StandaloneProxyAdapter) errorHandler(w http.ResponseWriter, r *http.Req
 		slog.String("error", err.Error()),
 	)
 
-	// Determine error type and return appropriate status code
+	// Determine error type and return appropriate status code and message
 	if err == context.DeadlineExceeded {
 		// Timeout
 		slog.ErrorContext(ctx, "Upstream request timeout")
 		w.WriteHeader(http.StatusGatewayTimeout)
-		w.Write([]byte(`{"error":"Gateway Timeout"}`))
+		w.Write([]byte(`{"error":"Gateway Timeout: upstream request timed out"}`))
+		return
+	}
+
+	// Check for TLS/SSL certificate errors
+	if strings.Contains(err.Error(), "x509") || strings.Contains(err.Error(), "certificate") || strings.Contains(err.Error(), "tls") {
+		slog.ErrorContext(ctx, "TLS/SSL certificate error - consider using insecure_skip_verify for self-signed certificates",
+			slog.String("error_detail", err.Error()),
+		)
+		w.WriteHeader(http.StatusBadGateway)
+		w.Write([]byte(`{"error":"TLS/SSL certificate verification failed. If using self-signed certificates, set 'insecure_skip_verify: true' in upstream config."}`))
 		return
 	}
 
 	// Check if it's a connection error
-	if _, ok := err.(net.Error); ok {
-		slog.ErrorContext(ctx, "Upstream connection failed")
+	if netErr, ok := err.(net.Error); ok {
+		if netErr.Timeout() {
+			slog.ErrorContext(ctx, "Upstream connection timeout")
+			w.WriteHeader(http.StatusGatewayTimeout)
+			w.Write([]byte(`{"error":"Gateway Timeout: connection to upstream timed out"}`))
+		} else {
+			slog.ErrorContext(ctx, "Upstream connection failed")
+			w.WriteHeader(http.StatusBadGateway)
+			w.Write([]byte(`{"error":"Bad Gateway: failed to connect to upstream Elasticsearch"}`))
+		}
+		return
+	}
+
+	// Check for connection refused
+	if strings.Contains(err.Error(), "connection refused") {
+		slog.ErrorContext(ctx, "Upstream connection refused")
 		w.WriteHeader(http.StatusBadGateway)
-		w.Write([]byte(`{"error":"Bad Gateway"}`))
+		w.Write([]byte(`{"error":"Bad Gateway: connection refused by upstream Elasticsearch"}`))
 		return
 	}
 
 	// Generic error
 	w.WriteHeader(http.StatusBadGateway)
-	w.Write([]byte(`{"error":"Bad Gateway"}`))
+	w.Write([]byte(fmt.Sprintf(`{"error":"Bad Gateway: %s"}`, err.Error())))
 }
 
 // isInternalEndpoint checks if the path is an internal endpoint

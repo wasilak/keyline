@@ -1,0 +1,64 @@
+# Keyline Configuration for Testing with Authenticated Elasticsearch Cluster
+#
+# Usage:
+#   1. Set your ES password: export ES_PASSWORD="your-elasticsearch-password"
+#   2. Build Keyline: make build
+#   3. Start Keyline: ./bin/keyline --config config/es-auth-test.yaml
+#   4. Test: curl -u testuser:password http://localhost:9000/_cluster/health?pretty
+
+server:
+  port: 9000
+  mode: standalone
+  read_timeout: 30s
+  write_timeout: 30s
+  max_concurrent: 1000
+
+# Local user authentication
+# Username: testuser
+# Password: password
+local_users:
+  enabled: true
+  users:
+    - username: testuser
+      password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy  # password: "password"
+      es_user: elastic  # Change this to your ES username
+
+# OIDC disabled for simple testing
+oidc:
+  enabled: false
+
+# Session configuration
+session:
+  ttl: 24h
+  cookie_name: keyline_session
+  cookie_domain: localhost
+  cookie_path: /
+  session_secret: this-is-a-test-secret-at-least-32-bytes-long
+
+# In-memory cache for testing (no Redis required)
+cache:
+  backend: memory
+
+# Elasticsearch credentials
+# The ES user that Keyline will use to authenticate to Elasticsearch
+elasticsearch:
+  users:
+    - username: elastic  # Change this to your ES username
+      password: ${ES_PASSWORD}  # Set via environment variable
+
+# Upstream Elasticsearch cluster
+# Use http://localhost:9200 for ES 8.x without SSL (docker-compose-es8-auth.yml)
+# Use https://localhost:9200 for ES 9.3 with SSL (docker-compose.yml)
+upstream:
+  url: https://localhost:9200
+  timeout: 30s
+  max_idle_conns: 100
+  # Set to true to skip TLS certificate verification (useful for self-signed certificates)
+  # WARNING: Only use this in development/testing environments
+  insecure_skip_verify: true
+
+# Debug logging to see what's happening
+observability:
+  log_level: debug
+  log_format: text
+  otel_enabled: false
