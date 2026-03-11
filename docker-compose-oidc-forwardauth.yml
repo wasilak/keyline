@@ -1,0 +1,162 @@
+version: '3.8'
+
+services:
+  # Setup container to generate SSL certificates
+  setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION:-9.3.1}
+    container_name: keyline-oidc-fa-setup
+    volumes:
+      - keyline_oidc_fa_certs:/usr/share/elasticsearch/config/certs
+    user: "0"
+    command: >
+      bash -c '
+        if [ x${ELASTIC_PASSWORD} == x ]; then
+          echo "Set the ELASTIC_PASSWORD environment variable";
+          exit 1;
+        fi;
+        if [ ! -f config/certs/ca.zip ]; then
+          echo "Creating CA";
+          bin/elasticsearch-certutil ca --silent --pem -out config/certs/ca.zip;
+          unzip config/certs/ca.zip -d config/certs;
+        fi;
+        if [ ! -f config/certs/certs.zip ]; then
+          echo "Creating certs";
+          echo -ne \
+          "instances:\n"\
+          "  - name: keyline-oidc-fa-es01\n"\
+          "    dns:\n"\
+          "      - keyline-oidc-fa-es01\n"\
+          "      - localhost\n"\
+          "    ip:\n"\
+          "      - 127.0.0.1\n"\
+          > config/certs/instances.yml;
+          bin/elasticsearch-certutil cert --silent --pem -out config/certs/certs.zip --in config/certs/instances.yml --ca-cert config/certs/ca/ca.crt --ca-key config/certs/ca/ca.key;
+          unzip config/certs/certs.zip -d config/certs;
+        fi;
+        echo "Setting file permissions"
+        chown -R root:root config/certs;
+        find . -type d -exec chmod 750 \{\} \;;
+        find . -type f -exec chmod 640 \{\} \;;
+        echo "Waiting for Elasticsearch availability";
+        until curl -s --cacert config/certs/ca/ca.crt https://keyline-oidc-fa-es01:9200 | grep -q "missing authentication credentials"; do sleep 30; done;
+        echo "All done!";
+      '
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f config/certs/keyline-oidc-fa-es01/keyline-oidc-fa-es01.crt ]"]
+      interval: 1s
+      timeout: 5s
+      retries: 120
+    networks:
+      - keyline-oidc-fa-net
+
+  # Mock OIDC Provider
+  mock-oauth2:
+    image: ghcr.io/navikt/mock-oauth2-server:2.1.10
+    container_name: keyline-oidc-fa-provider
+    ports:
+      - "8091:8090"
+    environment:
+      - SERVER_PORT=8090
+      - JSON_CONFIG={"interactiveLogin":true}
+    networks:
+      - keyline-oidc-fa-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8090/default/.well-known/openid-configuration"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Traefik reverse proxy with forward auth
+  traefik:
+    image: traefik:v3.2
+    container_name: keyline-oidc-fa-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.forwardedHeaders.trustedIPs=0.0.0.0/0,::/0"
+      - "--log.level=DEBUG"
+      - "--serversTransport.insecureSkipVerify=true"
+    ports:
+      - "8082:80"      # HTTP entry point
+      - "8083:8080"    # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - keyline-oidc-fa-net
+    depends_on:
+      keyline-oidc-fa-es01:
+        condition: service_healthy
+      mock-oauth2:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Elasticsearch single node with SSL
+  keyline-oidc-fa-es01:
+    depends_on:
+      setup:
+        condition: service_healthy
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION:-9.3.1}
+    container_name: keyline-oidc-fa-es01
+    volumes:
+      - keyline_oidc_fa_certs:/usr/share/elasticsearch/config/certs
+      - keyline_oidc_fa_es01_data:/usr/share/elasticsearch/data
+    ports:
+      - "9202:9200"
+    environment:
+      - node.name=keyline-oidc-fa-es01
+      - cluster.name=keyline-oidc-fa-cluster
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-changeme}
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=certs/keyline-oidc-fa-es01/keyline-oidc-fa-es01.key
+      - xpack.security.http.ssl.certificate=certs/keyline-oidc-fa-es01/keyline-oidc-fa-es01.crt
+      - xpack.security.http.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.key=certs/keyline-oidc-fa-es01/keyline-oidc-fa-es01.key
+      - xpack.security.transport.ssl.certificate=certs/keyline-oidc-fa-es01/keyline-oidc-fa-es01.crt
+      - xpack.security.transport.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.license.self_generated.type=trial
+    mem_limit: 1073741824
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s --cacert config/certs/ca/ca.crt https://localhost:9200 | grep -q 'missing authentication credentials'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+    networks:
+      - keyline-oidc-fa-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.elasticsearch.rule=Host(`es-oidc.localhost`)"
+      - "traefik.http.routers.elasticsearch.entrypoints=web"
+      - "traefik.http.services.elasticsearch.loadbalancer.server.port=9200"
+      - "traefik.http.services.elasticsearch.loadbalancer.server.scheme=https"
+      # Forward auth middleware - points to Keyline running on host
+      - "traefik.http.routers.elasticsearch.middlewares=keyline-auth"
+      - "traefik.http.middlewares.keyline-auth.forwardauth.address=http://host.docker.internal:9001/auth/verify"
+      - "traefik.http.middlewares.keyline-auth.forwardauth.authResponseHeaders=Authorization"
+
+volumes:
+  keyline_oidc_fa_certs:
+    driver: local
+  keyline_oidc_fa_es01_data:
+    driver: local
+
+networks:
+  keyline-oidc-fa-net:
+    driver: bridge

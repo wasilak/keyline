@@ -1,0 +1,61 @@
+server:
+  port: 9001
+  mode: forward_auth
+  read_timeout: 30s
+  write_timeout: 30s
+
+# Enable both OIDC and local users for testing
+local_users:
+  enabled: true
+  users:
+    - username: testuser
+      password_bcrypt: $2a$10$.5DtVFvSJulN385UxctyseY7skwExS1tRZbCeV2p43g8vkDVsAAEu  # password: "password"
+      es_user: elastic
+
+oidc:
+  enabled: true
+  issuer_url: http://localhost:8091/default
+  client_id: keyline-test
+  client_secret: test-secret
+  redirect_url: http://localhost:9001/auth/callback
+  scopes:
+    - openid
+    - profile
+    - email
+  # Map OIDC claims to ES users
+  claim_mappings:
+    - claim: email
+      pattern: "*@admin.example.com"
+      es_user: elastic
+    - claim: email
+      pattern: "*@example.com"
+      es_user: elastic
+  default_es_user: elastic
+
+session:
+  ttl: 24h
+  cookie_name: keyline_session
+  cookie_domain: localhost
+  cookie_path: /
+  session_secret: this-is-a-test-secret-at-least-32-bytes-long
+
+cache:
+  backend: memory
+
+elasticsearch:
+  users:
+    - username: elastic
+      password: ${ES_PASSWORD}
+
+# Upstream config is not used in forward_auth mode
+# Traefik handles the proxying to Elasticsearch
+upstream:
+  url: https://keyline-oidc-fa-es01:9200
+  timeout: 30s
+  max_idle_conns: 100
+  insecure_skip_verify: true
+
+observability:
+  log_level: debug
+  log_format: text
+  otel_enabled: false
