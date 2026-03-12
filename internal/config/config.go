@@ -15,6 +15,7 @@ type Config struct {
 	Upstream       UpstreamConfig      `mapstructure:"upstream"`
 	Observability  ObservabilityConfig `mapstructure:"observability"`
 	DefaultESRoles []string            `mapstructure:"default_es_roles"`
+	UserManagement UserMgmtConfig      `mapstructure:"user_management"`
 }
 
 // ServerConfig contains server settings
@@ -81,6 +82,13 @@ type CacheConfig struct {
 	RedisURL      string `mapstructure:"redis_url"`
 	RedisPassword string `mapstructure:"redis_password"`
 	RedisDB       int    `mapstructure:"redis_db"`
+}
+
+// UserMgmtConfig contains dynamic user management settings
+type UserMgmtConfig struct {
+	Enabled        bool          `mapstructure:"enabled"`         // Feature flag to enable/disable user management
+	PasswordLength int           `mapstructure:"password_length"` // Length of generated passwords (default: 32)
+	CredentialTTL  time.Duration `mapstructure:"credential_ttl"`  // How long credentials are cached (default: 1h)
 }
 
 // ElasticsearchConfig contains ES credential settings
