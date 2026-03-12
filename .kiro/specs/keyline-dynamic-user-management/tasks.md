@@ -333,22 +333,22 @@
   - [x] 19.5 Instrument ES API client with metrics
   - [x] 19.6 Instrument role mapper with metrics
 
-- [ ] 20. Add observability
-  - [ ] 20.1 Add OpenTelemetry spans to all operations
-    - [ ] 20.1.1 User upsert span
-    - [ ] 20.1.2 ES API call spans
-    - [ ] 20.1.3 Role mapping span
-    - [ ] 20.1.4 Cache operation spans
-  - [ ] 20.2 Add structured logging with `loggergo`
-    - [ ] 20.2.1 Log user creation/update
-    - [ ] 20.2.2 Log role mapping results
-    - [ ] 20.2.3 Log cache hits/misses
-    - [ ] 20.2.4 Log ES API errors
-  - [ ] 20.3 Create Grafana dashboard (optional)
-    - [ ] 20.3.1 User upsert rate and duration
-    - [ ] 20.3.2 Cache hit rate
-    - [ ] 20.3.3 Role mapping distribution
-    - [ ] 20.3.4 ES API error rate
+- [x] 20. Add observability
+  - [x] 20.1 Add OpenTelemetry spans to all operations
+    - [x] 20.1.1 User upsert span
+    - [x] 20.1.2 ES API call spans
+    - [x] 20.1.3 Role mapping span
+    - [x] 20.1.4 Cache operation spans
+  - [x] 20.2 Add structured logging with `loggergo`
+    - [x] 20.2.1 Log user creation/update
+    - [x] 20.2.2 Log role mapping results
+    - [x] 20.2.3 Log cache hits/misses
+    - [x] 20.2.4 Log ES API errors
+  - [x] 20.3 Create Grafana dashboard (optional)
+    - [x] 20.3.1 User upsert rate and duration
+    - [x] 20.3.2 Cache hit rate
+    - [x] 20.3.3 Role mapping distribution
+    - [x] 20.3.4 ES API error rate
 
 ### Phase 11: Final Testing and Deployment (2-3 days)
 
