@@ -724,3 +724,249 @@ func TestValidate_UserManagementDisabledNoAdminCredentialsRequired(t *testing.T)
 		t.Errorf("Expected no error when user_management is disabled and static users are configured, got: %v", err)
 	}
 }
+
+func TestValidate_EncryptionKeyMissing(t *testing.T) {
+	cfg := &Config{
+		OIDC: OIDCConfig{
+			Enabled:      true,
+			IssuerURL:    "https://example.com",
+			ClientID:     "test-client",
+			ClientSecret: "test-secret",
+			RedirectURL:  "https://auth.example.com/callback",
+		},
+		Session: SessionConfig{
+			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+		},
+		Cache: CacheConfig{
+			Backend: "memory",
+			// Missing EncryptionKey
+		},
+		UserManagement: UserMgmtConfig{
+			Enabled: true,
+		},
+		Elasticsearch: ElasticsearchConfig{
+			AdminUser:     "admin",
+			AdminPassword: "admin-password",
+			URL:           "https://elasticsearch:9200",
+		},
+		RoleMappings: []RoleMapping{
+			{
+				Claim:   "groups",
+				Pattern: "admin",
+				ESRoles: []string{"superuser"},
+			},
+		},
+	}
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when user_management.enabled is true but encryption_key is missing")
+	}
+	if !strings.Contains(err.Error(), "cache.encryption_key is required") {
+		t.Errorf("Expected error about encryption_key, got: %v", err)
+	}
+}
+
+func TestValidate_EncryptionKeyBase64Valid(t *testing.T) {
+	cfg := &Config{
+		OIDC: OIDCConfig{
+			Enabled:      true,
+			IssuerURL:    "https://example.com",
+			ClientID:     "test-client",
+			ClientSecret: "test-secret",
+			RedirectURL:  "https://auth.example.com/callback",
+		},
+		Session: SessionConfig{
+			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+		},
+		Cache: CacheConfig{
+			Backend:       "memory",
+			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
+		},
+		UserManagement: UserMgmtConfig{
+			Enabled: true,
+		},
+		Elasticsearch: ElasticsearchConfig{
+			AdminUser:     "admin",
+			AdminPassword: "admin-password",
+			URL:           "https://elasticsearch:9200",
+		},
+		RoleMappings: []RoleMapping{
+			{
+				Claim:   "groups",
+				Pattern: "admin",
+				ESRoles: []string{"superuser"},
+			},
+		},
+	}
+
+	err := Validate(cfg)
+	if err != nil {
+		t.Errorf("Expected no error with valid base64 encoded 32-byte encryption key, got: %v", err)
+	}
+}
+
+func TestValidate_EncryptionKeyBase64TooShort(t *testing.T) {
+	cfg := &Config{
+		OIDC: OIDCConfig{
+			Enabled:      true,
+			IssuerURL:    "https://example.com",
+			ClientID:     "test-client",
+			ClientSecret: "test-secret",
+			RedirectURL:  "https://auth.example.com/callback",
+		},
+		Session: SessionConfig{
+			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+		},
+		Cache: CacheConfig{
+			Backend:       "memory",
+			EncryptionKey: "MTIzNDU2Nzg5MA==", // base64 encoded 10 bytes (too short)
+		},
+		UserManagement: UserMgmtConfig{
+			Enabled: true,
+		},
+		Elasticsearch: ElasticsearchConfig{
+			AdminUser:     "admin",
+			AdminPassword: "admin-password",
+			URL:           "https://elasticsearch:9200",
+		},
+		RoleMappings: []RoleMapping{
+			{
+				Claim:   "groups",
+				Pattern: "admin",
+				ESRoles: []string{"superuser"},
+			},
+		},
+	}
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when base64 decoded encryption key is too short")
+	}
+	if !strings.Contains(err.Error(), "must be exactly 32 bytes") {
+		t.Errorf("Expected error about 32 bytes, got: %v", err)
+	}
+}
+
+func TestValidate_EncryptionKeyRawStringValid(t *testing.T) {
+	cfg := &Config{
+		OIDC: OIDCConfig{
+			Enabled:      true,
+			IssuerURL:    "https://example.com",
+			ClientID:     "test-client",
+			ClientSecret: "test-secret",
+			RedirectURL:  "https://auth.example.com/callback",
+		},
+		Session: SessionConfig{
+			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+		},
+		Cache: CacheConfig{
+			Backend:       "memory",
+			EncryptionKey: "my-secret-key-is-exactly-32-byte", // raw 32 bytes (not valid base64)
+		},
+		UserManagement: UserMgmtConfig{
+			Enabled: true,
+		},
+		Elasticsearch: ElasticsearchConfig{
+			AdminUser:     "admin",
+			AdminPassword: "admin-password",
+			URL:           "https://elasticsearch:9200",
+		},
+		RoleMappings: []RoleMapping{
+			{
+				Claim:   "groups",
+				Pattern: "admin",
+				ESRoles: []string{"superuser"},
+			},
+		},
+	}
+
+	err := Validate(cfg)
+	if err != nil {
+		t.Errorf("Expected no error with valid raw 32-byte encryption key, got: %v", err)
+	}
+}
+
+func TestValidate_EncryptionKeyRawStringTooShort(t *testing.T) {
+	cfg := &Config{
+		OIDC: OIDCConfig{
+			Enabled:      true,
+			IssuerURL:    "https://example.com",
+			ClientID:     "test-client",
+			ClientSecret: "test-secret",
+			RedirectURL:  "https://auth.example.com/callback",
+		},
+		Session: SessionConfig{
+			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+		},
+		Cache: CacheConfig{
+			Backend:       "memory",
+			EncryptionKey: "tooshort", // raw string less than 32 bytes
+		},
+		UserManagement: UserMgmtConfig{
+			Enabled: true,
+		},
+		Elasticsearch: ElasticsearchConfig{
+			AdminUser:     "admin",
+			AdminPassword: "admin-password",
+			URL:           "https://elasticsearch:9200",
+		},
+		RoleMappings: []RoleMapping{
+			{
+				Claim:   "groups",
+				Pattern: "admin",
+				ESRoles: []string{"superuser"},
+			},
+		},
+	}
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when raw string encryption key is too short")
+	}
+	if !strings.Contains(err.Error(), "must be exactly 32 bytes") {
+		t.Errorf("Expected error about 32 bytes, got: %v", err)
+	}
+}
+
+func TestValidate_EncryptionKeyRawStringTooLong(t *testing.T) {
+	cfg := &Config{
+		OIDC: OIDCConfig{
+			Enabled:      true,
+			IssuerURL:    "https://example.com",
+			ClientID:     "test-client",
+			ClientSecret: "test-secret",
+			RedirectURL:  "https://auth.example.com/callback",
+		},
+		Session: SessionConfig{
+			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+		},
+		Cache: CacheConfig{
+			Backend:       "memory",
+			EncryptionKey: "123456789012345678901234567890123", // raw string 33 bytes (too long)
+		},
+		UserManagement: UserMgmtConfig{
+			Enabled: true,
+		},
+		Elasticsearch: ElasticsearchConfig{
+			AdminUser:     "admin",
+			AdminPassword: "admin-password",
+			URL:           "https://elasticsearch:9200",
+		},
+		RoleMappings: []RoleMapping{
+			{
+				Claim:   "groups",
+				Pattern: "admin",
+				ESRoles: []string{"superuser"},
+			},
+		},
+	}
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when raw string encryption key is too long")
+	}
+	if !strings.Contains(err.Error(), "must be exactly 32 bytes") {
+		t.Errorf("Expected error about 32 bytes, got: %v", err)
+	}
+}
