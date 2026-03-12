@@ -21,7 +21,18 @@ local_users:
   users:
     - username: testuser
       password_bcrypt: $2a$10$.5DtVFvSJulN385UxctyseY7skwExS1tRZbCeV2p43g8vkDVsAAEu  # password: "password"
-      es_user: elastic  # Change this to your ES username
+      groups:
+        - developers
+        - users
+      email: testuser@example.com
+      full_name: Test User
+    
+    - username: admin
+      password_bcrypt: $2a$10$.5DtVFvSJulN385UxctyseY7skwExS1tRZbCeV2p43g8vkDVsAAEu  # password: "password"
+      groups:
+        - admin
+      email: admin@example.com
+      full_name: Admin User
 
 # OIDC disabled for simple testing
 oidc:
@@ -38,13 +49,50 @@ session:
 # In-memory cache for testing (no Redis required)
 cache:
   backend: memory
+  # Credential cache TTL for user management
+  credential_ttl: 1h
+  # Encryption key for cached credentials (32 bytes for AES-256)
+  encryption_key: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcw==  # base64: "test-encryption-key-32-bytes"
+
+# Role mappings for dynamic user management
+role_mappings:
+  - claim: groups
+    pattern: "admin"
+    es_roles:
+      - superuser
+  
+  - claim: groups
+    pattern: "developers"
+    es_roles:
+      - developer
+      - kibana_user
+
+# Default roles if no mappings match
+default_es_roles:
+  - viewer
+  - kibana_user
 
 # Elasticsearch credentials
 # The ES user that Keyline will use to authenticate to Elasticsearch
 elasticsearch:
+  # Admin credentials for user management API
+  admin_user: elastic  # Change this to your ES username
+  admin_password: ${ES_PASSWORD}  # Set via environment variable
+  url: https://localhost:9200
+  timeout: 30s
+  insecure_skip_verify: true
+  
+  # Static users (legacy mode, only used when user_management.enabled is false)
   users:
     - username: elastic  # Change this to your ES username
       password: ${ES_PASSWORD}  # Set via environment variable
+
+# Dynamic user management configuration
+user_management:
+  # Enable for testing dynamic user management
+  enabled: false  # Set to true to test user management features
+  password_length: 32
+  credential_ttl: 1h
 
 # Upstream Elasticsearch cluster
 # Use http://localhost:9200 for ES 8.x without SSL (docker-compose-es8-auth.yml)

@@ -1,0 +1,459 @@
+# Keyline - Dynamic User Management Example Configuration
+#
+# This configuration demonstrates the dynamic user management feature.
+# When enabled, Keyline automatically creates and manages Elasticsearch users
+# for ALL authenticated users (OIDC, Basic Auth, etc.) with proper role-based
+# access control.
+#
+# Key Benefits:
+# - Accountability: Each user has their own ES account
+# - Auditing: ES audit logs show actual usernames
+# - Security: Random, short-lived passwords
+# - Role-based access: User groups map to ES roles
+# - Scalability: Redis cache enables multi-instance deployments
+
+# ============================================================================
+# Server Configuration
+# ============================================================================
+server:
+  port: 9000
+  mode: forward_auth  # or standalone
+  read_timeout: 30s
+  write_timeout: 30s
+  max_concurrent: 1000
+
+# ============================================================================
+# OIDC Authentication Configuration
+# ============================================================================
+oidc:
+  enabled: true
+  issuer_url: ${OIDC_ISSUER_URL}
+  client_id: ${OIDC_CLIENT_ID}
+  client_secret: ${OIDC_CLIENT_SECRET}
+  redirect_url: https://auth.example.com/auth/callback
+  scopes:
+    - openid
+    - email
+    - profile
+  
+  # User identity claim (used as the ES username)
+  # This claim value becomes the Elasticsearch username
+  # Common values: "email", "sub", "preferred_username"
+  user_identity_claim: email
+
+# ============================================================================
+# Local Users Configuration (Basic Auth)
+# ============================================================================
+local_users:
+  enabled: true
+  users:
+    # User with multiple groups
+    - username: developer
+      password_bcrypt: ${DEVELOPER_PASSWORD_BCRYPT}
+      groups:
+        - developers
+        - users
+      email: developer@example.com
+      full_name: Developer User
+    
+    # Admin user
+    - username: admin
+      password_bcrypt: ${ADMIN_PASSWORD_BCRYPT}
+      groups:
+        - admin
+      email: admin@example.com
+      full_name: Admin User
+    
+    # User with no groups (will use default_es_roles)
+    - username: viewer
+      password_bcrypt: ${VIEWER_PASSWORD_BCRYPT}
+      email: viewer@example.com
+      full_name: Viewer User
+    
+    # Service account for CI/CD
+    - username: ci-pipeline
+      password_bcrypt: ${CI_PASSWORD_BCRYPT}
+      groups:
+        - ci
+      email: ci@example.com
+      full_name: CI Pipeline
+
+# ============================================================================
+# Session Management Configuration
+# ============================================================================
+session:
+  ttl: 24h
+  cookie_name: keyline_session
+  cookie_domain: .example.com
+  cookie_path: /
+  # Generate with: openssl rand -base64 32
+  session_secret: ${SESSION_SECRET}
+
+# ============================================================================
+# Cache Backend Configuration
+# ============================================================================
+cache:
+  # Backend: redis (recommended for production) or memory (development only)
+  # Redis enables:
+  # - Session persistence across restarts
+  # - Horizontal scaling (multiple Keyline instances)
+  # - Shared credential cache
+  backend: redis
+  
+  # Redis connection settings
+  redis_url: ${REDIS_URL}
+  redis_password: ${REDIS_PASSWORD}
+  redis_db: 0
+  
+  # Credential cache TTL
+  # How long generated ES passwords are cached before regeneration
+  # After TTL expires, new password is generated and ES user is updated
+  # Duration format: 5m, 1h, 24h
+  # Recommended: 1h (balances security and performance)
+  credential_ttl: 1h
+  
+  # Encryption key for cached credentials (REQUIRED)
+  # Must be exactly 32 bytes (256 bits) for AES-256-GCM encryption
+  # Generate with: openssl rand -base64 32
+  # CRITICAL: All Keyline instances must use the same key (for Redis)
+  # Store securely in environment variable, not in config file
+  encryption_key: ${CACHE_ENCRYPTION_KEY}
+
+# ============================================================================
+# Dynamic User Management Configuration
+# ============================================================================
+user_management:
+  # Enable dynamic Elasticsearch user management
+  # When enabled:
+  # - Keyline automatically creates/updates ES users for ALL authenticated users
+  # - User groups are mapped to ES roles via role_mappings
+  # - Passwords are generated, cached, and rotated automatically
+  # - ES audit logs show actual usernames (not shared accounts)
+  enabled: true
+  
+  # Generated password length (minimum: 32 characters)
+  # Passwords are:
+  # - Cryptographically random (crypto/rand)
+  # - Never logged or exposed
+  # - Encrypted in cache (AES-256-GCM)
+  # - Rotated after credential_ttl expires
+  password_length: 32
+  
+  # Credential TTL (same as cache.credential_ttl)
+  # How long passwords are cached before regeneration
+  # Duration format: 5m, 1h, 24h
+  # Range: 5 minutes to 24 hours
+  # Recommended: 1h
+  credential_ttl: 1h
+
+# ============================================================================
+# Role Mappings Configuration
+# ============================================================================
+# Maps user groups/claims to Elasticsearch roles
+# Applies to ALL authentication methods (OIDC, Basic Auth with groups, etc.)
+# 
+# Evaluation Logic:
+# 1. Evaluate ALL role_mappings in order
+# 2. Collect ALL matching ES roles from matching mappings
+# 3. If at least one mapping matched, use collected roles
+# 4. If NO mappings matched AND default_es_roles is defined, use default roles
+# 5. If NO mappings matched AND default_es_roles is NOT defined, deny access
+#
+# Multiple group matches → multiple ES roles (ES handles this natively)
+
+role_mappings:
+  # Admin group mapping
+  # Users in "admin" group get superuser role
+  - claim: groups
+    pattern: "admin"
+    es_roles:
+      - superuser
+  
+  # Superusers group mapping
+  - claim: groups
+    pattern: "superusers"
+    es_roles:
+      - superuser
+  
+  # Wildcard pattern for developer groups
+  # Matches: "backend-developers", "frontend-developers", "mobile-developers", etc.
+  - claim: groups
+    pattern: "*-developers"
+    es_roles:
+      - developer
+      - kibana_user
+  
+  # Exact match for developers group
+  - claim: groups
+    pattern: "developers"
+    es_roles:
+      - developer
+      - kibana_user
+  
+  # Viewers group mapping
+  - claim: groups
+    pattern: "viewers"
+    es_roles:
+      - viewer
+  
+  # CI/CD group mapping
+  - claim: groups
+    pattern: "ci"
+    es_roles:
+      - ci_user
+  
+  # Monitoring group mapping
+  - claim: groups
+    pattern: "monitoring"
+    es_roles:
+      - monitoring_user
+  
+  # Email-based mapping (works for OIDC and local users with email)
+  # All users with @admin.example.com email get superuser role
+  - claim: email
+    pattern: "*@admin.example.com"
+    es_roles:
+      - superuser
+  
+  # Department-based email mapping
+  - claim: email
+    pattern: "*@engineering.example.com"
+    es_roles:
+      - developer
+      - kibana_user
+
+# Default ES roles if NO role mappings matched
+# Only applied when:
+# - User has no groups, OR
+# - No groups matched any pattern
+# 
+# If empty and no mapping matches, access is DENIED
+# Recommended: Provide safe default roles for basic access
+default_es_roles:
+  - viewer
+  - kibana_user
+
+# ============================================================================
+# Elasticsearch Configuration
+# ============================================================================
+elasticsearch:
+  # Admin credentials for user management API (REQUIRED)
+  # This user must have the 'manage_security' privilege in Elasticsearch
+  # Used exclusively for Security API calls (creating/updating users)
+  # 
+  # To create admin user in Elasticsearch:
+  # POST /_security/user/keyline_admin
+  # {
+  #   "password": "secure-password",
+  #   "roles": ["superuser"],
+  #   "full_name": "Keyline Admin",
+  #   "metadata": {
+  #     "purpose": "keyline_user_management"
+  #   }
+  # }
+  admin_user: ${ES_ADMIN_USER}
+  admin_password: ${ES_ADMIN_PASSWORD}
+  
+  # Elasticsearch cluster URL for API calls
+  url: ${ES_URL}
+  
+  # Request timeout for ES API calls
+  timeout: 30s
+  
+  # Skip TLS certificate verification (NOT recommended for production)
+  insecure_skip_verify: false
+
+# ============================================================================
+# Upstream Configuration (Standalone Mode Only)
+# ============================================================================
+upstream:
+  url: http://kibana:5601
+  timeout: 30s
+  max_idle_conns: 100
+
+# ============================================================================
+# Observability Configuration
+# ============================================================================
+observability:
+  log_level: info  # debug, info, warn, error
+  log_format: json  # json or text
+  
+  # OpenTelemetry configuration
+  otel_enabled: true
+  otel_endpoint: http://otel-collector:4318
+  otel_service_name: keyline
+  otel_service_version: ${VERSION}
+  otel_environment: production
+  otel_trace_ratio: 1.0
+  
+  # Prometheus metrics
+  metrics_enabled: true
+
+# ============================================================================
+# Example Scenarios
+# ============================================================================
+
+# Scenario 1: OIDC User with Groups
+# ----------------------------------
+# User authenticates via OIDC with:
+# - email: john.doe@example.com
+# - groups: ["developers", "users"]
+#
+# Result:
+# 1. Keyline creates ES user "john.doe@example.com"
+# 2. Groups "developers" and "users" are evaluated
+# 3. "developers" matches → roles: ["developer", "kibana_user"]
+# 4. Password is generated, encrypted, and cached
+# 5. ES user is created/updated with roles
+# 6. Subsequent requests use cached credentials
+
+# Scenario 2: Local User with Multiple Groups
+# --------------------------------------------
+# User authenticates with username "developer" (from local_users)
+# - groups: ["developers", "users"]
+#
+# Result:
+# 1. Keyline creates ES user "developer"
+# 2. Groups "developers" and "users" are evaluated
+# 3. "developers" matches → roles: ["developer", "kibana_user"]
+# 4. Password is generated, encrypted, and cached
+# 5. ES user is created/updated with roles
+
+# Scenario 3: User with No Groups (Uses Default Roles)
+# -----------------------------------------------------
+# User authenticates with username "viewer" (from local_users)
+# - groups: [] (no groups)
+#
+# Result:
+# 1. Keyline creates ES user "viewer"
+# 2. No groups to evaluate
+# 3. No mappings match → use default_es_roles
+# 4. Roles: ["viewer", "kibana_user"]
+# 5. Password is generated, encrypted, and cached
+
+# Scenario 4: User with Unknown Groups (Uses Default Roles)
+# ----------------------------------------------------------
+# User authenticates via OIDC with:
+# - email: jane.doe@example.com
+# - groups: ["unknown-group"]
+#
+# Result:
+# 1. Keyline creates ES user "jane.doe@example.com"
+# 2. Group "unknown-group" is evaluated
+# 3. No mappings match → use default_es_roles
+# 4. Roles: ["viewer", "kibana_user"]
+# 5. Password is generated, encrypted, and cached
+
+# Scenario 5: Admin Email Domain
+# -------------------------------
+# User authenticates via OIDC with:
+# - email: admin@admin.example.com
+# - groups: []
+#
+# Result:
+# 1. Keyline creates ES user "admin@admin.example.com"
+# 2. Email matches "*@admin.example.com" pattern
+# 3. Roles: ["superuser"]
+# 4. Password is generated, encrypted, and cached
+
+# Scenario 6: Cache Hit (Subsequent Request)
+# -------------------------------------------
+# User authenticates again within credential_ttl:
+#
+# Result:
+# 1. Keyline checks cache for existing credentials
+# 2. Cache hit → decrypt password
+# 3. Use cached credentials (no ES API call)
+# 4. Request completes in < 10ms
+
+# Scenario 7: Cache Miss (After TTL Expiration)
+# ----------------------------------------------
+# User authenticates after credential_ttl expires:
+#
+# Result:
+# 1. Keyline checks cache for existing credentials
+# 2. Cache miss (expired)
+# 3. Generate new password
+# 4. Update ES user with new password
+# 5. Encrypt and cache new credentials
+# 6. Request completes in < 500ms
+
+# ============================================================================
+# Security Best Practices
+# ============================================================================
+
+# 1. Encryption Key Management
+# - Generate: openssl rand -base64 32
+# - Store in environment variable (not in config file)
+# - Rotate periodically (invalidates cache, forces password regeneration)
+# - Use same key across all Keyline instances (for Redis)
+
+# 2. Admin Credentials
+# - Use dedicated ES user with only 'manage_security' privilege
+# - Store in environment variables
+# - Rotate regularly
+# - Never log or expose in errors
+
+# 3. Redis Security
+# - Use TLS for Redis connections (rediss://)
+# - Use strong Redis password
+# - Restrict Redis network access
+# - Enable Redis AUTH
+
+# 4. Password Security
+# - Passwords are cryptographically random (crypto/rand)
+# - Passwords are never logged
+# - Passwords are encrypted in cache (AES-256-GCM)
+# - Passwords are rotated after credential_ttl
+
+# 5. Role Mapping Security
+# - Use least privilege principle
+# - Review role mappings regularly
+# - Test with different user scenarios
+# - Monitor ES audit logs for access patterns
+
+# 6. Monitoring
+# - Monitor cache hit rate (target: > 95%)
+# - Monitor user upsert latency
+# - Monitor ES API errors
+# - Monitor role mapping matches
+# - Alert on authentication failures
+
+# ============================================================================
+# Troubleshooting
+# ============================================================================
+
+# Issue: "encryption key must be 32 bytes"
+# Solution: Generate key with: openssl rand -base64 32
+
+# Issue: "admin credentials invalid"
+# Solution: Verify ES admin user has 'manage_security' privilege
+
+# Issue: "no role mappings matched and no default roles configured"
+# Solution: Add default_es_roles or ensure user has matching groups
+
+# Issue: Cache hit rate < 95%
+# Solution: Increase credential_ttl or check Redis connectivity
+
+# Issue: High user upsert latency
+# Solution: Check ES cluster health, increase timeout, verify network
+
+# For more troubleshooting, see: docs/troubleshooting-user-management.md
+
+# ============================================================================
+# Migration from Static Credential Mapping
+# ============================================================================
+
+# If migrating from static credential mapping (user_management.enabled: false):
+# 
+# 1. Review current OIDC mappings and elasticsearch.users
+# 2. Create equivalent role_mappings
+# 3. Set default_es_roles for fallback
+# 4. Configure cache.encryption_key
+# 5. Configure elasticsearch.admin_user and admin_password
+# 6. Enable user_management.enabled: true
+# 7. Test with a subset of users
+# 8. Monitor ES audit logs and Keyline metrics
+# 9. Gradually roll out to all users
+#
+# For detailed migration guide, see: docs/migration-guide.md

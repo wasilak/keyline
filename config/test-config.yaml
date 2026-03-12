@@ -10,7 +10,23 @@ local_users:
   users:
     - username: testuser
       password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy  # password: "password"
-      es_user: test_es_user
+      groups:
+        - developers
+        - users
+      email: testuser@example.com
+      full_name: Test User
+    
+    - username: admin
+      password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy  # password: "password"
+      groups:
+        - admin
+      email: admin@example.com
+      full_name: Admin User
+    
+    - username: viewer
+      password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy  # password: "password"
+      email: viewer@example.com
+      full_name: Viewer User
 
 oidc:
   enabled: false
@@ -24,11 +40,54 @@ session:
 
 cache:
   backend: memory
+  # Credential cache TTL for user management
+  credential_ttl: 1h
+  # Encryption key for cached credentials (32 bytes for AES-256)
+  # In tests, we use a fixed key for reproducibility
+  encryption_key: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcw==  # base64: "test-encryption-key-32-bytes"
+
+# Role mappings for dynamic user management
+role_mappings:
+  - claim: groups
+    pattern: "admin"
+    es_roles:
+      - superuser
+  
+  - claim: groups
+    pattern: "developers"
+    es_roles:
+      - developer
+      - kibana_user
+  
+  - claim: groups
+    pattern: "users"
+    es_roles:
+      - user
+
+# Default roles if no mappings match
+default_es_roles:
+  - viewer
+  - kibana_user
 
 elasticsearch:
+  # Admin credentials for user management API
+  admin_user: elastic
+  admin_password: test_password
+  url: http://localhost:9200
+  timeout: 30s
+  insecure_skip_verify: false
+  
+  # Static users (legacy mode, only used when user_management.enabled is false)
   users:
     - username: test_es_user
       password: test_password
+
+# Dynamic user management configuration
+user_management:
+  # Enable for testing dynamic user management
+  enabled: false  # Set to true to test user management features
+  password_length: 32
+  credential_ttl: 1h
 
 upstream:
   url: http://httpbin.org  # Using httpbin as a test upstream
