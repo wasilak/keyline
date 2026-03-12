@@ -18,7 +18,9 @@ This guide covers deploying Keyline in various environments including Kubernetes
 - Docker 20.10+ or Kubernetes 1.20+
 - Redis 6.0+ (for production deployments)
 - OIDC provider configured (if using OIDC authentication)
-- Elasticsearch cluster with configured users
+- Elasticsearch cluster with Security API enabled
+- Elasticsearch admin user with `manage_security` privilege (if using dynamic user management)
+- 32-byte encryption key for credential caching (if using dynamic user management)
 
 ## Docker Deployment
 
@@ -58,7 +60,7 @@ services:
       - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}
       - REDIS_URL=redis://redis:6379
       - ES_ADMIN_PASSWORD=${ES_ADMIN_PASSWORD}
-      - ES_READONLY_PASSWORD=${ES_READONLY_PASSWORD}
+      - CACHE_ENCRYPTION_KEY=${CACHE_ENCRYPTION_KEY}
     volumes:
       - ./config.yaml:/app/config.yaml
     depends_on:
@@ -115,21 +117,45 @@ data:
         - openid
         - email
         - profile
-      mappings:
-        - claim: email
-          pattern: "*@admin.example.com"
-          es_user: admin
-        - claim: email
-          pattern: "*@example.com"
-          es_user: readonly
-      default_es_user: readonly
     
     local_users:
       enabled: true
       users:
         - username: monitoring
           password_bcrypt: ${MONITORING_PASSWORD_BCRYPT}
-          es_user: monitoring_user
+          groups:
+            - monitoring
+          email: monitoring@example.com
+    
+    # Dynamic user management configuration
+    user_management:
+      enabled: true
+      password_length: 32
+      credential_ttl: 1h
+    
+    # Role mappings for dynamic user management
+    role_mappings:
+      - claim: groups
+        pattern: "admin"
+        es_roles:
+          - superuser
+      - claim: groups
+        pattern: "developers"
+        es_roles:
+          - developer
+          - kibana_user
+      - claim: groups
+        pattern: "monitoring"
+        es_roles:
+          - monitoring_user
+      - claim: email
+        pattern: "*@admin.example.com"
+        es_roles:
+          - superuser
+    
+    default_es_roles:
+      - viewer
+      - kibana_user
     
     session:
       ttl: 24h
@@ -142,15 +168,15 @@ data:
       backend: redis
       redis_url: redis://keyline-redis:6379
       redis_db: 0
+      credential_ttl: 1h
+      encryption_key: ${CACHE_ENCRYPTION_KEY}
     
     elasticsearch:
-      users:
-        - username: admin
-          password: ${ES_ADMIN_PASSWORD}
-        - username: readonly
-          password: ${ES_READONLY_PASSWORD}
-        - username: monitoring_user
-          password: ${ES_MONITORING_PASSWORD}
+      admin_user: admin
+      admin_password: ${ES_ADMIN_PASSWORD}
+      url: https://elasticsearch:9200
+      timeout: 30s
+      insecure_skip_verify: false
     
     observability:
       log_level: info
@@ -177,7 +203,7 @@ stringData:
   session-secret: "your-base64-encoded-secret"
   oidc-client-secret: "your-oidc-client-secret"
   es-admin-password: "your-es-admin-password"
-  es-readonly-password: "your-es-readonly-password"
+  cache-encryption-key: "your-32-byte-base64-encoded-key"
   monitoring-password-bcrypt: "$2a$10$..."
 ```
 
@@ -232,11 +258,11 @@ spec:
             secretKeyRef:
               name: keyline-secrets
               key: es-admin-password
-        - name: ES_READONLY_PASSWORD
+        - name: CACHE_ENCRYPTION_KEY
           valueFrom:
             secretKeyRef:
               name: keyline-secrets
-              key: es-readonly-password
+              key: cache-encryption-key
         - name: MONITORING_PASSWORD_BCRYPT
           valueFrom:
             secretKeyRef:
@@ -610,6 +636,125 @@ readinessProbe:
   failureThreshold: 2
 ```
 
+## Dynamic User Management Deployment
+
+### Overview
+
+When dynamic user management is enabled, Keyline automatically creates and manages Elasticsearch users for all authenticated users. This requires additional configuration and considerations.
+
+### Prerequisites
+
+1. **Elasticsearch Security API**: Must be enabled on your ES cluster
+2. **Admin Credentials**: ES user with `manage_security` privilege
+3. **Encryption Key**: 32-byte key for encrypting cached credentials
+4. **Redis**: Recommended for production (enables horizontal scaling)
+
+### Generating Encryption Key
+
+```bash
+# Generate a 32-byte encryption key
+openssl rand -base64 32
+```
+
+Store this key securely in your secrets management system (Vault, Kubernetes Secrets, etc.).
+
+### Configuration Example
+
+```yaml
+# Enable dynamic user management
+user_management:
+  enabled: true
+  password_length: 32
+  credential_ttl: 1h
+
+# Configure role mappings
+role_mappings:
+  - claim: groups
+    pattern: "admin"
+    es_roles:
+      - superuser
+  - claim: groups
+    pattern: "developers"
+    es_roles:
+      - developer
+      - kibana_user
+
+# Default roles for users with no matching groups
+default_es_roles:
+  - viewer
+  - kibana_user
+
+# Elasticsearch admin credentials
+elasticsearch:
+  admin_user: admin
+  admin_password: ${ES_ADMIN_PASSWORD}
+  url: https://elasticsearch:9200
+  timeout: 30s
+
+# Cache configuration with encryption
+cache:
+  backend: redis
+  redis_url: redis://redis:6379
+  credential_ttl: 1h
+  encryption_key: ${CACHE_ENCRYPTION_KEY}
+```
+
+### Security Considerations
+
+1. **Encryption Key Management**:
+   - Store encryption key in environment variables, not config files
+   - Use the same key across all Keyline instances (for Redis)
+   - Rotate keys periodically (invalidates cache)
+   - Never commit keys to version control
+
+2. **Admin Credentials**:
+   - Use dedicated ES admin user with minimal privileges
+   - Only grant `manage_security` privilege
+   - Rotate credentials regularly
+   - Never log admin credentials
+
+3. **Password Security**:
+   - Generated passwords are 32+ characters
+   - Passwords are encrypted in cache using AES-256-GCM
+   - Passwords are never logged
+   - Cache TTL limits password lifetime
+
+### Horizontal Scaling
+
+When using Redis as the cache backend, multiple Keyline instances can share the credential cache:
+
+```yaml
+# All instances must use the same configuration
+cache:
+  backend: redis
+  redis_url: redis://redis-cluster:6379
+  encryption_key: ${CACHE_ENCRYPTION_KEY}  # Same key for all instances
+```
+
+Benefits:
+- Consistent credentials across all instances
+- Reduced ES API calls (shared cache)
+- Better performance under load
+- Seamless failover
+
+### Monitoring
+
+Key metrics to monitor:
+
+- `keyline_user_upserts_total`: User creation/update rate
+- `keyline_cred_cache_hits_total`: Cache hit rate (target: >95%)
+- `keyline_cred_cache_misses_total`: Cache miss rate
+- `keyline_es_api_calls_total`: ES API call rate and errors
+- `keyline_role_mapping_matches_total`: Role mapping effectiveness
+
+### Troubleshooting
+
+See [User Management Troubleshooting Guide](troubleshooting-user-management.md) for common issues and solutions.
+
+### Migration from Static Mapping
+
+See [Migration Guide](migration-guide.md) for step-by-step instructions on migrating from static user mapping to dynamic user management.
+
 ## Production Considerations
 
 ### High Availability
@@ -627,6 +772,12 @@ readinessProbe:
 - Enable RBAC for Kubernetes resources
 - Rotate session secrets regularly
 - Use strong bcrypt cost for password hashing
+- **Dynamic User Management**:
+  - Rotate encryption keys periodically
+  - Monitor ES API call patterns for anomalies
+  - Audit ES user creation logs
+  - Ensure admin credentials have minimal privileges
+  - Use TLS for ES API connections
 
 ### Monitoring
 
@@ -638,6 +789,11 @@ readinessProbe:
   - Redis connection failures
   - High response times
   - Pod restarts
+  - **Dynamic User Management**:
+    - Low cache hit rate (<95%)
+    - High ES API error rate
+    - Failed user upserts
+    - Encryption/decryption failures
 
 ### Performance
 
