@@ -44,6 +44,14 @@ type OIDCMapping struct {
 	ESUser  string `mapstructure:"es_user"`
 }
 
+// RoleMapping maps user groups/claims to Elasticsearch roles
+// Used for dynamic user management across all authentication methods
+type RoleMapping struct {
+	Claim   string   `mapstructure:"claim"`    // Claim name (e.g., "groups", "email")
+	Pattern string   `mapstructure:"pattern"`  // Pattern to match (supports wildcards)
+	ESRoles []string `mapstructure:"es_roles"` // ES roles to assign when pattern matches
+}
+
 // LocalUsersConfig contains local user settings
 type LocalUsersConfig struct {
 	Enabled bool        `mapstructure:"enabled"`
