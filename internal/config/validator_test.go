@@ -548,3 +548,179 @@ func TestValidate_MultipleErrors(t *testing.T) {
 		t.Error("Expected error about Elasticsearch users")
 	}
 }
+
+func TestValidate_UserManagementMissingAdminUser(t *testing.T) {
+	cfg := &Config{
+		OIDC: OIDCConfig{
+			Enabled:      true,
+			IssuerURL:    "https://example.com",
+			ClientID:     "test-client",
+			ClientSecret: "test-secret",
+			RedirectURL:  "https://auth.example.com/callback",
+		},
+		Session: SessionConfig{
+			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+		},
+		Cache: CacheConfig{
+			Backend:       "memory",
+			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
+		},
+		UserManagement: UserMgmtConfig{
+			Enabled: true,
+		},
+		Elasticsearch: ElasticsearchConfig{
+			// Missing AdminUser
+			AdminPassword: "admin-password",
+			URL:           "https://elasticsearch:9200",
+		},
+	}
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when user_management.enabled is true but admin_user is missing")
+	}
+	if !strings.Contains(err.Error(), "elasticsearch.admin_user is required") {
+		t.Errorf("Expected error about admin_user, got: %v", err)
+	}
+}
+
+func TestValidate_UserManagementMissingAdminPassword(t *testing.T) {
+	cfg := &Config{
+		OIDC: OIDCConfig{
+			Enabled:      true,
+			IssuerURL:    "https://example.com",
+			ClientID:     "test-client",
+			ClientSecret: "test-secret",
+			RedirectURL:  "https://auth.example.com/callback",
+		},
+		Session: SessionConfig{
+			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+		},
+		Cache: CacheConfig{
+			Backend:       "memory",
+			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
+		},
+		UserManagement: UserMgmtConfig{
+			Enabled: true,
+		},
+		Elasticsearch: ElasticsearchConfig{
+			AdminUser: "admin",
+			// Missing AdminPassword
+			URL: "https://elasticsearch:9200",
+		},
+	}
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when user_management.enabled is true but admin_password is missing")
+	}
+	if !strings.Contains(err.Error(), "elasticsearch.admin_password is required") {
+		t.Errorf("Expected error about admin_password, got: %v", err)
+	}
+}
+
+func TestValidate_UserManagementMissingElasticsearchURL(t *testing.T) {
+	cfg := &Config{
+		OIDC: OIDCConfig{
+			Enabled:      true,
+			IssuerURL:    "https://example.com",
+			ClientID:     "test-client",
+			ClientSecret: "test-secret",
+			RedirectURL:  "https://auth.example.com/callback",
+		},
+		Session: SessionConfig{
+			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+		},
+		Cache: CacheConfig{
+			Backend:       "memory",
+			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
+		},
+		UserManagement: UserMgmtConfig{
+			Enabled: true,
+		},
+		Elasticsearch: ElasticsearchConfig{
+			AdminUser:     "admin",
+			AdminPassword: "admin-password",
+			// Missing URL
+		},
+	}
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when user_management.enabled is true but elasticsearch.url is missing")
+	}
+	if !strings.Contains(err.Error(), "elasticsearch.url is required") {
+		t.Errorf("Expected error about elasticsearch.url, got: %v", err)
+	}
+}
+
+func TestValidate_UserManagementAllAdminCredentialsPresent(t *testing.T) {
+	cfg := &Config{
+		OIDC: OIDCConfig{
+			Enabled:      true,
+			IssuerURL:    "https://example.com",
+			ClientID:     "test-client",
+			ClientSecret: "test-secret",
+			RedirectURL:  "https://auth.example.com/callback",
+		},
+		Session: SessionConfig{
+			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+		},
+		Cache: CacheConfig{
+			Backend:       "memory",
+			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
+		},
+		UserManagement: UserMgmtConfig{
+			Enabled: true,
+		},
+		Elasticsearch: ElasticsearchConfig{
+			AdminUser:     "admin",
+			AdminPassword: "admin-password",
+			URL:           "https://elasticsearch:9200",
+		},
+		RoleMappings: []RoleMapping{
+			{
+				Claim:   "groups",
+				Pattern: "admin",
+				ESRoles: []string{"superuser"},
+			},
+		},
+	}
+
+	err := Validate(cfg)
+	if err != nil {
+		t.Errorf("Expected no error when all admin credentials are present, got: %v", err)
+	}
+}
+
+func TestValidate_UserManagementDisabledNoAdminCredentialsRequired(t *testing.T) {
+	cfg := &Config{
+		OIDC: OIDCConfig{
+			Enabled:      true,
+			IssuerURL:    "https://example.com",
+			ClientID:     "test-client",
+			ClientSecret: "test-secret",
+			RedirectURL:  "https://auth.example.com/callback",
+		},
+		Session: SessionConfig{
+			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+		},
+		Cache: CacheConfig{
+			Backend: "memory",
+		},
+		UserManagement: UserMgmtConfig{
+			Enabled: false,
+		},
+		Elasticsearch: ElasticsearchConfig{
+			// No admin credentials needed when user management is disabled
+			Users: []ESUser{
+				{Username: "admin", Password: "admin-password"},
+			},
+		},
+	}
+
+	err := Validate(cfg)
+	if err != nil {
+		t.Errorf("Expected no error when user_management is disabled and static users are configured, got: %v", err)
+	}
+}
