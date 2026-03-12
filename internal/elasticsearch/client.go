@@ -163,6 +163,7 @@ func (c *client) CreateOrUpdateUser(ctx context.Context, req *UserRequest) error
 
 		err := c.doCreateOrUpdateUser(ctx, req.Username, bodyBytes)
 		if err == nil {
+			// Prometheus metrics - will be called from usermgmt package
 			slog.InfoContext(ctx, "ES user created/updated successfully",
 				slog.String("username", req.Username),
 				slog.Any("roles", req.Roles),

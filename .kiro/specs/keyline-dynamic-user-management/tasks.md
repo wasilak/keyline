@@ -285,53 +285,53 @@
 
 ### Phase 9: Documentation and Migration (2-3 days)
 
-- [ ] 17. Update documentation
-  - [ ] 17.1 Create `docs/user-management.md`
-    - [ ] 17.1.1 Overview of dynamic user management
-    - [ ] 17.1.2 Configuration guide
-    - [ ] 17.1.3 Role mapping examples
-    - [ ] 17.1.4 Security considerations (encryption key management)
-    - [ ] 17.1.5 Performance tuning
-    - [ ] 17.1.6 Encryption key rotation procedure
-  - [ ] 17.2 Update `docs/configuration.md`
-    - [ ] 17.2.1 Document new config sections
-    - [ ] 17.2.2 Document role_mappings syntax
-    - [ ] 17.2.3 Document default_es_roles
-    - [ ] 17.2.4 Document user_management config
-  - [ ] 17.3 Create `docs/migration-guide.md`
-    - [ ] 17.3.1 Migration from static user mapping
-    - [ ] 17.3.2 Breaking changes (LocalUser.ESUser removed)
-    - [ ] 17.3.3 Configuration examples
-    - [ ] 17.3.4 Rollback procedure
-  - [ ] 17.4 Update `README.md`
-    - [ ] 17.4.1 Add user management feature description
-    - [ ] 17.4.2 Add quick start example
-  - [ ] 17.5 Create `docs/troubleshooting-user-management.md`
-    - [ ] 17.5.1 Common issues and solutions
-    - [ ] 17.5.2 Debugging tips
-    - [ ] 17.5.3 Log analysis guide
+- [x] 17. Update documentation
+  - [x] 17.1 Create `docs/user-management.md`
+    - [x] 17.1.1 Overview of dynamic user management
+    - [x] 17.1.2 Configuration guide
+    - [x] 17.1.3 Role mapping examples
+    - [x] 17.1.4 Security considerations (encryption key management)
+    - [x] 17.1.5 Performance tuning
+    - [x] 17.1.6 Encryption key rotation procedure
+  - [x] 17.2 Update `docs/configuration.md`
+    - [x] 17.2.1 Document new config sections
+    - [x] 17.2.2 Document role_mappings syntax
+    - [x] 17.2.3 Document default_es_roles
+    - [x] 17.2.4 Document user_management config
+  - [x] 17.3 Create `docs/migration-guide.md`
+    - [x] 17.3.1 Migration from static user mapping
+    - [x] 17.3.2 Breaking changes (LocalUser.ESUser removed)
+    - [x] 17.3.3 Configuration examples
+    - [x] 17.3.4 Rollback procedure
+  - [x] 17.4 Update `README.md`
+    - [x] 17.4.1 Add user management feature description
+    - [x] 17.4.2 Add quick start example
+  - [x] 17.5 Create `docs/troubleshooting-user-management.md`
+    - [x] 17.5.1 Common issues and solutions
+    - [x] 17.5.2 Debugging tips
+    - [x] 17.5.3 Log analysis guide
 
-- [ ] 18. Update example configurations
-  - [ ] 18.1 Update `config/config.example.yaml`
-  - [ ] 18.2 Create `config/user-management-example.yaml`
-  - [ ] 18.3 Update test configs with user management enabled
-  - [ ] 18.4 Add comments explaining each config option
+- [x] 18. Update example configurations
+  - [x] 18.1 Update `config/config.example.yaml`
+  - [x] 18.2 Create `config/user-management-example.yaml`
+  - [x] 18.3 Update test configs with user management enabled
+  - [x] 18.4 Add comments explaining each config option
 
 ### Phase 10: Monitoring and Observability (1-2 days)
 
-- [ ] 19. Add metrics
-  - [ ] 19.1 Create `internal/usermgmt/metrics.go`
-  - [ ] 19.2 Define Prometheus metrics
-    - [ ] 19.2.1 `keyline_user_upserts_total` (counter, status label)
-    - [ ] 19.2.2 `keyline_user_upsert_duration_seconds` (histogram, cache_status label)
-    - [ ] 19.2.3 `keyline_cred_cache_hits_total` (counter)
-    - [ ] 19.2.4 `keyline_cred_cache_misses_total` (counter)
-    - [ ] 19.2.5 `keyline_role_mapping_matches_total` (counter, pattern label)
-    - [ ] 19.2.6 `keyline_es_api_calls_total` (counter, operation, status labels)
-  - [ ] 19.3 Register metrics with Prometheus
-  - [ ] 19.4 Instrument user manager with metrics
-  - [ ] 19.5 Instrument ES API client with metrics
-  - [ ] 19.6 Instrument role mapper with metrics
+- [x] 19. Add metrics
+  - [x] 19.1 Create `internal/usermgmt/metrics.go`
+  - [x] 19.2 Define Prometheus metrics
+    - [x] 19.2.1 `keyline_user_upserts_total` (counter, status label)
+    - [x] 19.2.2 `keyline_user_upsert_duration_seconds` (histogram, cache_status label)
+    - [x] 19.2.3 `keyline_cred_cache_hits_total` (counter)
+    - [x] 19.2.4 `keyline_cred_cache_misses_total` (counter)
+    - [x] 19.2.5 `keyline_role_mapping_matches_total` (counter, pattern label)
+    - [x] 19.2.6 `keyline_es_api_calls_total` (counter, operation, status labels)
+  - [x] 19.3 Register metrics with Prometheus
+  - [x] 19.4 Instrument user manager with metrics
+  - [x] 19.5 Instrument ES API client with metrics
+  - [x] 19.6 Instrument role mapper with metrics
 
 - [ ] 20. Add observability
   - [ ] 20.1 Add OpenTelemetry spans to all operations

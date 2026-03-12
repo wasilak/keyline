@@ -38,6 +38,9 @@ func (rm *RoleMapper) MapGroupsToRoles(ctx context.Context, groups []string) ([]
 					rolesSet[role] = true
 				}
 
+				// Prometheus metrics - record role mapping match
+				RoleMappingMatches.WithLabelValues(mapping.Pattern).Inc()
+
 				// Log matched mappings
 				slog.DebugContext(ctx, "Role mapping matched",
 					slog.String("group", group),
