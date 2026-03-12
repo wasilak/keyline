@@ -54,7 +54,13 @@ oidc:
     - email
     - profile
   
-  # Claim-based ES user mappings
+  # User identity claim (used as the ES username when user_management is enabled)
+  # Common values: "email", "sub", "preferred_username"
+  # Default: "email"
+  user_identity_claim: email
+  
+  # Claim-based ES user mappings (legacy mode - only used when user_management.enabled is false)
+  # When user_management is enabled, use role_mappings instead
   # Evaluated in order - first match wins
   # Supports wildcard patterns with *
   mappings:
@@ -71,7 +77,8 @@ oidc:
       pattern: "elasticsearch-admins"
       es_user: admin
   
-  # Default ES user if no mappings match
+  # Default ES user if no mappings match (legacy mode)
+  # Only used when user_management.enabled is false
   default_es_user: readonly
 
 # ============================================================================
@@ -85,12 +92,41 @@ local_users:
   # Local user definitions
   # Generate bcrypt hashes with: htpasswd -bnBC 10 "" password | tr -d ':\n'
   users:
+    - username: testuser
+      password_bcrypt: ${TESTUSER_PASSWORD_BCRYPT}
+      groups:
+        - developers
+        - users
+      email: testuser@example.com
+      full_name: Test User
+    
+    - username: admin
+      password_bcrypt: ${ADMIN_PASSWORD_BCRYPT}
+      groups:
+        - admin
+        - superusers
+      email: admin@example.com
+      full_name: Admin User
+    
+    - username: viewer
+      password_bcrypt: ${VIEWER_PASSWORD_BCRYPT}
+      # No groups - will use default_es_roles if user_management is enabled
+      email: viewer@example.com
+      full_name: Viewer User
+    
     - username: ci-pipeline
       password_bcrypt: ${CI_PASSWORD_BCRYPT}
-      es_user: ci_user
+      groups:
+        - ci
+      email: ci@example.com
+      full_name: CI Pipeline
+    
     - username: monitoring
       password_bcrypt: ${MONITORING_PASSWORD_BCRYPT}
-      es_user: monitoring_user
+      groups:
+        - monitoring
+      email: monitoring@example.com
+      full_name: Monitoring Service
 
 # ============================================================================
 # Session Management Configuration
@@ -117,8 +153,8 @@ session:
 # ============================================================================
 cache:
   # Cache backend: redis or memory
-  # Use redis for production (session persistence across restarts)
-  # Use memory for development/testing
+  # Use redis for production (session persistence across restarts and horizontal scaling)
+  # Use memory for development/testing (single-node only)
   backend: redis
   
   # Redis connection URL
@@ -130,13 +166,102 @@ cache:
   
   # Redis database number (0-15)
   redis_db: 0
+  
+  # Credential cache TTL (how long generated ES passwords are cached)
+  # After TTL expires, new password is generated and ES user is updated
+  # Duration format: 1h, 30m, 24h
+  # Only used when user_management.enabled is true
+  credential_ttl: 1h
+  
+  # Encryption key for cached credentials (REQUIRED when user_management is enabled)
+  # Must be exactly 32 bytes (256 bits) for AES-256-GCM encryption
+  # Generate with: openssl rand -base64 32
+  # IMPORTANT: All Keyline instances must use the same key (for Redis)
+  # Store securely in environment variable, not in config file
+  encryption_key: ${CACHE_ENCRYPTION_KEY}
+
+# ============================================================================
+# Role Mappings Configuration (for Dynamic User Management)
+# ============================================================================
+# Maps user groups/claims to Elasticsearch roles
+# Applies to ALL authentication methods (OIDC, Basic Auth with groups, etc.)
+# Multiple matching groups result in multiple ES roles
+# Only used when user_management.enabled is true
+role_mappings:
+  # Group-based mappings (works for OIDC groups and local user groups)
+  - claim: groups
+    pattern: "admin"
+    es_roles:
+      - superuser
+  
+  - claim: groups
+    pattern: "superusers"
+    es_roles:
+      - superuser
+  
+  - claim: groups
+    pattern: "*-developers"  # Matches "backend-developers", "frontend-developers", etc.
+    es_roles:
+      - developer
+      - kibana_user
+  
+  - claim: groups
+    pattern: "developers"
+    es_roles:
+      - developer
+      - kibana_user
+  
+  - claim: groups
+    pattern: "viewers"
+    es_roles:
+      - viewer
+  
+  - claim: groups
+    pattern: "ci"
+    es_roles:
+      - ci_user
+  
+  - claim: groups
+    pattern: "monitoring"
+    es_roles:
+      - monitoring_user
+  
+  # Email-based mappings (works for OIDC and local users with email)
+  - claim: email
+    pattern: "*@admin.example.com"
+    es_roles:
+      - superuser
+
+# Default ES roles if NO role mappings matched
+# Only applied when user has no groups OR no groups matched any pattern
+# If empty and no mapping matches, access is denied
+# Only used when user_management.enabled is true
+default_es_roles:
+  - viewer
+  - kibana_user
 
 # ============================================================================
 # Elasticsearch Credentials Configuration
 # ============================================================================
 elasticsearch:
-  # ES user credentials for credential mapping
-  # These are the actual ES users that will be used to authenticate to ES
+  # Admin credentials for user management API (REQUIRED when user_management is enabled)
+  # This user must have the 'manage_security' privilege in Elasticsearch
+  # Used exclusively for Security API calls (creating/updating users)
+  admin_user: ${ES_ADMIN_USER}
+  admin_password: ${ES_ADMIN_PASSWORD}
+  
+  # Elasticsearch cluster URL for API calls
+  url: ${ES_URL}
+  
+  # Request timeout for ES API calls
+  timeout: 30s
+  
+  # Skip TLS certificate verification (NOT recommended for production)
+  insecure_skip_verify: false
+  
+  # ES user credentials for static credential mapping (legacy mode)
+  # Only used when user_management.enabled is false
+  # When user_management is enabled, users are created dynamically
   users:
     - username: admin
       password: ${ES_ADMIN_PASSWORD}
@@ -146,6 +271,26 @@ elasticsearch:
       password: ${ES_CI_PASSWORD}
     - username: monitoring_user
       password: ${ES_MONITORING_PASSWORD}
+
+# ============================================================================
+# Dynamic User Management Configuration
+# ============================================================================
+user_management:
+  # Enable dynamic Elasticsearch user management
+  # When enabled, Keyline automatically creates/updates ES users for ALL authenticated users
+  # Provides accountability, auditing, and proper role-based access control
+  # When disabled, uses static credential mapping (elasticsearch.users)
+  enabled: true
+  
+  # Generated password length (minimum: 32 characters)
+  # Passwords are cryptographically random and never logged
+  password_length: 32
+  
+  # Credential TTL (how long passwords are cached before regeneration)
+  # After TTL expires, new password is generated and ES user is updated
+  # Duration format: 5m, 1h, 24h
+  # Range: 5 minutes to 24 hours
+  credential_ttl: 1h
 
 # ============================================================================
 # Upstream Configuration (Standalone Mode Only)
@@ -220,26 +365,99 @@ observability:
 #     - openid
 #     - email
 #     - profile
+#   user_identity_claim: email
 
 # Example 4: Memory Cache for Development
 # ----------------------------------------
 # cache:
 #   backend: memory
 
-# Example 5: Multiple OIDC Claim Mappings
-# ----------------------------------------
+# Example 5: Dynamic User Management with Role Mappings
+# ------------------------------------------------------
+# user_management:
+#   enabled: true
+#   password_length: 32
+#   credential_ttl: 1h
+# 
+# role_mappings:
+#   - claim: groups
+#     pattern: "admin"
+#     es_roles:
+#       - superuser
+#   - claim: groups
+#     pattern: "developers"
+#     es_roles:
+#       - developer
+#       - kibana_user
+#   - claim: email
+#     pattern: "*@admin.example.com"
+#     es_roles:
+#       - superuser
+# 
+# default_es_roles:
+#   - viewer
+#   - kibana_user
+# 
+# cache:
+#   encryption_key: ${CACHE_ENCRYPTION_KEY}  # 32 bytes
+#   credential_ttl: 1h
+# 
+# elasticsearch:
+#   admin_user: ${ES_ADMIN_USER}
+#   admin_password: ${ES_ADMIN_PASSWORD}
+#   url: https://elasticsearch:9200
+
+# Example 6: Static Credential Mapping (Legacy Mode)
+# ---------------------------------------------------
+# user_management:
+#   enabled: false
+# 
 # oidc:
 #   mappings:
 #     - claim: email
 #       pattern: "*@admin.example.com"
 #       es_user: admin
-#     - claim: groups
-#       pattern: "elasticsearch-admins"
-#       es_user: admin
-#     - claim: department
-#       pattern: "engineering"
-#       es_user: developer
 #     - claim: email
-#       pattern: "*"
+#       pattern: "*@example.com"
 #       es_user: readonly
+#   default_es_user: readonly
+# 
+# elasticsearch:
+#   users:
+#     - username: admin
+#       password: ${ES_ADMIN_PASSWORD}
+#     - username: readonly
+#       password: ${ES_READONLY_PASSWORD}
+
+# Example 7: Local Users with Groups (Dynamic User Management)
+# -------------------------------------------------------------
+# local_users:
+#   enabled: true
+#   users:
+#     - username: testuser
+#       password_bcrypt: $2a$10$...
+#       groups:
+#         - developers
+#         - users
+#       email: testuser@example.com
+#       full_name: Test User
+#     
+#     - username: viewer
+#       password_bcrypt: $2a$10$...
+#       # No groups - will use default_es_roles
+#       email: viewer@example.com
+#       full_name: Viewer User
+# 
+# user_management:
+#   enabled: true
+# 
+# role_mappings:
+#   - claim: groups
+#     pattern: "developers"
+#     es_roles:
+#       - developer
+#       - kibana_user
+# 
+# default_es_roles:
+#   - viewer
 
