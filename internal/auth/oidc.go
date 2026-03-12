@@ -670,6 +670,41 @@ func (p *OIDCProvider) validateAudience(aud interface{}) bool {
 	return false
 }
 
+// extractGroups extracts groups from OIDC claims
+// Handles multiple formats:
+// - []interface{} (array of interfaces)
+// - []string (string array)
+// - string (single group)
+// Returns empty array if no groups claim found
+func (p *OIDCProvider) extractGroups(claims map[string]interface{}) []string {
+	groups := []string{}
+
+	// Try "groups" claim
+	groupsClaim, ok := claims["groups"]
+	if !ok {
+		return groups
+	}
+
+	// Handle different types
+	switch v := groupsClaim.(type) {
+	case []interface{}:
+		// Array of interfaces - convert each to string
+		for _, g := range v {
+			if str, ok := g.(string); ok {
+				groups = append(groups, str)
+			}
+		}
+	case []string:
+		// String array - use directly
+		groups = v
+	case string:
+		// Single group - wrap in array
+		groups = []string{v}
+	}
+
+	return groups
+}
+
 // CreateSessionFromClaims creates a session from validated ID token claims
 func (p *OIDCProvider) CreateSessionFromClaims(ctx context.Context, cachego cachego.CacheInterface, claims *IDTokenClaims, sessionTTL time.Duration) (*session.Session, *http.Cookie, error) {
 	// Generate cryptographically random session ID
@@ -678,19 +713,25 @@ func (p *OIDCProvider) CreateSessionFromClaims(ctx context.Context, cachego cach
 		return nil, nil, fmt.Errorf("failed to generate session ID: %w", err)
 	}
 
+	// Extract groups from claims
+	groups := p.extractGroups(claims.Claims)
+
 	// Map OIDC user to ES user using credential mapper
 	esUser, err := p.mapper.MapOIDCUser(ctx, claims.Claims)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to map OIDC user to ES user: %w", err)
 	}
 
-	// Create session
+	// Create session with groups, full name, and source
 	now := time.Now()
 	sess := &session.Session{
 		ID:        sessionID,
 		UserID:    claims.Subject,
 		Username:  claims.Email,
 		Email:     claims.Email,
+		FullName:  claims.Name,
+		Groups:    groups,
+		Source:    "oidc",
 		Claims:    claims.Claims,
 		CreatedAt: now,
 		ExpiresAt: now.Add(sessionTTL),
@@ -731,6 +772,7 @@ func (p *OIDCProvider) CreateSessionFromClaims(ctx context.Context, cachego cach
 		slog.String("user_id", claims.Subject),
 		slog.String("email", claims.Email),
 		slog.String("es_user", esUser),
+		slog.Any("groups", groups),
 		slog.Duration("ttl", sessionTTL),
 	)
 

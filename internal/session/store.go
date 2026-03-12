@@ -29,6 +29,9 @@ type Session struct {
 	UserID    string                 `json:"user_id"`
 	Username  string                 `json:"username"`
 	Email     string                 `json:"email"`
+	FullName  string                 `json:"full_name"`
+	Groups    []string               `json:"groups"`
+	Source    string                 `json:"source"` // "oidc", "basic_auth", etc.
 	Claims    map[string]interface{} `json:"claims"`
 	CreatedAt time.Time              `json:"created_at"`
 	ExpiresAt time.Time              `json:"expires_at"`

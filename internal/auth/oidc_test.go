@@ -588,3 +588,90 @@ func createTestJWKS() *jose.JSONWebKeySet {
 		},
 	}
 }
+
+func TestExtractGroups(t *testing.T) {
+	provider := &OIDCProvider{
+		config: &config.OIDCConfig{},
+	}
+
+	tests := []struct {
+		name   string
+		claims map[string]interface{}
+		want   []string
+	}{
+		{
+			name: "array of interfaces",
+			claims: map[string]interface{}{
+				"groups": []interface{}{"admin", "developers", "users"},
+			},
+			want: []string{"admin", "developers", "users"},
+		},
+		{
+			name: "string array",
+			claims: map[string]interface{}{
+				"groups": []string{"admin", "developers"},
+			},
+			want: []string{"admin", "developers"},
+		},
+		{
+			name: "single group string",
+			claims: map[string]interface{}{
+				"groups": "admin",
+			},
+			want: []string{"admin"},
+		},
+		{
+			name: "no groups claim",
+			claims: map[string]interface{}{
+				"email": "user@example.com",
+			},
+			want: []string{},
+		},
+		{
+			name:   "empty claims",
+			claims: map[string]interface{}{},
+			want:   []string{},
+		},
+		{
+			name: "array with non-string values (filtered out)",
+			claims: map[string]interface{}{
+				"groups": []interface{}{"admin", 123, "users", nil},
+			},
+			want: []string{"admin", "users"},
+		},
+		{
+			name: "empty array",
+			claims: map[string]interface{}{
+				"groups": []interface{}{},
+			},
+			want: []string{},
+		},
+		{
+			name: "empty string array",
+			claims: map[string]interface{}{
+				"groups": []string{},
+			},
+			want: []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := provider.extractGroups(tt.claims)
+
+			// Compare lengths first
+			if len(got) != len(tt.want) {
+				t.Errorf("extractGroups() returned %d groups, want %d", len(got), len(tt.want))
+				t.Errorf("got: %v, want: %v", got, tt.want)
+				return
+			}
+
+			// Compare each element
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("extractGroups()[%d] = %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}

@@ -161,43 +161,13 @@ func (e *Engine) authenticateWithSession(ctx context.Context, req *EngineRequest
 
 	// If user management is enabled, upsert user and get dynamic credentials
 	if e.userMgmtEnabled && e.userManager != nil {
-		// TODO: Session struct needs Groups, FullName, Source fields (Task 10)
-		// For now, extract what we can from session claims
-		var groups []string
-		var fullName string
-		var source string = "session"
-
-		// Try to extract groups from claims
-		if sess.Claims != nil {
-			if groupsClaim, ok := sess.Claims["groups"]; ok {
-				switch v := groupsClaim.(type) {
-				case []interface{}:
-					for _, g := range v {
-						if str, ok := g.(string); ok {
-							groups = append(groups, str)
-						}
-					}
-				case []string:
-					groups = v
-				case string:
-					groups = []string{v}
-				}
-			}
-
-			// Try to extract full name from claims
-			if nameClaim, ok := sess.Claims["name"]; ok {
-				if str, ok := nameClaim.(string); ok {
-					fullName = str
-				}
-			}
-		}
-
+		// Extract user metadata from session
 		authUser := &usermgmt.AuthenticatedUser{
 			Username: sess.Username,
-			Groups:   groups,
+			Groups:   sess.Groups,
 			Email:    sess.Email,
-			FullName: fullName,
-			Source:   source,
+			FullName: sess.FullName,
+			Source:   sess.Source,
 		}
 
 		creds, err := e.userManager.UpsertUser(ctx, authUser)

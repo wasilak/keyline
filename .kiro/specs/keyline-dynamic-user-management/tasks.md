@@ -185,16 +185,16 @@
   - [x] 9.5 Add error handling for user management failures
   - [x] 9.6 Add logging for user management operations
 
-- [ ] 10. Update OIDC provider
-  - [ ] 10.1 Update `internal/auth/oidc.go`
-  - [ ] 10.2 Implement `extractGroups(claims)` method
-    - [ ] 10.2.1 Handle `[]interface{}` (array of interfaces)
-    - [ ] 10.2.2 Handle `[]string` (string array)
-    - [ ] 10.2.3 Handle `string` (single group)
-    - [ ] 10.2.4 Return empty array if no groups claim
-  - [ ] 10.3 Update `CreateSessionFromClaims` to extract groups
-  - [ ] 10.4 Update `AuthResult` to include groups
-  - [ ] 10.5 Add tests for group extraction
+- [x] 10. Update OIDC provider
+  - [x] 10.1 Update `internal/auth/oidc.go`
+  - [x] 10.2 Implement `extractGroups(claims)` method
+    - [x] 10.2.1 Handle `[]interface{}` (array of interfaces)
+    - [x] 10.2.2 Handle `[]string` (string array)
+    - [x] 10.2.3 Handle `string` (single group)
+    - [x] 10.2.4 Return empty array if no groups claim
+  - [x] 10.3 Update `CreateSessionFromClaims` to extract groups
+  - [x] 10.4 Update `AuthResult` to include groups
+  - [x] 10.5 Add tests for group extraction
 
 - [ ] 11. Update Basic Auth provider
   - [ ] 11.1 Update `internal/auth/basic.go`
