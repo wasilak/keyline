@@ -62,9 +62,12 @@ type LocalUsersConfig struct {
 
 // LocalUser represents a local user
 type LocalUser struct {
-	Username       string `mapstructure:"username"`
-	PasswordBcrypt string `mapstructure:"password_bcrypt"`
-	ESUser         string `mapstructure:"es_user"`
+	Username       string   `mapstructure:"username"`
+	PasswordBcrypt string   `mapstructure:"password_bcrypt"`
+	ESUser         string   `mapstructure:"es_user"`
+	Groups         []string `mapstructure:"groups"`
+	Email          string   `mapstructure:"email"`
+	FullName       string   `mapstructure:"full_name"`
 }
 
 // SessionConfig contains session management settings
