@@ -6,14 +6,15 @@ import (
 
 // Config represents the complete Keyline configuration
 type Config struct {
-	Server        ServerConfig        `mapstructure:"server"`
-	OIDC          OIDCConfig          `mapstructure:"oidc"`
-	LocalUsers    LocalUsersConfig    `mapstructure:"local_users"`
-	Session       SessionConfig       `mapstructure:"session"`
-	Cache         CacheConfig         `mapstructure:"cache"`
-	Elasticsearch ElasticsearchConfig `mapstructure:"elasticsearch"`
-	Upstream      UpstreamConfig      `mapstructure:"upstream"`
-	Observability ObservabilityConfig `mapstructure:"observability"`
+	Server         ServerConfig        `mapstructure:"server"`
+	OIDC           OIDCConfig          `mapstructure:"oidc"`
+	LocalUsers     LocalUsersConfig    `mapstructure:"local_users"`
+	Session        SessionConfig       `mapstructure:"session"`
+	Cache          CacheConfig         `mapstructure:"cache"`
+	Elasticsearch  ElasticsearchConfig `mapstructure:"elasticsearch"`
+	Upstream       UpstreamConfig      `mapstructure:"upstream"`
+	Observability  ObservabilityConfig `mapstructure:"observability"`
+	DefaultESRoles []string            `mapstructure:"default_es_roles"`
 }
 
 // ServerConfig contains server settings
