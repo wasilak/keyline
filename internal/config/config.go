@@ -78,10 +78,12 @@ type SessionConfig struct {
 
 // CacheConfig contains cache backend settings (for cachego)
 type CacheConfig struct {
-	Backend       string `mapstructure:"backend"` // redis, memory
-	RedisURL      string `mapstructure:"redis_url"`
-	RedisPassword string `mapstructure:"redis_password"`
-	RedisDB       int    `mapstructure:"redis_db"`
+	Backend       string        `mapstructure:"backend"`        // redis, memory
+	RedisURL      string        `mapstructure:"redis_url"`      // Redis connection URL
+	RedisPassword string        `mapstructure:"redis_password"` // Redis password
+	RedisDB       int           `mapstructure:"redis_db"`       // Redis database number
+	CredentialTTL time.Duration `mapstructure:"credential_ttl"` // TTL for cached credentials
+	EncryptionKey string        `mapstructure:"encryption_key"` // 32-byte key for AES-256-GCM encryption
 }
 
 // UserMgmtConfig contains dynamic user management settings
