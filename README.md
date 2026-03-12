@@ -5,11 +5,13 @@ Keyline is a unified authentication proxy service that provides dual authenticat
 ## Features
 
 - **Dual Authentication**: Support both interactive (OIDC) and programmatic (Basic Auth) access simultaneously
+- **Dynamic User Management**: Automatically create and manage Elasticsearch users for all authenticated users with role-based access control
 - **Multiple Deployment Modes**: Works with Traefik (forwardAuth), Nginx (auth_request), or as standalone proxy
 - **OIDC Support**: Full OpenID Connect implementation with PKCE, auto-discovery, and token validation
 - **Session Management**: Redis or in-memory session storage with configurable TTL
-- **Credential Mapping**: Automatic mapping of authenticated users to Elasticsearch credentials based on roles
-- **Security First**: Cryptographic randomness, secure cookies, HTTPS enforcement, bcrypt password hashing
+- **Credential Mapping**: Automatic mapping of authenticated users to Elasticsearch credentials based on roles (legacy) or dynamic user creation (recommended)
+- **Horizontal Scaling**: Redis-backed credential cache enables multi-instance deployments
+- **Security First**: Cryptographic randomness, secure cookies, HTTPS enforcement, bcrypt password hashing, AES-256-GCM credential encryption
 - **Production Ready**: Built-in observability, health checks, graceful shutdown, and comprehensive testing
 - **Observability**: Prometheus metrics, OpenTelemetry tracing, structured logging with context
 - **WebSocket Support**: Full WebSocket proxying support for real-time applications
@@ -37,12 +39,107 @@ Keyline acts as an authentication gateway between your users and Elasticsearch:
 ## Use Cases
 
 - **Secure Elasticsearch Access**: Add authentication to Elasticsearch without modifying your application
-- **Multi-Tenant Deployments**: Map different users/roles to different Elasticsearch credentials
+- **Dynamic User Management**: Automatically create ES users for all authenticated users with proper role-based access control
+- **Audit and Accountability**: ES audit logs show actual usernames instead of shared accounts
+- **Multi-Tenant Deployments**: Map different users/roles to different Elasticsearch credentials or roles
 - **Hybrid Authentication**: Support both interactive users (OIDC) and API clients (Basic Auth)
+- **Horizontal Scaling**: Deploy multiple Keyline instances with shared Redis cache for high availability
 - **Compliance**: Centralized authentication and audit logging for Elasticsearch access
 - **Zero-Trust Architecture**: Enforce authentication at the gateway level
 
 ## Quick Start
+
+### Quick Start with Dynamic User Management (Recommended)
+
+The fastest way to get started with automatic ES user creation:
+
+```bash
+# Generate encryption key for credential caching
+export CACHE_ENCRYPTION_KEY=$(openssl rand -base64 32)
+export SESSION_SECRET=$(openssl rand -base64 32)
+
+# Create configuration file
+cat > config.yaml <<EOF
+server:
+  port: 9000
+  mode: forward_auth
+
+oidc:
+  enabled: true
+  issuer_url: https://accounts.google.com
+  client_id: your-client-id
+  client_secret: \${OIDC_CLIENT_SECRET}
+  redirect_url: https://auth.example.com/auth/callback
+  scopes:
+    - openid
+    - email
+    - profile
+    - groups
+
+local_users:
+  enabled: true
+  users:
+    - username: admin
+      password_bcrypt: \${ADMIN_PASSWORD_HASH}
+      groups:
+        - admin
+      email: admin@example.com
+      full_name: Admin User
+
+session:
+  ttl: 24h
+  cookie_name: keyline_session
+  cookie_domain: .example.com
+  cookie_path: /
+  session_secret: \${SESSION_SECRET}
+
+cache:
+  backend: redis
+  redis_url: redis://localhost:6379
+  redis_db: 0
+  credential_ttl: 1h
+  encryption_key: \${CACHE_ENCRYPTION_KEY}
+
+user_management:
+  enabled: true
+  password_length: 32
+  credential_ttl: 1h
+
+elasticsearch:
+  admin_user: keyline_admin
+  admin_password: \${ES_ADMIN_PASSWORD}
+  url: https://elasticsearch:9200
+  timeout: 30s
+
+role_mappings:
+  - claim: groups
+    pattern: "admin"
+    es_roles:
+      - superuser
+  
+  - claim: groups
+    pattern: "developers"
+    es_roles:
+      - developer
+      - kibana_user
+
+default_es_roles:
+  - viewer
+  - kibana_user
+EOF
+
+# Run Keyline
+./keyline --config config.yaml
+```
+
+**What this does:**
+- Authenticates users via OIDC or Basic Auth
+- Automatically creates ES users with random passwords
+- Maps user groups to ES roles
+- Caches credentials with encryption for performance
+- Enables horizontal scaling with Redis
+
+See [User Management Guide](docs/user-management.md) for detailed documentation.
 
 ### Using Docker (Recommended)
 
@@ -453,9 +550,12 @@ See [Troubleshooting Guide](docs/troubleshooting.md) for detailed solutions.
 
 ## Documentation
 
+- [User Management Guide](docs/user-management.md) - Dynamic ES user management with role mappings
 - [Configuration Reference](docs/configuration.md) - Complete configuration options
+- [Migration Guide](docs/migration-guide.md) - Migrating from static to dynamic user management
 - [Deployment Guide](docs/deployment.md) - Kubernetes, Docker, Traefik, Nginx
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
+- [User Management Troubleshooting](docs/troubleshooting-user-management.md) - User management specific issues
 
 ## Contributing
 
