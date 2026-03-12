@@ -211,16 +211,16 @@
 
 ### Phase 6: Transport Integration (2-3 days)
 
-- [ ] 13. Update transport adapters
-  - [ ] 13.1 Update `internal/transport/forward_auth.go`
-    - [ ] 13.1.1 Use ES credentials from auth result
-    - [ ] 13.1.2 Set Authorization header with generated credentials
-    - [ ] 13.1.3 Remove old credential mapping logic
-  - [ ] 13.2 Update `internal/transport/standalone.go`
-    - [ ] 13.2.1 Use ES credentials from auth result
-    - [ ] 13.2.2 Set Authorization header with generated credentials
-    - [ ] 13.2.3 Remove old credential mapping logic
-  - [ ] 13.3 Add tests for transport adapters with new credential flow
+- [x] 13. Update transport adapters
+  - [x] 13.1 Update `internal/transport/forward_auth.go`
+    - [x] 13.1.1 Use ES credentials from auth result
+    - [x] 13.1.2 Set Authorization header with generated credentials
+    - [x] 13.1.3 Remove old credential mapping logic
+  - [x] 13.2 Update `internal/transport/standalone.go`
+    - [x] 13.2.1 Use ES credentials from auth result
+    - [x] 13.2.2 Set Authorization header with generated credentials
+    - [x] 13.2.3 Remove old credential mapping logic
+  - [x] 13.3 Add tests for transport adapters with new credential flow
 
 ### Phase 7: Main Application Integration (1-2 days)
 
