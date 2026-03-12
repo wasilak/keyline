@@ -93,9 +93,14 @@ type UserMgmtConfig struct {
 	CredentialTTL  time.Duration `mapstructure:"credential_ttl"`  // How long credentials are cached (default: 1h)
 }
 
-// ElasticsearchConfig contains ES credential settings
+// ElasticsearchConfig contains ES credential settings and admin API configuration
 type ElasticsearchConfig struct {
-	Users []ESUser `mapstructure:"users"`
+	Users         []ESUser      `mapstructure:"users"`
+	AdminUser     string        `mapstructure:"admin_user"`      // Admin username for Security API calls
+	AdminPassword string        `mapstructure:"admin_password"`  // Admin password for Security API calls
+	URL           string        `mapstructure:"url"`             // Elasticsearch cluster URL
+	Timeout       time.Duration `mapstructure:"timeout"`         // Timeout for API calls
+	InsecureSkipVerify bool     `mapstructure:"insecure_skip_verify"` // Skip TLS certificate verification
 }
 
 // ESUser represents an Elasticsearch user
