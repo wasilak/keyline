@@ -4,186 +4,186 @@
 
 ### Phase 1: Configuration and Foundation (2-3 days)
 
-- [ ] 1. Update configuration structures
+- [x] 1. Update configuration structures
   - [x] 1.1 Add `RoleMapping` struct to `internal/config/config.go`
   - [x] 1.2 Add `DefaultESRoles []string` to `Config` struct
   - [x] 1.3 Add `UserMgmtConfig` struct with `Enabled`, `PasswordLength`, `CredentialTTL`
   - [x] 1.4 Add `CacheConfig` struct with `Backend`, `RedisURL`, `RedisPassword`, `RedisDB`, `CredentialTTL`, `EncryptionKey`
   - [x] 1.5 Update `ElasticsearchConfig` with `AdminUser`, `AdminPassword`, `URL`, `Timeout`
   - [x] 1.6 Add `Groups []string`, `Email string`, `FullName string` to `LocalUser` struct
-  - [-] 1.7 Remove `ESUser string` field from `LocalUser` (breaking change)
-  - [~] 1.8 Update config validation in `internal/config/validator.go`
-  - [~] 1.9 Add validation for role mappings (pattern syntax, non-empty roles)
-  - [~] 1.10 Add validation for admin credentials (required if user_management.enabled)
-  - [~] 1.11 Add validation for encryption key (must be 32 bytes when decoded)
-  - [~] 1.12 Update example config files with new structure including encryption_key
+  - [x] 1.7 Remove `ESUser string` field from `LocalUser` (breaking change)
+  - [x] 1.8 Update config validation in `internal/config/validator.go`
+  - [x] 1.9 Add validation for role mappings (pattern syntax, non-empty roles)
+  - [x] 1.10 Add validation for admin credentials (required if user_management.enabled)
+  - [x] 1.11 Add validation for encryption key (must be 32 bytes when decoded)
+  - [x] 1.12 Update example config files with new structure including encryption_key
 
-- [ ] 2. Create password generator
-  - [ ] 2.1 Create `internal/usermgmt/password.go`
-  - [ ] 2.2 Implement `PasswordGenerator` struct with configurable length
-  - [ ] 2.3 Implement `Generate()` method using `crypto/rand`
-  - [ ] 2.4 Use charset with uppercase, lowercase, digits, special characters
-  - [ ] 2.5 Add unit tests for password generation
-    - [ ] 2.5.1 Test password length
-    - [ ] 2.5.2 Test character set inclusion
-    - [ ] 2.5.3 Test randomness (no duplicates in 1000 generations)
-    - [ ] 2.5.4 Test error handling
+- [x] 2. Create password generator
+  - [x] 2.1 Create `internal/usermgmt/password.go`
+  - [x] 2.2 Implement `PasswordGenerator` struct with configurable length
+  - [x] 2.3 Implement `Generate()` method using `crypto/rand`
+  - [x] 2.4 Use charset with uppercase, lowercase, digits, special characters
+  - [x] 2.5 Add unit tests for password generation
+    - [x] 2.5.1 Test password length
+    - [x] 2.5.2 Test character set inclusion
+    - [x] 2.5.3 Test randomness (no duplicates in 1000 generations)
+    - [x] 2.5.4 Test error handling
 
-- [ ] 2.6 Create credential encryptor
-  - [ ] 2.6.1 Create `internal/usermgmt/encryptor.go`
-  - [ ] 2.6.2 Implement `Encryptor` interface with `Encrypt()` and `Decrypt()` methods
-  - [ ] 2.6.3 Implement `NewEncryptor(key []byte)` constructor with key validation (must be 32 bytes)
-  - [ ] 2.6.4 Implement `Encrypt()` using AES-256-GCM with random nonce
-  - [ ] 2.6.5 Implement `Decrypt()` to reverse encryption
-  - [ ] 2.6.6 Use base64 encoding for cache storage
-  - [ ] 2.6.7 Add unit tests for encryption
-    - [ ] 2.6.7.1 Test encryption/decryption round-trip
-    - [ ] 2.6.7.2 Test invalid key length (not 32 bytes)
-    - [ ] 2.6.7.3 Test decryption with wrong key
-    - [ ] 2.6.7.4 Test decryption with corrupted ciphertext
-    - [ ] 2.6.7.5 Test that same plaintext produces different ciphertexts (random nonce)
+- [x] 2.6 Create credential encryptor
+  - [x] 2.6.1 Create `internal/usermgmt/encryptor.go`
+  - [x] 2.6.2 Implement `Encryptor` interface with `Encrypt()` and `Decrypt()` methods
+  - [x] 2.6.3 Implement `NewEncryptor(key []byte)` constructor with key validation (must be 32 bytes)
+  - [x] 2.6.4 Implement `Encrypt()` using AES-256-GCM with random nonce
+  - [x] 2.6.5 Implement `Decrypt()` to reverse encryption
+  - [x] 2.6.6 Use base64 encoding for cache storage
+  - [x] 2.6.7 Add unit tests for encryption
+    - [x] 2.6.7.1 Test encryption/decryption round-trip
+    - [x] 2.6.7.2 Test invalid key length (not 32 bytes)
+    - [x] 2.6.7.3 Test decryption with wrong key
+    - [x] 2.6.7.4 Test decryption with corrupted ciphertext
+    - [x] 2.6.7.5 Test that same plaintext produces different ciphertexts (random nonce)
 
 ### Phase 2: Elasticsearch API Client (3-4 days)
 
-- [ ] 3. Implement ES API client
-  - [ ] 3.1 Create `internal/elasticsearch/client.go`
-  - [ ] 3.2 Define `Client` interface with methods:
-    - [ ] 3.2.1 `CreateOrUpdateUser(ctx, req) error`
-    - [ ] 3.2.2 `GetUser(ctx, username) (*User, error)`
-    - [ ] 3.2.3 `DeleteUser(ctx, username) error`
-    - [ ] 3.2.4 `ValidateConnection(ctx) error`
-  - [ ] 3.3 Define `UserRequest` and `User` structs
-  - [ ] 3.4 Implement `client` struct with HTTP client, admin credentials, config
-  - [ ] 3.5 Implement `NewClient(config, logger)` constructor
-  - [ ] 3.6 Implement `CreateOrUpdateUser` method
-    - [ ] 3.6.1 Build PUT request to `/_security/user/{username}`
-    - [ ] 3.6.2 Set admin credentials in Authorization header
-    - [ ] 3.6.3 Marshal request body (password, roles, full_name, email, metadata)
-    - [ ] 3.6.4 Add OpenTelemetry tracing with `otelgo`
-    - [ ] 3.6.5 Add retry logic (3 attempts, exponential backoff)
-    - [ ] 3.6.6 Handle HTTP status codes (200, 401, 403, 429, 5xx)
-    - [ ] 3.6.7 Add request timeout (30s)
-  - [ ] 3.7 Implement `GetUser` method
-  - [ ] 3.8 Implement `DeleteUser` method
-  - [ ] 3.9 Implement `ValidateConnection` method (call on startup)
-  - [ ] 3.10 Add circuit breaker pattern for ES unavailability
+- [x] 3. Implement ES API client
+  - [x] 3.1 Create `internal/elasticsearch/client.go`
+  - [x] 3.2 Define `Client` interface with methods:
+    - [x] 3.2.1 `CreateOrUpdateUser(ctx, req) error`
+    - [x] 3.2.2 `GetUser(ctx, username) (*User, error)`
+    - [x] 3.2.3 `DeleteUser(ctx, username) error`
+    - [x] 3.2.4 `ValidateConnection(ctx) error`
+  - [x] 3.3 Define `UserRequest` and `User` structs
+  - [x] 3.4 Implement `client` struct with HTTP client, admin credentials, config
+  - [x] 3.5 Implement `NewClient(config, logger)` constructor
+  - [x] 3.6 Implement `CreateOrUpdateUser` method
+    - [x] 3.6.1 Build PUT request to `/_security/user/{username}`
+    - [x] 3.6.2 Set admin credentials in Authorization header
+    - [x] 3.6.3 Marshal request body (password, roles, full_name, email, metadata)
+    - [x] 3.6.4 Add OpenTelemetry tracing with `otelgo`
+    - [x] 3.6.5 Add retry logic (3 attempts, exponential backoff)
+    - [x] 3.6.6 Handle HTTP status codes (200, 401, 403, 429, 5xx)
+    - [x] 3.6.7 Add request timeout (30s)
+  - [x] 3.7 Implement `GetUser` method
+  - [x] 3.8 Implement `DeleteUser` method
+  - [x] 3.9 Implement `ValidateConnection` method (call on startup)
+  - [x] 3.10 Add circuit breaker pattern for ES unavailability
 
-- [ ] 4. Add ES API client tests
-  - [ ] 4.1 Create `internal/elasticsearch/client_test.go`
-  - [ ] 4.2 Add unit tests with mocked HTTP responses
-    - [ ] 4.2.1 Test successful user creation (200 OK)
-    - [ ] 4.2.2 Test user update (200 OK)
-    - [ ] 4.2.3 Test invalid admin credentials (401/403)
-    - [ ] 4.2.4 Test rate limiting (429)
-    - [ ] 4.2.5 Test ES unavailable (5xx)
-    - [ ] 4.2.6 Test network timeout
-    - [ ] 4.2.7 Test retry logic
-    - [ ] 4.2.8 Test circuit breaker
-  - [ ] 4.3 Add integration tests with real ES cluster (optional)
+- [x] 4. Add ES API client tests
+  - [x] 4.1 Create `internal/elasticsearch/client_test.go`
+  - [x] 4.2 Add unit tests with mocked HTTP responses
+    - [x] 4.2.1 Test successful user creation (200 OK)
+    - [x] 4.2.2 Test user update (200 OK)
+    - [x] 4.2.3 Test invalid admin credentials (401/403)
+    - [x] 4.2.4 Test rate limiting (429)
+    - [x] 4.2.5 Test ES unavailable (5xx)
+    - [x] 4.2.6 Test network timeout
+    - [x] 4.2.7 Test retry logic
+    - [x] 4.2.8 Test circuit breaker
+  - [x] 4.3 Add integration tests with real ES cluster (optional)
 
 ### Phase 3: Role Mapper (2-3 days)
 
-- [ ] 5. Implement role mapper
-  - [ ] 5.1 Create `internal/usermgmt/rolemapper.go`
-  - [ ] 5.2 Define `RoleMapper` struct with config and logger
-  - [ ] 5.3 Implement `NewRoleMapper(config, logger)` constructor
-  - [ ] 5.4 Implement `MapGroupsToRoles(ctx, groups) ([]string, error)` method
-    - [ ] 5.4.1 Iterate through all role mappings
-    - [ ] 5.4.2 Match each group against each mapping pattern
-    - [ ] 5.4.3 Collect ALL matching roles (use map to deduplicate)
-    - [ ] 5.4.4 If no matches and default_es_roles defined, use defaults
-    - [ ] 5.4.5 If no matches and no defaults, return error
-    - [ ] 5.4.6 Log matched mappings with `loggergo`
-  - [ ] 5.5 Implement `matchPattern(value, pattern)` method
-    - [ ] 5.5.1 Exact match
-    - [ ] 5.5.2 Wildcard prefix (`admin@*`)
-    - [ ] 5.5.3 Wildcard suffix (`*@example.com`)
-    - [ ] 5.5.4 Wildcard middle (`admin@*.com`)
-  - [ ] 5.6 Add validation for role mapping patterns
+- [x] 5. Implement role mapper
+  - [x] 5.1 Create `internal/usermgmt/rolemapper.go`
+  - [x] 5.2 Define `RoleMapper` struct with config and logger
+  - [x] 5.3 Implement `NewRoleMapper(config, logger)` constructor
+  - [x] 5.4 Implement `MapGroupsToRoles(ctx, groups) ([]string, error)` method
+    - [x] 5.4.1 Iterate through all role mappings
+    - [x] 5.4.2 Match each group against each mapping pattern
+    - [x] 5.4.3 Collect ALL matching roles (use map to deduplicate)
+    - [x] 5.4.4 If no matches and default_es_roles defined, use defaults
+    - [x] 5.4.5 If no matches and no defaults, return error
+    - [x] 5.4.6 Log matched mappings with `loggergo`
+  - [x] 5.5 Implement `matchPattern(value, pattern)` method
+    - [x] 5.5.1 Exact match
+    - [x] 5.5.2 Wildcard prefix (`admin@*`)
+    - [x] 5.5.3 Wildcard suffix (`*@example.com`)
+    - [x] 5.5.4 Wildcard middle (`admin@*.com`)
+  - [x] 5.6 Add validation for role mapping patterns
 
-- [ ] 6. Add role mapper tests
-  - [ ] 6.1 Create `internal/usermgmt/rolemapper_test.go`
-  - [ ] 6.2 Add unit tests for pattern matching
-    - [ ] 6.2.1 Test exact match
-    - [ ] 6.2.2 Test wildcard prefix
-    - [ ] 6.2.3 Test wildcard suffix
-    - [ ] 6.2.4 Test wildcard middle
-    - [ ] 6.2.5 Test no match
-  - [ ] 6.3 Add unit tests for role mapping
-    - [ ] 6.3.1 Test single group, single role
-    - [ ] 6.3.2 Test single group, multiple roles
-    - [ ] 6.3.3 Test multiple groups, multiple roles (accumulation)
-    - [ ] 6.3.4 Test no matches, use default roles
-    - [ ] 6.3.5 Test no matches, no defaults (error)
-    - [ ] 6.3.6 Test empty groups array
-    - [ ] 6.3.7 Test role deduplication
-  - [ ] 6.4 Add property-based tests
-    - [ ] 6.4.1 Property: Mapping is deterministic (same groups → same roles)
-    - [ ] 6.4.2 Property: Multiple groups accumulate roles (no duplicates)
+- [x] 6. Add role mapper tests
+  - [x] 6.1 Create `internal/usermgmt/rolemapper_test.go`
+  - [x] 6.2 Add unit tests for pattern matching
+    - [x] 6.2.1 Test exact match
+    - [x] 6.2.2 Test wildcard prefix
+    - [x] 6.2.3 Test wildcard suffix
+    - [x] 6.2.4 Test wildcard middle
+    - [x] 6.2.5 Test no match
+  - [x] 6.3 Add unit tests for role mapping
+    - [x] 6.3.1 Test single group, single role
+    - [x] 6.3.2 Test single group, multiple roles
+    - [x] 6.3.3 Test multiple groups, multiple roles (accumulation)
+    - [x] 6.3.4 Test no matches, use default roles
+    - [x] 6.3.5 Test no matches, no defaults (error)
+    - [x] 6.3.6 Test empty groups array
+    - [x] 6.3.7 Test role deduplication
+  - [x] 6.4 Add property-based tests
+    - [x] 6.4.1 Property: Mapping is deterministic (same groups → same roles)
+    - [x] 6.4.2 Property: Multiple groups accumulate roles (no duplicates)
 
 ### Phase 4: User Manager (3-4 days)
 
-- [ ] 7. Implement user manager
-  - [ ] 7.1 Create `internal/usermgmt/manager.go`
-  - [ ] 7.2 Define `Manager` interface with methods:
-    - [ ] 7.2.1 `UpsertUser(ctx, authUser) (*Credentials, error)`
-    - [ ] 7.2.2 `InvalidateCache(ctx, username) error`
-  - [ ] 7.3 Define `AuthenticatedUser` and `Credentials` structs
-  - [ ] 7.4 Implement `manager` struct with:
-    - [ ] 7.4.1 `esClient elasticsearch.Client`
-    - [ ] 7.4.2 `roleMapper *RoleMapper`
-    - [ ] 7.4.3 `cache cachego.CacheInterface`
-    - [ ] 7.4.4 `pwdGen *PasswordGenerator`
-    - [ ] 7.4.5 `encryptor Encryptor`
-    - [ ] 7.4.6 `cacheTTL time.Duration`
-    - [ ] 7.4.7 `config *config.Config`
-    - [ ] 7.4.8 `logger *loggergo.Logger`
-  - [ ] 7.5 Implement `NewManager(esClient, roleMapper, cache, pwdGen, encryptor, config, logger)` constructor
-  - [ ] 7.6 Implement `UpsertUser` method
-    - [ ] 7.6.1 Check cache for existing credentials
-    - [ ] 7.6.2 If cache hit, decrypt password and return credentials
-    - [ ] 7.6.3 If cache miss or decryption fails, generate new password
-    - [ ] 7.6.4 Map groups to roles using RoleMapper
-    - [ ] 7.6.5 Create UserRequest with username, password, roles, metadata
-    - [ ] 7.6.6 Call ES API client to create/update user
-    - [ ] 7.6.7 Encrypt password before caching
-    - [ ] 7.6.8 Cache encrypted credentials with TTL
-    - [ ] 7.6.9 Return plaintext credentials
-    - [ ] 7.6.10 Add OpenTelemetry tracing
-    - [ ] 7.6.11 Add Prometheus metrics (upserts, duration, cache hits/misses)
-  - [ ] 7.7 Implement `InvalidateCache` method
+- [x] 7. Implement user manager
+  - [x] 7.1 Create `internal/usermgmt/manager.go`
+  - [x] 7.2 Define `Manager` interface with methods:
+    - [x] 7.2.1 `UpsertUser(ctx, authUser) (*Credentials, error)`
+    - [x] 7.2.2 `InvalidateCache(ctx, username) error`
+  - [x] 7.3 Define `AuthenticatedUser` and `Credentials` structs
+  - [x] 7.4 Implement `manager` struct with:
+    - [x] 7.4.1 `esClient elasticsearch.Client`
+    - [x] 7.4.2 `roleMapper *RoleMapper`
+    - [x] 7.4.3 `cache cachego.CacheInterface`
+    - [x] 7.4.4 `pwdGen *PasswordGenerator`
+    - [x] 7.4.5 `encryptor Encryptor`
+    - [x] 7.4.6 `cacheTTL time.Duration`
+    - [x] 7.4.7 `config *config.Config`
+    - [x] 7.4.8 `logger *loggergo.Logger`
+  - [x] 7.5 Implement `NewManager(esClient, roleMapper, cache, pwdGen, encryptor, config, logger)` constructor
+  - [x] 7.6 Implement `UpsertUser` method
+    - [x] 7.6.1 Check cache for existing credentials
+    - [x] 7.6.2 If cache hit, decrypt password and return credentials
+    - [x] 7.6.3 If cache miss or decryption fails, generate new password
+    - [x] 7.6.4 Map groups to roles using RoleMapper
+    - [x] 7.6.5 Create UserRequest with username, password, roles, metadata
+    - [x] 7.6.6 Call ES API client to create/update user
+    - [x] 7.6.7 Encrypt password before caching
+    - [x] 7.6.8 Cache encrypted credentials with TTL
+    - [x] 7.6.9 Return plaintext credentials
+    - [x] 7.6.10 Add OpenTelemetry tracing
+    - [x] 7.6.11 Add Prometheus metrics (upserts, duration, cache hits/misses)
+  - [x] 7.7 Implement `InvalidateCache` method
 
-- [ ] 8. Add user manager tests
-  - [ ] 8.1 Create `internal/usermgmt/manager_test.go`
-  - [ ] 8.2 Add unit tests with mocked dependencies
-    - [ ] 8.2.1 Test cache hit path (decrypt and return, no ES call)
-    - [ ] 8.2.2 Test cache miss path (ES call, encrypt, cache update)
-    - [ ] 8.2.3 Test decryption failure (regenerate password)
-    - [ ] 8.2.4 Test password generation failure
-    - [ ] 8.2.5 Test role mapping failure
-    - [ ] 8.2.6 Test ES API failure
-    - [ ] 8.2.7 Test encryption failure (should not fail request, just skip caching)
-    - [ ] 8.2.8 Test cache write failure (should not fail request)
-    - [ ] 8.2.9 Test cache invalidation
-  - [ ] 8.3 Add integration tests
-    - [ ] 8.3.1 Test end-to-end user upsert with real cache and encryption
-    - [ ] 8.3.2 Test cache expiration and refresh
-    - [ ] 8.3.3 Test that cached passwords are encrypted (not plaintext)
+- [x] 8. Add user manager tests
+  - [x] 8.1 Create `internal/usermgmt/manager_test.go`
+  - [x] 8.2 Add unit tests with mocked dependencies
+    - [x] 8.2.1 Test cache hit path (decrypt and return, no ES call)
+    - [x] 8.2.2 Test cache miss path (ES call, encrypt, cache update)
+    - [x] 8.2.3 Test decryption failure (regenerate password)
+    - [x] 8.2.4 Test password generation failure
+    - [x] 8.2.5 Test role mapping failure
+    - [x] 8.2.6 Test ES API failure
+    - [x] 8.2.7 Test encryption failure (should not fail request, just skip caching)
+    - [x] 8.2.8 Test cache write failure (should not fail request)
+    - [x] 8.2.9 Test cache invalidation
+  - [x] 8.3 Add integration tests
+    - [x] 8.3.1 Test end-to-end user upsert with real cache and encryption
+    - [x] 8.3.2 Test cache expiration and refresh
+    - [x] 8.3.3 Test that cached passwords are encrypted (not plaintext)
 
 ### Phase 5: Auth Integration (3-4 days)
 
-- [ ] 9. Update auth engine
-  - [ ] 9.1 Update `internal/auth/engine.go`
-  - [ ] 9.2 Add `userManager usermgmt.Manager` field to `Engine` struct
-  - [ ] 9.3 Update `NewEngine` constructor to accept user manager
-  - [ ] 9.4 Update `Authenticate` method
-    - [ ] 9.4.1 After successful authentication, extract user metadata
-    - [ ] 9.4.2 Create `AuthenticatedUser` struct with username, groups, email, full_name, source
-    - [ ] 9.4.3 Call `userManager.UpsertUser(ctx, authUser)`
-    - [ ] 9.4.4 Use returned credentials for ES Authorization header
-    - [ ] 9.4.5 Update `AuthResult` to include ES credentials
-  - [ ] 9.5 Add error handling for user management failures
-  - [ ] 9.6 Add logging for user management operations
+- [x] 9. Update auth engine
+  - [x] 9.1 Update `internal/auth/engine.go`
+  - [x] 9.2 Add `userManager usermgmt.Manager` field to `Engine` struct
+  - [x] 9.3 Update `NewEngine` constructor to accept user manager
+  - [x] 9.4 Update `Authenticate` method
+    - [x] 9.4.1 After successful authentication, extract user metadata
+    - [x] 9.4.2 Create `AuthenticatedUser` struct with username, groups, email, full_name, source
+    - [x] 9.4.3 Call `userManager.UpsertUser(ctx, authUser)`
+    - [x] 9.4.4 Use returned credentials for ES Authorization header
+    - [x] 9.4.5 Update `AuthResult` to include ES credentials
+  - [x] 9.5 Add error handling for user management failures
+  - [x] 9.6 Add logging for user management operations
 
 - [ ] 10. Update OIDC provider
   - [ ] 10.1 Update `internal/auth/oidc.go`

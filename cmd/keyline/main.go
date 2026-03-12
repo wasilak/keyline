@@ -156,7 +156,8 @@ func main() {
 	}
 
 	// Create and start server
-	srv, err := server.New(cfg, version, cache, oidcProvider)
+	// TODO: Initialize user manager in task 14
+	srv, err := server.New(cfg, version, cache, oidcProvider, nil)
 	if err != nil {
 		logger.Error("Failed to create server", slog.String("error", err.Error()))
 		os.Exit(1)

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,30 +11,35 @@ import (
 	"github.com/yourusername/keyline/internal/config"
 	"github.com/yourusername/keyline/internal/mapper"
 	"github.com/yourusername/keyline/internal/session"
+	"github.com/yourusername/keyline/internal/usermgmt"
 )
 
 // Engine handles authentication with precedence logic
 type Engine struct {
-	config         *config.Config
-	cache          cachego.CacheInterface
-	oidcProvider   *OIDCProvider
-	basicProvider  *BasicAuthProvider
-	mapper         *mapper.CredentialMapper
-	sessionEnabled bool
-	oidcEnabled    bool
-	basicEnabled   bool
+	config          *config.Config
+	cache           cachego.CacheInterface
+	oidcProvider    *OIDCProvider
+	basicProvider   *BasicAuthProvider
+	mapper          *mapper.CredentialMapper
+	userManager     usermgmt.Manager
+	sessionEnabled  bool
+	oidcEnabled     bool
+	basicEnabled    bool
+	userMgmtEnabled bool
 }
 
 // NewEngine creates a new authentication engine
-func NewEngine(cfg *config.Config, cache cachego.CacheInterface, oidcProvider *OIDCProvider) (*Engine, error) {
+func NewEngine(cfg *config.Config, cache cachego.CacheInterface, oidcProvider *OIDCProvider, userManager usermgmt.Manager) (*Engine, error) {
 	engine := &Engine{
-		config:         cfg,
-		cache:          cache,
-		oidcProvider:   oidcProvider,
-		mapper:         mapper.NewCredentialMapper(cfg),
-		sessionEnabled: true, // Sessions are always enabled
-		oidcEnabled:    cfg.OIDC.Enabled,
-		basicEnabled:   cfg.LocalUsers.Enabled,
+		config:          cfg,
+		cache:           cache,
+		oidcProvider:    oidcProvider,
+		mapper:          mapper.NewCredentialMapper(cfg),
+		userManager:     userManager, // Can be nil if user management is not enabled
+		sessionEnabled:  true,        // Sessions are always enabled
+		oidcEnabled:     cfg.OIDC.Enabled,
+		basicEnabled:    cfg.LocalUsers.Enabled,
+		userMgmtEnabled: cfg.UserManagement.Enabled && userManager != nil,
 	}
 
 	// Initialize Basic Auth provider if enabled
@@ -65,7 +71,8 @@ type EngineResult struct {
 	Authenticated bool
 	Username      string
 	ESUser        string
-	ESAuthHeader  string // X-Es-Authorization header value
+	ESPassword    string // ES password for dynamic user management
+	ESAuthHeader  string // X-Es-Authorization header value (base64 encoded username:password)
 	RedirectURL   string // For OIDC flow
 	SetCookie     *http.Cookie
 	StatusCode    int
@@ -152,9 +159,82 @@ func (e *Engine) authenticateWithSession(ctx context.Context, req *EngineRequest
 		return nil
 	}
 
-	// Session is valid, get ES authorization header
-	// Note: With dynamic user management, we'll use the username directly
-	// For now, we use MapLocalUser which returns the username
+	// If user management is enabled, upsert user and get dynamic credentials
+	if e.userMgmtEnabled && e.userManager != nil {
+		// TODO: Session struct needs Groups, FullName, Source fields (Task 10)
+		// For now, extract what we can from session claims
+		var groups []string
+		var fullName string
+		var source string = "session"
+
+		// Try to extract groups from claims
+		if sess.Claims != nil {
+			if groupsClaim, ok := sess.Claims["groups"]; ok {
+				switch v := groupsClaim.(type) {
+				case []interface{}:
+					for _, g := range v {
+						if str, ok := g.(string); ok {
+							groups = append(groups, str)
+						}
+					}
+				case []string:
+					groups = v
+				case string:
+					groups = []string{v}
+				}
+			}
+
+			// Try to extract full name from claims
+			if nameClaim, ok := sess.Claims["name"]; ok {
+				if str, ok := nameClaim.(string); ok {
+					fullName = str
+				}
+			}
+		}
+
+		authUser := &usermgmt.AuthenticatedUser{
+			Username: sess.Username,
+			Groups:   groups,
+			Email:    sess.Email,
+			FullName: fullName,
+			Source:   source,
+		}
+
+		creds, err := e.userManager.UpsertUser(ctx, authUser)
+		if err != nil {
+			slog.ErrorContext(ctx, "User management failed for session",
+				slog.String("username", sess.Username),
+				slog.String("error", err.Error()),
+			)
+			return &EngineResult{
+				Authenticated: false,
+				StatusCode:    http.StatusInternalServerError,
+				Error:         fmt.Errorf("user management failed: %w", err),
+			}
+		}
+
+		// Create ES Authorization header with dynamic credentials
+		esAuthHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(creds.Username+":"+creds.Password))
+
+		slog.InfoContext(ctx, "Session authentication successful with dynamic user management",
+			slog.String("username", sess.Username),
+			slog.String("method", "session"),
+			slog.String("source_ip", req.SourceIP),
+			slog.String("result", "success"),
+			slog.String("es_user", creds.Username),
+		)
+
+		return &EngineResult{
+			Authenticated: true,
+			Username:      sess.Username,
+			ESUser:        creds.Username,
+			ESPassword:    creds.Password,
+			ESAuthHeader:  esAuthHeader,
+			StatusCode:    http.StatusOK,
+		}
+	}
+
+	// Fallback to static credential mapping (legacy behavior)
 	esUser, err := e.mapper.MapLocalUser(ctx, sess.Username)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to map user to ES user",
@@ -220,9 +300,66 @@ func (e *Engine) authenticateWithBasicAuth(ctx context.Context, req *EngineReque
 		}
 	}
 
-	// Get ES user mapping
-	// Note: With dynamic user management, we'll use the username directly
-	// For now, we use MapLocalUser which returns the username
+	// Get user metadata from local user config
+	var userGroups []string
+	var userEmail string
+	var userFullName string
+
+	for _, user := range e.config.LocalUsers.Users {
+		if user.Username == authResult.Username {
+			userGroups = user.Groups
+			userEmail = user.Email
+			userFullName = user.FullName
+			break
+		}
+	}
+
+	// If user management is enabled, upsert user and get dynamic credentials
+	if e.userMgmtEnabled && e.userManager != nil {
+		authUser := &usermgmt.AuthenticatedUser{
+			Username: authResult.Username,
+			Groups:   userGroups,
+			Email:    userEmail,
+			FullName: userFullName,
+			Source:   "basic_auth",
+		}
+
+		creds, err := e.userManager.UpsertUser(ctx, authUser)
+		if err != nil {
+			slog.ErrorContext(ctx, "User management failed for Basic Auth",
+				slog.String("username", authResult.Username),
+				slog.String("error", err.Error()),
+			)
+			return &EngineResult{
+				Authenticated: false,
+				StatusCode:    http.StatusInternalServerError,
+				Error:         fmt.Errorf("user management failed: %w", err),
+			}
+		}
+
+		// Create ES Authorization header with dynamic credentials
+		esAuthHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(creds.Username+":"+creds.Password))
+
+		slog.InfoContext(ctx, "Basic Auth authentication successful with dynamic user management",
+			slog.String("username", authResult.Username),
+			slog.String("method", "basic"),
+			slog.String("source_ip", req.SourceIP),
+			slog.String("result", "success"),
+			slog.String("es_user", creds.Username),
+			slog.Any("groups", userGroups),
+		)
+
+		return &EngineResult{
+			Authenticated: true,
+			Username:      authResult.Username,
+			ESUser:        creds.Username,
+			ESPassword:    creds.Password,
+			ESAuthHeader:  esAuthHeader,
+			StatusCode:    http.StatusOK,
+		}
+	}
+
+	// Fallback to static credential mapping (legacy behavior)
 	esUser, err := e.mapper.MapLocalUser(ctx, authResult.Username)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to map user to ES user",

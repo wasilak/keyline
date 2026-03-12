@@ -14,6 +14,7 @@ import (
 	"github.com/yourusername/keyline/internal/config"
 	"github.com/yourusername/keyline/internal/observability"
 	"github.com/yourusername/keyline/internal/transport"
+	"github.com/yourusername/keyline/internal/usermgmt"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"go.opentelemetry.io/otel"
 )
@@ -30,7 +31,7 @@ type Server struct {
 }
 
 // New creates a new server instance
-func New(cfg *config.Config, version string, cache cachego.CacheInterface, oidcProvider *auth.OIDCProvider) (*Server, error) {
+func New(cfg *config.Config, version string, cache cachego.CacheInterface, oidcProvider *auth.OIDCProvider, userManager usermgmt.Manager) (*Server, error) {
 	// Create Echo instance
 	e := echo.New()
 	e.HideBanner = true
@@ -73,7 +74,8 @@ func New(cfg *config.Config, version string, cache cachego.CacheInterface, oidcP
 	e.Server.WriteTimeout = cfg.Server.WriteTimeout
 
 	// Create authentication engine
-	authEngine, err := auth.NewEngine(cfg, cache, oidcProvider)
+	// userManager can be nil if user management is not enabled (will be initialized in task 14)
+	authEngine, err := auth.NewEngine(cfg, cache, oidcProvider, userManager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create auth engine: %w", err)
 	}

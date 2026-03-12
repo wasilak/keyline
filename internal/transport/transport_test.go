@@ -49,11 +49,14 @@ func createMockAuthEngine(authenticated bool, redirectURL string, statusCode int
 		LocalUsers: config.LocalUsersConfig{
 			Enabled: false,
 		},
+		UserManagement: config.UserMgmtConfig{
+			Enabled: false,
+		},
 	}
 
 	cache := createTestCache()
 
-	engine, _ := auth.NewEngine(cfg, cache, nil)
+	engine, _ := auth.NewEngine(cfg, cache, nil, nil)
 
 	return engine
 }

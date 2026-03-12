@@ -66,7 +66,7 @@ func setupForwardAuthTest(t *testing.T) (*transport.ForwardAuthAdapter, cachego.
 	}
 
 	// Create auth engine (it will create BasicAuthProvider internally)
-	authEngine, err := auth.NewEngine(cfg, cacheInstance, nil)
+	authEngine, err := auth.NewEngine(cfg, cacheInstance, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create auth engine: %v", err)
 	}

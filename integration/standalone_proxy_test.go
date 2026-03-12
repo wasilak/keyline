@@ -73,7 +73,7 @@ func setupStandaloneProxyTest(t *testing.T, upstreamURL string) (*transport.Stan
 	}
 
 	// Create auth engine
-	authEngine, err := auth.NewEngine(cfg, cacheInstance, nil)
+	authEngine, err := auth.NewEngine(cfg, cacheInstance, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create auth engine: %v", err)
 	}
