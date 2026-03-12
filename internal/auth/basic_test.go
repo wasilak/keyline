@@ -252,3 +252,150 @@ func TestNewBasicAuthProvider_NoUsers(t *testing.T) {
 	assert.Nil(t, provider)
 	assert.Contains(t, err.Error(), "no local users")
 }
+
+func TestBasicAuthProvider_Authenticate_WithGroups(t *testing.T) {
+	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+
+	cfg := &config.LocalUsersConfig{
+		Enabled: true,
+		Users: []config.LocalUser{
+			{
+				Username:       "testuser",
+				PasswordBcrypt: string(hash),
+				Groups:         []string{"developers", "users"},
+				Email:          "testuser@example.com",
+				FullName:       "Test User",
+			},
+		},
+	}
+
+	provider, err := NewBasicAuthProvider(cfg)
+	require.NoError(t, err)
+
+	credentials := base64.StdEncoding.EncodeToString([]byte("testuser:password123"))
+
+	req := &AuthRequest{
+		AuthorizationHeader: "Basic " + credentials,
+		OriginalURL:         "https://example.com/test",
+	}
+
+	result := provider.Authenticate(context.Background(), req)
+	assert.True(t, result.Authenticated)
+	assert.Equal(t, "testuser", result.Username)
+	assert.Equal(t, "testuser@example.com", result.Email)
+	assert.Equal(t, "Test User", result.FullName)
+	assert.Equal(t, []string{"developers", "users"}, result.Groups)
+	assert.Equal(t, "basic_auth", result.Source)
+	assert.Nil(t, result.Error)
+}
+
+func TestBasicAuthProvider_Authenticate_WithNoGroups(t *testing.T) {
+	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+
+	cfg := &config.LocalUsersConfig{
+		Enabled: true,
+		Users: []config.LocalUser{
+			{
+				Username:       "viewer",
+				PasswordBcrypt: string(hash),
+				Groups:         []string{}, // No groups
+				Email:          "viewer@example.com",
+				FullName:       "Viewer User",
+			},
+		},
+	}
+
+	provider, err := NewBasicAuthProvider(cfg)
+	require.NoError(t, err)
+
+	credentials := base64.StdEncoding.EncodeToString([]byte("viewer:password123"))
+
+	req := &AuthRequest{
+		AuthorizationHeader: "Basic " + credentials,
+		OriginalURL:         "https://example.com/test",
+	}
+
+	result := provider.Authenticate(context.Background(), req)
+	assert.True(t, result.Authenticated)
+	assert.Equal(t, "viewer", result.Username)
+	assert.Equal(t, "viewer@example.com", result.Email)
+	assert.Equal(t, "Viewer User", result.FullName)
+	assert.Empty(t, result.Groups) // Empty groups array
+	assert.Equal(t, "basic_auth", result.Source)
+	assert.Nil(t, result.Error)
+}
+
+func TestBasicAuthProvider_Authenticate_WithMultipleGroups(t *testing.T) {
+	hash, err := bcrypt.GenerateFromPassword([]byte("adminpass"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+
+	cfg := &config.LocalUsersConfig{
+		Enabled: true,
+		Users: []config.LocalUser{
+			{
+				Username:       "admin",
+				PasswordBcrypt: string(hash),
+				Groups:         []string{"admin", "superusers", "developers", "users"},
+				Email:          "admin@example.com",
+				FullName:       "Admin User",
+			},
+		},
+	}
+
+	provider, err := NewBasicAuthProvider(cfg)
+	require.NoError(t, err)
+
+	credentials := base64.StdEncoding.EncodeToString([]byte("admin:adminpass"))
+
+	req := &AuthRequest{
+		AuthorizationHeader: "Basic " + credentials,
+		OriginalURL:         "https://example.com/test",
+	}
+
+	result := provider.Authenticate(context.Background(), req)
+	assert.True(t, result.Authenticated)
+	assert.Equal(t, "admin", result.Username)
+	assert.Equal(t, "admin@example.com", result.Email)
+	assert.Equal(t, "Admin User", result.FullName)
+	assert.Equal(t, []string{"admin", "superusers", "developers", "users"}, result.Groups)
+	assert.Equal(t, "basic_auth", result.Source)
+	assert.Nil(t, result.Error)
+}
+
+func TestBasicAuthProvider_Authenticate_WithPartialMetadata(t *testing.T) {
+	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+
+	cfg := &config.LocalUsersConfig{
+		Enabled: true,
+		Users: []config.LocalUser{
+			{
+				Username:       "testuser",
+				PasswordBcrypt: string(hash),
+				Groups:         []string{"users"},
+				// Email and FullName not provided
+			},
+		},
+	}
+
+	provider, err := NewBasicAuthProvider(cfg)
+	require.NoError(t, err)
+
+	credentials := base64.StdEncoding.EncodeToString([]byte("testuser:password123"))
+
+	req := &AuthRequest{
+		AuthorizationHeader: "Basic " + credentials,
+		OriginalURL:         "https://example.com/test",
+	}
+
+	result := provider.Authenticate(context.Background(), req)
+	assert.True(t, result.Authenticated)
+	assert.Equal(t, "testuser", result.Username)
+	assert.Empty(t, result.Email)    // Empty string
+	assert.Empty(t, result.FullName) // Empty string
+	assert.Equal(t, []string{"users"}, result.Groups)
+	assert.Equal(t, "basic_auth", result.Source)
+	assert.Nil(t, result.Error)
+}

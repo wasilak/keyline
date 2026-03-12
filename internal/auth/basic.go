@@ -41,6 +41,10 @@ type AuthRequest struct {
 type AuthResult struct {
 	Authenticated bool
 	Username      string
+	Email         string
+	FullName      string
+	Groups        []string
+	Source        string
 	Error         error
 }
 
@@ -130,11 +134,16 @@ func (p *BasicAuthProvider) Authenticate(ctx context.Context, req *AuthRequest) 
 	// Authentication successful
 	slog.InfoContext(ctx, "Basic Auth authentication successful",
 		slog.String("username", username),
+		slog.Any("groups", user.Groups),
 	)
 
 	return &AuthResult{
 		Authenticated: true,
 		Username:      username,
+		Email:         user.Email,
+		FullName:      user.FullName,
+		Groups:        user.Groups,
+		Source:        "basic_auth",
 		Error:         nil,
 	}
 }
