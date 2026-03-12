@@ -196,7 +196,7 @@
   - [x] 10.4 Update `AuthResult` to include groups
   - [x] 10.5 Add tests for group extraction
 
-- [ ] 11. Update Basic Auth provider
+- [~] 11. Update Basic Auth provider
   - [ ] 11.1 Update `internal/auth/basic.go`
   - [ ] 11.2 Update `Authenticate` method to return groups from local user config
   - [ ] 11.3 Update `AuthResult` to include email, full_name, groups
