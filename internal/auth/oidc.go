@@ -691,7 +691,6 @@ func (p *OIDCProvider) CreateSessionFromClaims(ctx context.Context, cachego cach
 		UserID:    claims.Subject,
 		Username:  claims.Email,
 		Email:     claims.Email,
-		ESUser:    esUser,
 		Claims:    claims.Claims,
 		CreatedAt: now,
 		ExpiresAt: now.Add(sessionTTL),
@@ -708,15 +707,15 @@ func (p *OIDCProvider) CreateSessionFromClaims(ctx context.Context, cachego cach
 	if cookieName == "" {
 		cookieName = "keyline_session"
 	}
-	
+
 	cookiePath := p.sessionConfig.CookiePath
 	if cookiePath == "" {
 		cookiePath = "/"
 	}
-	
+
 	// For localhost testing, set Secure=false (cookies with Secure=true won't be sent over HTTP)
 	isLocalhost := isHTTPSOrLocalhostHTTP(p.config.RedirectURL) && !strings.HasPrefix(p.config.RedirectURL, "https://")
-	
+
 	cookie := &http.Cookie{
 		Name:     cookieName,
 		Value:    sessionID,
@@ -789,17 +788,17 @@ func isHTTPSOrLocalhostHTTP(urlStr string) bool {
 	if err != nil {
 		return false
 	}
-	
+
 	// Allow HTTPS for all hosts
 	if parsedURL.Scheme == "https" {
 		return true
 	}
-	
+
 	// Allow HTTP only for localhost and 127.0.0.1
 	if parsedURL.Scheme == "http" {
 		hostname := parsedURL.Hostname()
 		return hostname == "localhost" || hostname == "127.0.0.1"
 	}
-	
+
 	return false
 }

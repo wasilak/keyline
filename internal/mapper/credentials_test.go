@@ -269,38 +269,39 @@ func TestMapLocalUser(t *testing.T) {
 			config: &config.Config{
 				LocalUsers: config.LocalUsersConfig{
 					Users: []config.LocalUser{
-						{Username: "ci-pipeline", ESUser: "ci_user"},
-						{Username: "monitoring", ESUser: "monitoring_user"},
+						{Username: "ci-pipeline"},
+						{Username: "monitoring"},
 					},
 				},
 			},
 			username:     "ci-pipeline",
-			expectedUser: "ci_user",
+			expectedUser: "ci-pipeline", // Now returns username directly
 		},
 		{
 			name: "second user found",
 			config: &config.Config{
 				LocalUsers: config.LocalUsersConfig{
 					Users: []config.LocalUser{
-						{Username: "ci-pipeline", ESUser: "ci_user"},
-						{Username: "monitoring", ESUser: "monitoring_user"},
+						{Username: "ci-pipeline"},
+						{Username: "monitoring"},
 					},
 				},
 			},
 			username:     "monitoring",
-			expectedUser: "monitoring_user",
+			expectedUser: "monitoring", // Now returns username directly
 		},
 		{
 			name: "user not found",
 			config: &config.Config{
 				LocalUsers: config.LocalUsersConfig{
 					Users: []config.LocalUser{
-						{Username: "ci-pipeline", ESUser: "ci_user"},
+						{Username: "ci-pipeline"},
 					},
 				},
 			},
 			username:      "unknown",
-			expectedError: true,
+			expectedUser:  "unknown", // Now returns username even if not in config
+			expectedError: false,     // No longer an error - returns username
 		},
 		{
 			name: "empty user list",
@@ -310,7 +311,8 @@ func TestMapLocalUser(t *testing.T) {
 				},
 			},
 			username:      "ci-pipeline",
-			expectedError: true,
+			expectedUser:  "ci-pipeline", // Now returns username even with empty list
+			expectedError: false,         // No longer an error - returns username
 		},
 	}
 

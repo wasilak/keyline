@@ -28,7 +28,6 @@ func TestBasicAuthFlow_ValidCredentials(t *testing.T) {
 				{
 					Username:       "testuser",
 					PasswordBcrypt: string(hashedPassword),
-					ESUser:         "es_testuser",
 				},
 			},
 		},
@@ -99,7 +98,6 @@ func TestBasicAuthFlow_InvalidUsername(t *testing.T) {
 				{
 					Username:       "testuser",
 					PasswordBcrypt: string(hashedPassword),
-					ESUser:         "es_testuser",
 				},
 			},
 		},
@@ -145,7 +143,6 @@ func TestBasicAuthFlow_InvalidPassword(t *testing.T) {
 				{
 					Username:       "testuser",
 					PasswordBcrypt: string(hashedPassword),
-					ESUser:         "es_testuser",
 				},
 			},
 		},
@@ -191,7 +188,6 @@ func TestBasicAuthFlow_ESCredentialMapping(t *testing.T) {
 				{
 					Username:       "testuser",
 					PasswordBcrypt: string(hashedPassword),
-					ESUser:         "es_testuser",
 				},
 			},
 		},

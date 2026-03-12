@@ -34,7 +34,6 @@ func TestRedisSessionStore_SessionCreationAndRetrieval(t *testing.T) {
 		ID:        "test-session-123",
 		Username:  "testuser",
 		Email:     "test@example.com",
-		ESUser:    "es_testuser",
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(1 * time.Hour),
 	}
@@ -82,7 +81,6 @@ func TestRedisSessionStore_SessionExpiration(t *testing.T) {
 	sess := &session.Session{
 		ID:        "expired-session-123",
 		Username:  "testuser",
-		ESUser:    "es_testuser",
 		CreatedAt: time.Now().Add(-2 * time.Hour),
 		ExpiresAt: time.Now().Add(-1 * time.Hour), // Expired 1 hour ago
 	}
@@ -187,7 +185,6 @@ func TestRedisSessionStore_StateTokenPrefix(t *testing.T) {
 	sess := &session.Session{
 		ID:        tokenID,
 		Username:  "testuser",
-		ESUser:    "es_testuser",
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(1 * time.Hour),
 	}
@@ -246,7 +243,6 @@ func TestRedisSessionStore_SessionDeletion(t *testing.T) {
 	sess := &session.Session{
 		ID:        "delete-test-session",
 		Username:  "testuser",
-		ESUser:    "es_testuser",
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(1 * time.Hour),
 	}
@@ -317,21 +313,18 @@ func TestRedisSessionStore_MultipleSessionsIndependence(t *testing.T) {
 		{
 			ID:        "session-1",
 			Username:  "user1",
-			ESUser:    "es_user1",
 			CreatedAt: time.Now(),
 			ExpiresAt: time.Now().Add(1 * time.Hour),
 		},
 		{
 			ID:        "session-2",
 			Username:  "user2",
-			ESUser:    "es_user2",
 			CreatedAt: time.Now(),
 			ExpiresAt: time.Now().Add(1 * time.Hour),
 		},
 		{
 			ID:        "session-3",
 			Username:  "user3",
-			ESUser:    "es_user3",
 			CreatedAt: time.Now(),
 			ExpiresAt: time.Now().Add(1 * time.Hour),
 		},

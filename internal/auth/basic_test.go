@@ -23,7 +23,6 @@ func TestBasicAuthProvider_Authenticate_ValidCredentials(t *testing.T) {
 			{
 				Username:       "testuser",
 				PasswordBcrypt: string(hash),
-				ESUser:         "es_testuser",
 			},
 		},
 	}
@@ -42,7 +41,6 @@ func TestBasicAuthProvider_Authenticate_ValidCredentials(t *testing.T) {
 	result := provider.Authenticate(context.Background(), req)
 	assert.True(t, result.Authenticated)
 	assert.Equal(t, "testuser", result.Username)
-	assert.Equal(t, "es_testuser", result.ESUser)
 	assert.Nil(t, result.Error)
 }
 
@@ -56,7 +54,6 @@ func TestBasicAuthProvider_Authenticate_InvalidPassword(t *testing.T) {
 			{
 				Username:       "testuser",
 				PasswordBcrypt: string(hash),
-				ESUser:         "es_testuser",
 			},
 		},
 	}
@@ -83,7 +80,6 @@ func TestBasicAuthProvider_Authenticate_UserNotFound(t *testing.T) {
 			{
 				Username:       "existinguser",
 				PasswordBcrypt: "$2a$10$test",
-				ESUser:         "es_user",
 			},
 		},
 	}
@@ -111,7 +107,6 @@ func TestBasicAuthProvider_Authenticate_InvalidBase64(t *testing.T) {
 			{
 				Username:       "testuser",
 				PasswordBcrypt: string(hash),
-				ESUser:         "es_user",
 			},
 		},
 	}
@@ -137,7 +132,6 @@ func TestBasicAuthProvider_Authenticate_MissingColon(t *testing.T) {
 			{
 				Username:       "testuser",
 				PasswordBcrypt: string(hash),
-				ESUser:         "es_user",
 			},
 		},
 	}
@@ -166,7 +160,6 @@ func TestBasicAuthProvider_Authenticate_EmptyCredentials(t *testing.T) {
 			{
 				Username:       "testuser",
 				PasswordBcrypt: string(hash),
-				ESUser:         "es_user",
 			},
 		},
 	}
@@ -194,7 +187,6 @@ func TestBasicAuthProvider_Authenticate_NoAuthHeader(t *testing.T) {
 			{
 				Username:       "testuser",
 				PasswordBcrypt: string(hash),
-				ESUser:         "es_user",
 			},
 		},
 	}
@@ -220,7 +212,6 @@ func TestBasicAuthProvider_Authenticate_WrongScheme(t *testing.T) {
 			{
 				Username:       "testuser",
 				PasswordBcrypt: string(hash),
-				ESUser:         "es_user",
 			},
 		},
 	}

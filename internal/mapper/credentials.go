@@ -106,23 +106,16 @@ func (m *CredentialMapper) MapOIDCUser(ctx context.Context, claims map[string]in
 }
 
 // MapLocalUser maps a local user to an ES user (simple lookup)
+// DEPRECATED: This function will be removed in favor of dynamic user management
+// where ES users are automatically created based on authenticated username
 func (m *CredentialMapper) MapLocalUser(ctx context.Context, username string) (string, error) {
-	slog.InfoContext(ctx, "Mapping local user to ES user",
+	slog.InfoContext(ctx, "MapLocalUser is deprecated - dynamic user management will use authenticated username",
 		slog.String("username", username),
 	)
 
-	// Find the local user
-	for _, user := range m.config.LocalUsers.Users {
-		if user.Username == username {
-			slog.InfoContext(ctx, "Local user mapped to ES user",
-				slog.String("username", username),
-				slog.String("es_user", user.ESUser),
-			)
-			return user.ESUser, nil
-		}
-	}
-
-	return "", fmt.Errorf("local user not found: %s", username)
+	// For now, return the username itself as the ES user
+	// This maintains compatibility until dynamic user management is fully implemented
+	return username, nil
 }
 
 // GetESCredentials retrieves ES username and password for the given ES user

@@ -35,7 +35,6 @@ func TestCreateSession(t *testing.T) {
 		UserID:    "user123",
 		Username:  "testuser",
 		Email:     "test@example.com",
-		ESUser:    "es_testuser",
 		Claims:    map[string]interface{}{"role": "admin"},
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
@@ -49,7 +48,6 @@ func TestCreateSession(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, session.ID, retrieved.ID)
 	assert.Equal(t, session.Username, retrieved.Username)
-	assert.Equal(t, session.ESUser, retrieved.ESUser)
 }
 
 func TestGetSession_ValidSession(t *testing.T) {
@@ -61,7 +59,6 @@ func TestGetSession_ValidSession(t *testing.T) {
 		UserID:    "user456",
 		Username:  "validuser",
 		Email:     "valid@example.com",
-		ESUser:    "es_validuser",
 		Claims:    map[string]interface{}{},
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(1 * time.Hour),
@@ -95,7 +92,6 @@ func TestGetSession_ExpiredSession(t *testing.T) {
 		UserID:    "user789",
 		Username:  "expireduser",
 		Email:     "expired@example.com",
-		ESUser:    "es_expireduser",
 		Claims:    map[string]interface{}{},
 		CreatedAt: time.Now().Add(-2 * time.Hour),
 		ExpiresAt: time.Now().Add(-1 * time.Hour), // Expired 1 hour ago
@@ -119,7 +115,6 @@ func TestDeleteSession(t *testing.T) {
 		UserID:    "user999",
 		Username:  "deleteuser",
 		Email:     "delete@example.com",
-		ESUser:    "es_deleteuser",
 		Claims:    map[string]interface{}{},
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(1 * time.Hour),
@@ -165,7 +160,6 @@ func TestSession_CryptographicRandomID(t *testing.T) {
 			UserID:    "user",
 			Username:  "testuser",
 			Email:     "test@example.com",
-			ESUser:    "es_user",
 			Claims:    map[string]interface{}{},
 			CreatedAt: time.Now(),
 			ExpiresAt: time.Now().Add(1 * time.Hour),
@@ -194,7 +188,6 @@ func TestSession_TTLRespected(t *testing.T) {
 		UserID:    "user",
 		Username:  "testuser",
 		Email:     "test@example.com",
-		ESUser:    "es_user",
 		Claims:    map[string]interface{}{},
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(100 * time.Millisecond),
@@ -232,7 +225,6 @@ func TestSession_AllFieldsPreserved(t *testing.T) {
 		UserID:    "user123",
 		Username:  "testuser",
 		Email:     "test@example.com",
-		ESUser:    "es_testuser",
 		Claims:    claims,
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(1 * time.Hour),
@@ -249,7 +241,6 @@ func TestSession_AllFieldsPreserved(t *testing.T) {
 	assert.Equal(t, session.UserID, retrieved.UserID)
 	assert.Equal(t, session.Username, retrieved.Username)
 	assert.Equal(t, session.Email, retrieved.Email)
-	assert.Equal(t, session.ESUser, retrieved.ESUser)
 	assert.Equal(t, claims["role"], retrieved.Claims["role"])
 	assert.WithinDuration(t, session.CreatedAt, retrieved.CreatedAt, time.Second)
 	assert.WithinDuration(t, session.ExpiresAt, retrieved.ExpiresAt, time.Second)

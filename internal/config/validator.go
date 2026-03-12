@@ -60,9 +60,6 @@ func Validate(cfg *Config) error {
 					errors = append(errors, fmt.Sprintf("local_users.users[%d].password_bcrypt is not a valid bcrypt hash", i))
 				}
 			}
-			if user.ESUser == "" {
-				errors = append(errors, fmt.Sprintf("local_users.users[%d].es_user is required", i))
-			}
 		}
 	}
 

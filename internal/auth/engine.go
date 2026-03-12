@@ -153,10 +153,25 @@ func (e *Engine) authenticateWithSession(ctx context.Context, req *EngineRequest
 	}
 
 	// Session is valid, get ES authorization header
-	esAuthHeader, err := e.mapper.GetESAuthorizationHeader(ctx, sess.ESUser)
+	// Note: With dynamic user management, we'll use the username directly
+	// For now, we use MapLocalUser which returns the username
+	esUser, err := e.mapper.MapLocalUser(ctx, sess.Username)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to map user to ES user",
+			slog.String("username", sess.Username),
+			slog.String("error", err.Error()),
+		)
+		return &EngineResult{
+			Authenticated: false,
+			StatusCode:    http.StatusInternalServerError,
+			Error:         fmt.Errorf("failed to map user"),
+		}
+	}
+
+	esAuthHeader, err := e.mapper.GetESAuthorizationHeader(ctx, esUser)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get ES authorization header",
-			slog.String("es_user", sess.ESUser),
+			slog.String("es_user", esUser),
 			slog.String("error", err.Error()),
 		)
 		return &EngineResult{
@@ -171,13 +186,13 @@ func (e *Engine) authenticateWithSession(ctx context.Context, req *EngineRequest
 		slog.String("method", "session"),
 		slog.String("source_ip", req.SourceIP),
 		slog.String("result", "success"),
-		slog.String("es_user", sess.ESUser),
+		slog.String("es_user", esUser),
 	)
 
 	return &EngineResult{
 		Authenticated: true,
 		Username:      sess.Username,
-		ESUser:        sess.ESUser,
+		ESUser:        esUser,
 		ESAuthHeader:  esAuthHeader,
 		StatusCode:    http.StatusOK,
 	}
@@ -205,11 +220,27 @@ func (e *Engine) authenticateWithBasicAuth(ctx context.Context, req *EngineReque
 		}
 	}
 
+	// Get ES user mapping
+	// Note: With dynamic user management, we'll use the username directly
+	// For now, we use MapLocalUser which returns the username
+	esUser, err := e.mapper.MapLocalUser(ctx, authResult.Username)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to map user to ES user",
+			slog.String("username", authResult.Username),
+			slog.String("error", err.Error()),
+		)
+		return &EngineResult{
+			Authenticated: false,
+			StatusCode:    http.StatusInternalServerError,
+			Error:         fmt.Errorf("failed to map user"),
+		}
+	}
+
 	// Get ES authorization header
-	esAuthHeader, err := e.mapper.GetESAuthorizationHeader(ctx, authResult.ESUser)
+	esAuthHeader, err := e.mapper.GetESAuthorizationHeader(ctx, esUser)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get ES authorization header",
-			slog.String("es_user", authResult.ESUser),
+			slog.String("es_user", esUser),
 			slog.String("error", err.Error()),
 		)
 		return &EngineResult{
@@ -224,13 +255,13 @@ func (e *Engine) authenticateWithBasicAuth(ctx context.Context, req *EngineReque
 		slog.String("method", "basic"),
 		slog.String("source_ip", req.SourceIP),
 		slog.String("result", "success"),
-		slog.String("es_user", authResult.ESUser),
+		slog.String("es_user", esUser),
 	)
 
 	return &EngineResult{
 		Authenticated: true,
 		Username:      authResult.Username,
-		ESUser:        authResult.ESUser,
+		ESUser:        esUser,
 		ESAuthHeader:  esAuthHeader,
 		StatusCode:    http.StatusOK,
 	}

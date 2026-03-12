@@ -13,12 +13,11 @@ func TestValidate_Success(t *testing.T) {
 			Mode: "forward_auth",
 		},
 		OIDC: OIDCConfig{
-			Enabled:       true,
-			IssuerURL:     "https://example.com",
-			ClientID:      "test-client",
-			ClientSecret:  "test-secret",
-			RedirectURL:   "https://auth.example.com/callback",
-			DefaultESUser: "readonly",
+			Enabled:      true,
+			IssuerURL:    "https://example.com",
+			ClientID:     "test-client",
+			ClientSecret: "test-secret",
+			RedirectURL:  "https://auth.example.com/callback",
 		},
 		LocalUsers: LocalUsersConfig{
 			Enabled: false,
@@ -254,7 +253,6 @@ func TestValidate_LocalUserMissingUsername(t *testing.T) {
 			Users: []LocalUser{
 				{
 					PasswordBcrypt: "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy",
-					ESUser:         "test",
 				},
 			},
 		},
@@ -284,7 +282,6 @@ func TestValidate_LocalUserInvalidBcrypt(t *testing.T) {
 				{
 					Username:       "test",
 					PasswordBcrypt: "not-a-bcrypt-hash",
-					ESUser:         "test",
 				},
 			},
 		},

@@ -41,7 +41,6 @@ type AuthRequest struct {
 type AuthResult struct {
 	Authenticated bool
 	Username      string
-	ESUser        string
 	Error         error
 }
 
@@ -131,13 +130,11 @@ func (p *BasicAuthProvider) Authenticate(ctx context.Context, req *AuthRequest) 
 	// Authentication successful
 	slog.InfoContext(ctx, "Basic Auth authentication successful",
 		slog.String("username", username),
-		slog.String("es_user", user.ESUser),
 	)
 
 	return &AuthResult{
 		Authenticated: true,
 		Username:      username,
-		ESUser:        user.ESUser,
 		Error:         nil,
 	}
 }

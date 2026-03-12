@@ -40,7 +40,6 @@ func setupStandaloneProxyTest(t *testing.T, upstreamURL string) (*transport.Stan
 				{
 					Username:       "testuser",
 					PasswordBcrypt: string(hashedPassword),
-					ESUser:         "es_testuser",
 				},
 			},
 		},
@@ -366,7 +365,6 @@ func TestStandaloneProxy_SessionAuthentication(t *testing.T) {
 	sess := &session.Session{
 		ID:        "test-session-id",
 		Username:  "testuser",
-		ESUser:    "es_testuser",
 		ExpiresAt: time.Now().Add(1 * time.Hour),
 	}
 	err := session.CreateSession(ctx, cache, sess)

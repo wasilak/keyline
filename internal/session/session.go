@@ -38,7 +38,6 @@ func CreateSession(ctx context.Context, cache cachego.CacheInterface, session *S
 	slog.InfoContext(ctx, "Session created",
 		slog.String("session_id_hash", observability.HashSessionID(session.ID)),
 		slog.String("username", session.Username),
-		slog.String("es_user", session.ESUser),
 		slog.String("action", "created"),
 		slog.Duration("ttl", time.Until(session.ExpiresAt)),
 	)
@@ -90,7 +89,6 @@ func GetSession(ctx context.Context, cache cachego.CacheInterface, sessionID str
 	slog.InfoContext(ctx, "Session retrieved",
 		slog.String("session_id_hash", observability.HashSessionID(session.ID)),
 		slog.String("username", session.Username),
-		slog.String("es_user", session.ESUser),
 		slog.String("action", "validated"),
 	)
 

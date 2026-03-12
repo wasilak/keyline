@@ -64,7 +64,6 @@ type LocalUsersConfig struct {
 type LocalUser struct {
 	Username       string   `mapstructure:"username"`
 	PasswordBcrypt string   `mapstructure:"password_bcrypt"`
-	ESUser         string   `mapstructure:"es_user"`
 	Groups         []string `mapstructure:"groups"`
 	Email          string   `mapstructure:"email"`
 	FullName       string   `mapstructure:"full_name"`
@@ -98,12 +97,12 @@ type UserMgmtConfig struct {
 
 // ElasticsearchConfig contains ES credential settings and admin API configuration
 type ElasticsearchConfig struct {
-	Users         []ESUser      `mapstructure:"users"`
-	AdminUser     string        `mapstructure:"admin_user"`      // Admin username for Security API calls
-	AdminPassword string        `mapstructure:"admin_password"`  // Admin password for Security API calls
-	URL           string        `mapstructure:"url"`             // Elasticsearch cluster URL
-	Timeout       time.Duration `mapstructure:"timeout"`         // Timeout for API calls
-	InsecureSkipVerify bool     `mapstructure:"insecure_skip_verify"` // Skip TLS certificate verification
+	Users              []ESUser      `mapstructure:"users"`
+	AdminUser          string        `mapstructure:"admin_user"`           // Admin username for Security API calls
+	AdminPassword      string        `mapstructure:"admin_password"`       // Admin password for Security API calls
+	URL                string        `mapstructure:"url"`                  // Elasticsearch cluster URL
+	Timeout            time.Duration `mapstructure:"timeout"`              // Timeout for API calls
+	InsecureSkipVerify bool          `mapstructure:"insecure_skip_verify"` // Skip TLS certificate verification
 }
 
 // ESUser represents an Elasticsearch user

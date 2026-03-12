@@ -57,7 +57,6 @@ func TestHandleLogout_WithValidSession(t *testing.T) {
 		UserID:    "user123",
 		Username:  "testuser",
 		Email:     "test@example.com",
-		ESUser:    "es_testuser",
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
@@ -205,7 +204,6 @@ func TestHandleLogout_CookieAttributes(t *testing.T) {
 		UserID:    "user456",
 		Username:  "testuser2",
 		Email:     "test2@example.com",
-		ESUser:    "es_testuser2",
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
@@ -260,7 +258,6 @@ func TestHandleLogout_WithoutOIDCProvider(t *testing.T) {
 		UserID:    "user789",
 		Username:  "testuser3",
 		Email:     "test3@example.com",
-		ESUser:    "es_testuser3",
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
@@ -309,7 +306,6 @@ func TestHandleLogout_SessionDeletionFailure(t *testing.T) {
 		UserID:    "user999",
 		Username:  "testuser4",
 		Email:     "test4@example.com",
-		ESUser:    "es_testuser4",
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
@@ -357,7 +353,6 @@ func TestHandleLogout_SubsequentRequestsUnauthenticated(t *testing.T) {
 		UserID:    "user-subsequent",
 		Username:  "testuser-subsequent",
 		Email:     "subsequent@example.com",
-		ESUser:    "es_subsequent",
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
