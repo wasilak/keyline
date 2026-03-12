@@ -716,11 +716,9 @@ func (p *OIDCProvider) CreateSessionFromClaims(ctx context.Context, cachego cach
 	// Extract groups from claims
 	groups := p.extractGroups(claims.Claims)
 
-	// Map OIDC user to ES user using credential mapper
-	esUser, err := p.mapper.MapOIDCUser(ctx, claims.Claims)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to map OIDC user to ES user: %w", err)
-	}
+	// NOTE: ES user mapping is now handled by UserManager in the auth engine
+	// The session stores user metadata (username, groups, email, etc.)
+	// and the auth engine will use UserManager to create/update ES users dynamically
 
 	// Create session with groups, full name, and source
 	now := time.Now()
@@ -771,7 +769,6 @@ func (p *OIDCProvider) CreateSessionFromClaims(ctx context.Context, cachego cach
 	slog.InfoContext(ctx, "Session created from OIDC user",
 		slog.String("user_id", claims.Subject),
 		slog.String("email", claims.Email),
-		slog.String("es_user", esUser),
 		slog.Any("groups", groups),
 		slog.Duration("ttl", sessionTTL),
 	)

@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"github.com/yourusername/keyline/internal/config"
 )
@@ -22,103 +21,15 @@ func NewCredentialMapper(cfg *config.Config) *CredentialMapper {
 	}
 }
 
-// MapOIDCUser maps an OIDC user to an ES user based on claim extraction and pattern matching
-func (m *CredentialMapper) MapOIDCUser(ctx context.Context, claims map[string]interface{}) (string, error) {
-	slog.InfoContext(ctx, "Mapping OIDC user to ES user")
-
-	// Evaluate each mapping in order
-	for i, mapping := range m.config.OIDC.Mappings {
-		// Extract claim value
-		claimValue, ok := claims[mapping.Claim]
-		if !ok {
-			slog.DebugContext(ctx, "Claim not found in token",
-				slog.String("claim", mapping.Claim),
-				slog.Int("mapping_index", i),
-			)
-			continue
-		}
-
-		// Handle different claim value types
-		var matched bool
-		var matchedValue string
-
-		switch v := claimValue.(type) {
-		case string:
-			// String claim (e.g., email, role)
-			if m.matchPattern(v, mapping.Pattern) {
-				matched = true
-				matchedValue = v
-			}
-
-		case []interface{}:
-			// Array claim (e.g., groups)
-			// Check if any element in the array matches the pattern
-			for _, elem := range v {
-				if str, ok := elem.(string); ok {
-					if m.matchPattern(str, mapping.Pattern) {
-						matched = true
-						matchedValue = str
-						break
-					}
-				}
-			}
-
-		case []string:
-			// String array claim
-			for _, str := range v {
-				if m.matchPattern(str, mapping.Pattern) {
-					matched = true
-					matchedValue = str
-					break
-				}
-			}
-
-		default:
-			slog.DebugContext(ctx, "Claim value type not supported",
-				slog.String("claim", mapping.Claim),
-				slog.Any("value", claimValue),
-				slog.String("type", fmt.Sprintf("%T", claimValue)),
-			)
-			continue
-		}
-
-		if matched {
-			slog.InfoContext(ctx, "OIDC user mapped to ES user",
-				slog.String("claim", mapping.Claim),
-				slog.String("claim_value", matchedValue),
-				slog.String("pattern", mapping.Pattern),
-				slog.String("es_user", mapping.ESUser),
-			)
-			return mapping.ESUser, nil
-		}
-	}
-
-	// No mapping matched, use default ES user
-	if m.config.OIDC.DefaultESUser == "" {
-		return "", fmt.Errorf("no OIDC mapping matched and no default ES user configured")
-	}
-
-	slog.InfoContext(ctx, "Using default ES user for OIDC user",
-		slog.String("es_user", m.config.OIDC.DefaultESUser),
-	)
-
-	return m.config.OIDC.DefaultESUser, nil
-}
-
-// MapLocalUser maps a local user to an ES user (simple lookup)
-// DEPRECATED: This function will be removed in favor of dynamic user management
-// where ES users are automatically created based on authenticated username
-func (m *CredentialMapper) MapLocalUser(ctx context.Context, username string) (string, error) {
-	slog.InfoContext(ctx, "MapLocalUser is deprecated - dynamic user management will use authenticated username",
-		slog.String("username", username),
-	)
-
-	// For now, return the username itself as the ES user
-	// This maintains compatibility until dynamic user management is fully implemented
-	return username, nil
-}
+// NOTE: MapOIDCUser and MapLocalUser methods have been removed.
+// These methods are replaced by the dynamic user management system which uses:
+// - RoleMapper to map groups to ES roles
+// - UserManager to create/update ES users dynamically
+// See internal/usermgmt package for the new implementation.
 
 // GetESCredentials retrieves ES username and password for the given ES user
+// NOTE: This method is kept for backward compatibility with static user mapping.
+// When user management is enabled, credentials are generated dynamically by UserManager.
 func (m *CredentialMapper) GetESCredentials(ctx context.Context, esUser string) (username, password string, err error) {
 	slog.InfoContext(ctx, "Retrieving ES credentials",
 		slog.String("es_user", esUser),
@@ -168,42 +79,5 @@ func (m *CredentialMapper) GetESAuthorizationHeader(ctx context.Context, esUser 
 	return authHeader, nil
 }
 
-// matchPattern performs wildcard pattern matching
-// Supports * wildcard matching (e.g., "*@admin.example.com")
-func (m *CredentialMapper) matchPattern(value, pattern string) bool {
-	// Exact match
-	if value == pattern {
-		return true
-	}
-
-	// No wildcard, no match
-	if !strings.Contains(pattern, "*") {
-		return false
-	}
-
-	// Handle wildcard patterns
-	// Split pattern on * to get prefix and suffix
-	parts := strings.Split(pattern, "*")
-
-	// Pattern starts with *
-	if strings.HasPrefix(pattern, "*") {
-		suffix := parts[1]
-		return strings.HasSuffix(value, suffix)
-	}
-
-	// Pattern ends with *
-	if strings.HasSuffix(pattern, "*") {
-		prefix := parts[0]
-		return strings.HasPrefix(value, prefix)
-	}
-
-	// Pattern has * in the middle
-	if len(parts) == 2 {
-		prefix := parts[0]
-		suffix := parts[1]
-		return strings.HasPrefix(value, prefix) && strings.HasSuffix(value, suffix)
-	}
-
-	// Multiple wildcards not supported
-	return false
-}
+// NOTE: matchPattern method has been removed.
+// Pattern matching is now handled by RoleMapper in internal/usermgmt package.

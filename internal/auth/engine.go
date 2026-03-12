@@ -204,47 +204,53 @@ func (e *Engine) authenticateWithSession(ctx context.Context, req *EngineRequest
 		}
 	}
 
-	// Fallback to static credential mapping (legacy behavior)
-	esUser, err := e.mapper.MapLocalUser(ctx, sess.Username)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to map user to ES user",
+	// Fallback to static credential mapping (legacy behavior - only when user management is disabled)
+	// NOTE: This path should rarely be used. User management should be enabled for proper functionality.
+	if !e.userMgmtEnabled {
+		slog.WarnContext(ctx, "User management is disabled, using static credential mapping (legacy mode)",
 			slog.String("username", sess.Username),
-			slog.String("error", err.Error()),
 		)
-		return &EngineResult{
-			Authenticated: false,
-			StatusCode:    http.StatusInternalServerError,
-			Error:         fmt.Errorf("failed to map user"),
-		}
-	}
 
-	esAuthHeader, err := e.mapper.GetESAuthorizationHeader(ctx, esUser)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get ES authorization header",
+		// In legacy mode, use username as ES user directly
+		esUser := sess.Username
+		esAuthHeader, err := e.mapper.GetESAuthorizationHeader(ctx, esUser)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to get ES authorization header",
+				slog.String("es_user", esUser),
+				slog.String("error", err.Error()),
+			)
+			return &EngineResult{
+				Authenticated: false,
+				StatusCode:    http.StatusInternalServerError,
+				Error:         fmt.Errorf("failed to get ES credentials"),
+			}
+		}
+
+		slog.InfoContext(ctx, "Session authentication successful (legacy mode)",
+			slog.String("username", sess.Username),
+			slog.String("method", "session"),
+			slog.String("source_ip", req.SourceIP),
+			slog.String("result", "success"),
 			slog.String("es_user", esUser),
-			slog.String("error", err.Error()),
 		)
+
 		return &EngineResult{
-			Authenticated: false,
-			StatusCode:    http.StatusInternalServerError,
-			Error:         fmt.Errorf("failed to get ES credentials"),
+			Authenticated: true,
+			Username:      sess.Username,
+			ESUser:        esUser,
+			ESAuthHeader:  esAuthHeader,
+			StatusCode:    http.StatusOK,
 		}
 	}
 
-	slog.InfoContext(ctx, "Session authentication successful",
+	// User management is disabled and no static credentials configured
+	slog.ErrorContext(ctx, "User management is disabled and no ES credentials configured",
 		slog.String("username", sess.Username),
-		slog.String("method", "session"),
-		slog.String("source_ip", req.SourceIP),
-		slog.String("result", "success"),
-		slog.String("es_user", esUser),
 	)
-
 	return &EngineResult{
-		Authenticated: true,
-		Username:      sess.Username,
-		ESUser:        esUser,
-		ESAuthHeader:  esAuthHeader,
-		StatusCode:    http.StatusOK,
+		Authenticated: false,
+		StatusCode:    http.StatusInternalServerError,
+		Error:         fmt.Errorf("user management is disabled and no ES credentials configured"),
 	}
 }
 
@@ -329,48 +335,55 @@ func (e *Engine) authenticateWithBasicAuth(ctx context.Context, req *EngineReque
 		}
 	}
 
-	// Fallback to static credential mapping (legacy behavior)
-	esUser, err := e.mapper.MapLocalUser(ctx, authResult.Username)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to map user to ES user",
+	// Fallback to static credential mapping (legacy behavior - only when user management is disabled)
+	// NOTE: This path should rarely be used. User management should be enabled for proper functionality.
+	if !e.userMgmtEnabled {
+		slog.WarnContext(ctx, "User management is disabled, using static credential mapping (legacy mode)",
 			slog.String("username", authResult.Username),
-			slog.String("error", err.Error()),
 		)
-		return &EngineResult{
-			Authenticated: false,
-			StatusCode:    http.StatusInternalServerError,
-			Error:         fmt.Errorf("failed to map user"),
-		}
-	}
 
-	// Get ES authorization header
-	esAuthHeader, err := e.mapper.GetESAuthorizationHeader(ctx, esUser)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get ES authorization header",
+		// In legacy mode, use username as ES user directly
+		esUser := authResult.Username
+
+		// Get ES authorization header
+		esAuthHeader, err := e.mapper.GetESAuthorizationHeader(ctx, esUser)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to get ES authorization header",
+				slog.String("es_user", esUser),
+				slog.String("error", err.Error()),
+			)
+			return &EngineResult{
+				Authenticated: false,
+				StatusCode:    http.StatusInternalServerError,
+				Error:         fmt.Errorf("failed to get ES credentials"),
+			}
+		}
+
+		slog.InfoContext(ctx, "Basic Auth authentication successful (legacy mode)",
+			slog.String("username", authResult.Username),
+			slog.String("method", "basic"),
+			slog.String("source_ip", req.SourceIP),
+			slog.String("result", "success"),
 			slog.String("es_user", esUser),
-			slog.String("error", err.Error()),
 		)
+
 		return &EngineResult{
-			Authenticated: false,
-			StatusCode:    http.StatusInternalServerError,
-			Error:         fmt.Errorf("failed to get ES credentials"),
+			Authenticated: true,
+			Username:      authResult.Username,
+			ESUser:        esUser,
+			ESAuthHeader:  esAuthHeader,
+			StatusCode:    http.StatusOK,
 		}
 	}
 
-	slog.InfoContext(ctx, "Basic Auth authentication successful",
+	// User management is disabled and no static credentials configured
+	slog.ErrorContext(ctx, "User management is disabled and no ES credentials configured",
 		slog.String("username", authResult.Username),
-		slog.String("method", "basic"),
-		slog.String("source_ip", req.SourceIP),
-		slog.String("result", "success"),
-		slog.String("es_user", esUser),
 	)
-
 	return &EngineResult{
-		Authenticated: true,
-		Username:      authResult.Username,
-		ESUser:        esUser,
-		ESAuthHeader:  esAuthHeader,
-		StatusCode:    http.StatusOK,
+		Authenticated: false,
+		StatusCode:    http.StatusInternalServerError,
+		Error:         fmt.Errorf("user management is disabled and no ES credentials configured"),
 	}
 }
 

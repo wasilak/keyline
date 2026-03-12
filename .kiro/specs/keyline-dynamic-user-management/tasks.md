@@ -196,18 +196,18 @@
   - [x] 10.4 Update `AuthResult` to include groups
   - [x] 10.5 Add tests for group extraction
 
-- [~] 11. Update Basic Auth provider
-  - [ ] 11.1 Update `internal/auth/basic.go`
-  - [ ] 11.2 Update `Authenticate` method to return groups from local user config
-  - [ ] 11.3 Update `AuthResult` to include email, full_name, groups
-  - [ ] 11.4 Add tests for group extraction from local users
+- [x] 11. Update Basic Auth provider
+  - [x] 11.1 Update `internal/auth/basic.go`
+  - [x] 11.2 Update `Authenticate` method to return groups from local user config
+  - [x] 11.3 Update `AuthResult` to include email, full_name, groups
+  - [x] 11.4 Add tests for group extraction from local users
 
-- [ ] 12. Update credential mapper
-  - [ ] 12.1 Update `internal/mapper/credentials.go`
-  - [ ] 12.2 Remove `MapOIDCUser` method (replaced by role mapper)
-  - [ ] 12.3 Remove `MapLocalUser` method (replaced by role mapper)
-  - [ ] 12.4 Keep `GetESCredentials` for backward compatibility (if needed)
-  - [ ] 12.5 Update tests to reflect changes
+- [x] 12. Update credential mapper
+  - [x] 12.1 Update `internal/mapper/credentials.go`
+  - [x] 12.2 Remove `MapOIDCUser` method (replaced by role mapper)
+  - [x] 12.3 Remove `MapLocalUser` method (replaced by role mapper)
+  - [x] 12.4 Keep `GetESCredentials` for backward compatibility (if needed)
+  - [x] 12.5 Update tests to reflect changes
 
 ### Phase 6: Transport Integration (2-3 days)
 
