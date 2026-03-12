@@ -93,16 +93,70 @@ func Validate(cfg *Config) error {
 		}
 	}
 
-	// Validate Elasticsearch users
-	if len(cfg.Elasticsearch.Users) == 0 {
-		errors = append(errors, "at least one Elasticsearch user must be configured")
-	}
-	for i, user := range cfg.Elasticsearch.Users {
-		if user.Username == "" {
-			errors = append(errors, fmt.Sprintf("elasticsearch.users[%d].username is required", i))
+	// Validate user management configuration
+	if cfg.UserManagement.Enabled {
+		// Validate admin credentials are provided
+		if cfg.Elasticsearch.AdminUser == "" {
+			errors = append(errors, "elasticsearch.admin_user is required when user_management.enabled is true")
 		}
-		if user.Password == "" {
-			errors = append(errors, fmt.Sprintf("elasticsearch.users[%d].password is required", i))
+		if cfg.Elasticsearch.AdminPassword == "" {
+			errors = append(errors, "elasticsearch.admin_password is required when user_management.enabled is true")
+		}
+		if cfg.Elasticsearch.URL == "" {
+			errors = append(errors, "elasticsearch.url is required when user_management.enabled is true")
+		}
+
+		// Validate encryption key
+		if cfg.Cache.EncryptionKey == "" {
+			errors = append(errors, "cache.encryption_key is required when user_management.enabled is true")
+		} else {
+			// Validate encryption key is 32 bytes when decoded
+			decoded, err := base64.StdEncoding.DecodeString(cfg.Cache.EncryptionKey)
+			if err != nil {
+				// Try as raw string
+				if len(cfg.Cache.EncryptionKey) != 32 {
+					errors = append(errors, "cache.encryption_key must be exactly 32 bytes for AES-256")
+				}
+			} else if len(decoded) != 32 {
+				errors = append(errors, "cache.encryption_key must be exactly 32 bytes when decoded for AES-256")
+			}
+		}
+
+		// Validate role mappings
+		for i, mapping := range cfg.RoleMappings {
+			if mapping.Claim == "" {
+				errors = append(errors, fmt.Sprintf("role_mappings[%d].claim is required", i))
+			}
+			if mapping.Pattern == "" {
+				errors = append(errors, fmt.Sprintf("role_mappings[%d].pattern is required", i))
+			}
+			if len(mapping.ESRoles) == 0 {
+				errors = append(errors, fmt.Sprintf("role_mappings[%d].es_roles must contain at least one role", i))
+			}
+			// Validate each role is not empty
+			for j, role := range mapping.ESRoles {
+				if role == "" {
+					errors = append(errors, fmt.Sprintf("role_mappings[%d].es_roles[%d] cannot be empty", i, j))
+				}
+			}
+		}
+
+		// Validate password length
+		if cfg.UserManagement.PasswordLength > 0 && cfg.UserManagement.PasswordLength < 16 {
+			errors = append(errors, "user_management.password_length must be at least 16 characters")
+		}
+	} else {
+		// If user management is disabled, validate static Elasticsearch users
+		if len(cfg.Elasticsearch.Users) == 0 {
+			errors = append(errors, "at least one Elasticsearch user must be configured when user_management.enabled is false")
+		}
+		for i, user := range cfg.Elasticsearch.Users {
+			if user.Username == "" {
+				errors = append(errors, fmt.Sprintf("elasticsearch.users[%d].username is required", i))
+			}
+			if user.Password == "" {
+				errors = append(errors, fmt.Sprintf("elasticsearch.users[%d].password is required", i))
+			}
 		}
 	}
 

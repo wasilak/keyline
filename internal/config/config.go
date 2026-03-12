@@ -14,6 +14,7 @@ type Config struct {
 	Elasticsearch  ElasticsearchConfig `mapstructure:"elasticsearch"`
 	Upstream       UpstreamConfig      `mapstructure:"upstream"`
 	Observability  ObservabilityConfig `mapstructure:"observability"`
+	RoleMappings   []RoleMapping       `mapstructure:"role_mappings"`
 	DefaultESRoles []string            `mapstructure:"default_es_roles"`
 	UserManagement UserMgmtConfig      `mapstructure:"user_management"`
 }
