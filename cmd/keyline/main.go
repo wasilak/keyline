@@ -15,7 +15,9 @@ import (
 	"github.com/yourusername/keyline/internal/auth"
 	"github.com/yourusername/keyline/internal/cache"
 	"github.com/yourusername/keyline/internal/config"
+	"github.com/yourusername/keyline/internal/elasticsearch"
 	"github.com/yourusername/keyline/internal/server"
+	"github.com/yourusername/keyline/internal/usermgmt"
 )
 
 const version = "0.1.0"
@@ -135,10 +137,126 @@ func main() {
 	}
 
 	// Initialize cache backend
-	cache, err := cache.InitCache(ctx, &cfg.Cache)
+	cacheBackend, err := cache.InitCache(ctx, &cfg.Cache)
 	if err != nil {
 		logger.Error("Failed to initialize cache", slog.String("error", err.Error()))
 		os.Exit(1)
+	}
+
+	// Initialize user manager if enabled
+	var userManager usermgmt.Manager
+	if cfg.UserManagement.Enabled {
+		logger.Info("User management enabled, initializing components")
+
+		// 14.2.1: Initialize ES API client with admin credentials
+		esClient, err := elasticsearch.NewClient(elasticsearch.Config{
+			URL:                cfg.Elasticsearch.URL,
+			AdminUser:          cfg.Elasticsearch.AdminUser,
+			AdminPassword:      cfg.Elasticsearch.AdminPassword,
+			Timeout:            cfg.Elasticsearch.Timeout,
+			InsecureSkipVerify: cfg.Elasticsearch.InsecureSkipVerify,
+		})
+		if err != nil {
+			logger.Error("Failed to initialize Elasticsearch client", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+
+		// 14.2.2: Validate ES connection on startup
+		if err := esClient.ValidateConnection(ctx); err != nil {
+			// 14.2.3: Handle validation errors gracefully
+			logger.Error("Failed to validate Elasticsearch connection",
+				slog.String("error", err.Error()),
+				slog.String("url", cfg.Elasticsearch.URL),
+				slog.String("admin_user", cfg.Elasticsearch.AdminUser),
+			)
+			logger.Error("Please verify:")
+			logger.Error("  1. Elasticsearch is running and accessible")
+			logger.Error("  2. Admin credentials are correct")
+			logger.Error("  3. Admin user has 'manage_security' privilege")
+			os.Exit(1)
+		}
+		logger.Info("Elasticsearch connection validated",
+			slog.String("url", cfg.Elasticsearch.URL),
+			slog.String("admin_user", cfg.Elasticsearch.AdminUser),
+		)
+
+		// 14.3: Initialize password generator
+		passwordLength := cfg.UserManagement.PasswordLength
+		if passwordLength == 0 {
+			passwordLength = 32 // Default
+		}
+		pwdGen := usermgmt.NewPasswordGenerator(passwordLength)
+		logger.Info("Password generator initialized",
+			slog.Int("password_length", passwordLength),
+		)
+
+		// 14.4: Initialize credential encryptor
+		// 14.4.1: Load encryption key from config
+		encryptionKey := cfg.Cache.EncryptionKey
+		if encryptionKey == "" {
+			logger.Error("Encryption key is required when user management is enabled")
+			logger.Error("Please set cache.encryption_key in configuration (must be 32 bytes)")
+			os.Exit(1)
+		}
+
+		// 14.4.2: Validate key is 32 bytes
+		keyBytes := []byte(encryptionKey)
+		if len(keyBytes) != 32 {
+			logger.Error("Encryption key must be exactly 32 bytes for AES-256",
+				slog.Int("actual_length", len(keyBytes)),
+				slog.Int("required_length", 32),
+			)
+			logger.Error("Please provide a 32-byte encryption key in configuration")
+			os.Exit(1)
+		}
+
+		// 14.4.3: Create encryptor instance
+		encryptor, err := usermgmt.NewEncryptor(keyBytes)
+		if err != nil {
+			logger.Error("Failed to create credential encryptor", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+		logger.Info("Credential encryptor initialized")
+
+		// 14.5: Initialize role mapper
+		roleMapper := usermgmt.NewRoleMapper(cfg)
+		logger.Info("Role mapper initialized",
+			slog.Int("role_mappings_count", len(cfg.RoleMappings)),
+			slog.Int("default_roles_count", len(cfg.DefaultESRoles)),
+		)
+
+		// 14.6: Initialize user manager with encryptor
+		userManager, err = usermgmt.NewManager(
+			esClient,
+			roleMapper,
+			cacheBackend,
+			pwdGen,
+			encryptor,
+			cfg,
+		)
+		if err != nil {
+			logger.Error("Failed to initialize user manager", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+
+		credentialTTL := cfg.Cache.CredentialTTL
+		if credentialTTL == 0 {
+			credentialTTL = 1 * time.Hour // Default
+		}
+		logger.Info("User manager initialized",
+			slog.Duration("credential_ttl", credentialTTL),
+		)
+
+		// 14.9: Add startup logging for user management status
+		logger.Info("Dynamic user management ready",
+			slog.String("cache_backend", cfg.Cache.Backend),
+			slog.Duration("credential_ttl", credentialTTL),
+			slog.Int("password_length", passwordLength),
+			slog.Int("role_mappings", len(cfg.RoleMappings)),
+			slog.Int("default_roles", len(cfg.DefaultESRoles)),
+		)
+	} else {
+		logger.Info("User management disabled")
 	}
 
 	// Initialize OIDC provider if enabled
@@ -155,9 +273,8 @@ func main() {
 		)
 	}
 
-	// Create and start server
-	// TODO: Initialize user manager in task 14
-	srv, err := server.New(cfg, version, cache, oidcProvider, nil)
+	// 14.7: Create and start server with user manager
+	srv, err := server.New(cfg, version, cacheBackend, oidcProvider, userManager)
 	if err != nil {
 		logger.Error("Failed to create server", slog.String("error", err.Error()))
 		os.Exit(1)

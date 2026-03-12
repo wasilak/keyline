@@ -1,42 +1,54 @@
 package transport
 
 import (
+"context"
 "encoding/base64"
 "net/http"
 "net/http/httptest"
 "testing"
+"time"
 
 "github.com/labstack/echo/v4"
 "github.com/stretchr/testify/assert"
 "github.com/stretchr/testify/require"
-"github.com/wasilak/cachego"
 "github.com/yourusername/keyline/internal/auth"
+"github.com/yourusername/keyline/internal/cache"
+"github.com/wasilak/cachego"
 "github.com/yourusername/keyline/internal/config"
 "github.com/yourusername/keyline/internal/session"
-"golang.org/x/crypto/bcrypt"
 )
 
-func setupTestAuthEngine(t *testing.T, cfg *config.Config, cache cachego.CacheInterface) *auth.Engine {
-	engine, err := auth.NewEngine(cfg, cache, nil, nil)
+func setupTestCache(t *testing.T) cachego.CacheInterface {
+	cfg := &config.CacheConfig{
+		Backend: "memory",
+	}
+	c, err := cache.InitCache(context.Background(), cfg)
+	require.NoError(t, err)
+	return c
+}
+
+func setupTestAuthEngine(t *testing.T, cfg *config.Config, c cachego.CacheInterface) *auth.Engine {
+	engine, err := auth.NewEngine(cfg, c, nil, nil)
 	require.NoError(t, err)
 	return engine
 }
 
-func createTestSession(t *testing.T, cache cachego.CacheInterface, sessionID string, username string, groups []string) {
-	sess := &session.Session{
-		ID:       sessionID,
-		Username: username,
-		Groups:   groups,
-		Email:    username + "@example.com",
-		FullName: "Test User",
-		Source:   "test",
-	}
-	err := session.SaveSession(cache, sess)
-	require.NoError(t, err)
+func createTestSession(t *testing.T, c cachego.CacheInterface, sessionID string, username string, groups []string) {
+sess := &session.Session{
+ID:        sessionID,
+Username:  username,
+Groups:    groups,
+Email:     username + "@example.com",
+FullName:  "Test User",
+Source:    "test",
+ExpiresAt: time.Now().Add(1 * time.Hour),
+}
+err := session.CreateSession(context.Background(), c, sess)
+require.NoError(t, err)
 }
 
 func TestForwardAuthAdapter_SuccessfulAuthentication(t *testing.T) {
-	cache := cachego.NewMapCache()
+	c := setupTestCache(t)
 	cfg := &config.Config{
 		Session: config.SessionConfig{
 			CookieName: "keyline_session",
@@ -48,16 +60,21 @@ func TestForwardAuthAdapter_SuccessfulAuthentication(t *testing.T) {
 		OIDC: config.OIDCConfig{
 			Enabled: false,
 		},
-		UserManagement: config.UserManagementConfig{
-			Enabled: false,
-		},
+UserManagement: config.UserMgmtConfig{
+Enabled: false,
+},
+Elasticsearch: config.ElasticsearchConfig{
+Users: []config.ESUser{
+{Username: "testuser", Password: "testpass"},
+},
+},
 	}
 
 	sessionID := "test-session-123"
-	createTestSession(t, cache, sessionID, "testuser", []string{"admin"})
+	createTestSession(t, c, sessionID, "testuser", []string{"admin"})
 
-	authEngine := setupTestAuthEngine(t, cfg, cache)
-	adapter, err := NewForwardAuthAdapter(cfg, cache, authEngine)
+	authEngine := setupTestAuthEngine(t, cfg, c)
+	adapter, err := NewForwardAuthAdapter(cfg, c, authEngine)
 	require.NoError(t, err)
 
 	e := echo.New()
@@ -71,9 +88,9 @@ func TestForwardAuthAdapter_SuccessfulAuthentication(t *testing.T) {
 		Value: sessionID,
 	})
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
+	echoCtx := e.NewContext(req, rec)
 
-	err = adapter.HandleRequest(c)
+	err = adapter.HandleRequest(echoCtx)
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, rec.Code)
@@ -81,7 +98,7 @@ func TestForwardAuthAdapter_SuccessfulAuthentication(t *testing.T) {
 }
 
 func TestForwardAuthAdapter_AuthenticationFailure(t *testing.T) {
-	cache := cachego.NewMapCache()
+	c := setupTestCache(t)
 	cfg := &config.Config{
 		Session: config.SessionConfig{
 			CookieName: "keyline_session",
@@ -95,8 +112,8 @@ func TestForwardAuthAdapter_AuthenticationFailure(t *testing.T) {
 		},
 	}
 
-	authEngine := setupTestAuthEngine(t, cfg, cache)
-	adapter, err := NewForwardAuthAdapter(cfg, cache, authEngine)
+	authEngine := setupTestAuthEngine(t, cfg, c)
+	adapter, err := NewForwardAuthAdapter(cfg, c, authEngine)
 	require.NoError(t, err)
 
 	e := echo.New()
@@ -105,9 +122,9 @@ func TestForwardAuthAdapter_AuthenticationFailure(t *testing.T) {
 	req.Header.Set("X-Forwarded-Uri", "/test")
 	req.Header.Set("X-Forwarded-Host", "example.com")
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
+	ctx := e.NewContext(req, rec)
 
-	err = adapter.HandleRequest(c)
+	err = adapter.HandleRequest(ctx)
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
@@ -125,7 +142,7 @@ func TestStandaloneProxyAdapter_Director(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	req.Header.Set("Authorization", "Basic user:pass")
-	
+
 	esUser := "esuser"
 	esPassword := "espass"
 	esAuthHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(esUser+":"+esPassword))
@@ -162,9 +179,9 @@ func TestStandaloneProxyAdapter_InternalEndpoint(t *testing.T) {
 e := echo.New()
 			req := httptest.NewRequest(http.MethodGet, path, nil)
 			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
+			ctx := e.NewContext(req, rec)
 
-			err := adapter.HandleRequest(c)
+			err := adapter.HandleRequest(ctx)
 
 			assert.NoError(t, err)
 			assert.Equal(t, http.StatusNotFound, rec.Code)

@@ -224,22 +224,22 @@
 
 ### Phase 7: Main Application Integration (1-2 days)
 
-- [ ] 14. Update main application
-  - [ ] 14.1 Update `cmd/keyline/main.go`
-  - [ ] 14.2 Initialize ES API client
-    - [ ] 14.2.1 Create client with admin credentials
-    - [ ] 14.2.2 Validate connection on startup
-    - [ ] 14.2.3 Handle validation errors gracefully
-  - [ ] 14.3 Initialize password generator
-  - [ ] 14.4 Initialize credential encryptor
-    - [ ] 14.4.1 Load encryption key from config
-    - [ ] 14.4.2 Validate key is 32 bytes
-    - [ ] 14.4.3 Create encryptor instance
-  - [ ] 14.5 Initialize role mapper
-  - [ ] 14.6 Initialize user manager with encryptor
-  - [ ] 14.7 Pass user manager to auth engine
-  - [ ] 14.8 Add feature flag check (`user_management.enabled`)
-  - [ ] 14.9 Add startup logging for user management status
+- [x] 14. Update main application
+  - [x] 14.1 Update `cmd/keyline/main.go`
+  - [x] 14.2 Initialize ES API client
+    - [x] 14.2.1 Create client with admin credentials
+    - [x] 14.2.2 Validate connection on startup
+    - [x] 14.2.3 Handle validation errors gracefully
+  - [x] 14.3 Initialize password generator
+  - [x] 14.4 Initialize credential encryptor
+    - [x] 14.4.1 Load encryption key from config
+    - [x] 14.4.2 Validate key is 32 bytes
+    - [x] 14.4.3 Create encryptor instance
+  - [x] 14.5 Initialize role mapper
+  - [x] 14.6 Initialize user manager with encryptor
+  - [x] 14.7 Pass user manager to auth engine
+  - [x] 14.8 Add feature flag check (`user_management.enabled`)
+  - [x] 14.9 Add startup logging for user management status
 
 ### Phase 8: Testing and Validation (3-4 days)
 
