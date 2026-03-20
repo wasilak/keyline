@@ -371,15 +371,15 @@
     - [ ] 21.8.5 Verify encryption key is not logged or exposed
     - [ ] 21.8.6 Test encryption key rotation (invalidates cache)
 
-- [ ] 22. Deployment preparation
-  - [ ] 22.1 Update deployment documentation
-  - [ ] 22.2 Create migration checklist
-  - [ ] 22.3 Prepare rollback plan
-  - [ ] 22.4 Update CI/CD pipeline
-    - [ ] 22.4.1 Add integration tests to CI
-    - [ ] 22.4.2 Add property-based tests to CI
-  - [ ] 22.5 Create release notes
-  - [ ] 22.6 Tag release version
+- [x] 22. Deployment preparation
+  - [x] 22.1 Update deployment documentation
+  - [x] 22.2 Create migration checklist
+  - [x] 22.3 Prepare rollback plan
+  - [x] 22.4 Update CI/CD pipeline
+    - [x] 22.4.1 Add integration tests to CI
+    - [x] 22.4.2 Add property-based tests to CI
+  - [x] 22.5 Create release notes
+  - [x] 22.6 Tag release version
 
 ## Task Dependencies
 
