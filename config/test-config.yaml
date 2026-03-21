@@ -5,26 +5,27 @@ server:
   write_timeout: 30s
   max_concurrent: 1000
 
+# Local users for testing Basic Auth
 local_users:
   enabled: true
   users:
     - username: testuser
-      password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy  # password: "password"
+      password_bcrypt: $2y$05$nK4h5MH0MAIzd.R1wZFrUOrYoPiCdXRc3LACW0vByWWGS6LbQHlce  # password: "password"
       groups:
         - developers
         - users
       email: testuser@example.com
       full_name: Test User
-    
+
     - username: admin
-      password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy  # password: "password"
+      password_bcrypt: $2y$05$nK4h5MH0MAIzd.R1wZFrUOrYoPiCdXRc3LACW0vByWWGS6LbQHlce  # password: "password"
       groups:
         - admin
       email: admin@example.com
       full_name: Admin User
-    
+
     - username: viewer
-      password_bcrypt: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy  # password: "password"
+      password_bcrypt: $2y$05$nK4h5MH0MAIzd.R1wZFrUOrYoPiCdXRc3LACW0vByWWGS6LbQHlce  # password: "password"
       email: viewer@example.com
       full_name: Viewer User
 
@@ -40,11 +41,8 @@ session:
 
 cache:
   backend: memory
-  # Credential cache TTL for user management
   credential_ttl: 1h
-  # Encryption key for cached credentials (32 bytes for AES-256)
-  # In tests, we use a fixed key for reproducibility
-  encryption_key: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcw==  # base64: "test-encryption-key-32-bytes"
+  encryption_key: 12345678901234567890123456789012  # exactly 32 characters for AES-256
 
 # Role mappings for dynamic user management
 role_mappings:
@@ -52,13 +50,13 @@ role_mappings:
     pattern: "admin"
     es_roles:
       - superuser
-  
+
   - claim: groups
     pattern: "developers"
     es_roles:
       - developer
       - kibana_user
-  
+
   - claim: groups
     pattern: "users"
     es_roles:
@@ -72,20 +70,13 @@ default_es_roles:
 elasticsearch:
   # Admin credentials for user management API
   admin_user: elastic
-  admin_password: test_password
-  url: http://localhost:9200
+  admin_password: changeme
+  url: https://localhost:9200
   timeout: 30s
-  insecure_skip_verify: false
-  
-  # Static users (legacy mode, only used when user_management.enabled is false)
-  users:
-    - username: test_es_user
-      password: test_password
+  insecure_skip_verify: true
 
 # Dynamic user management configuration
 user_management:
-  # Enable for testing dynamic user management
-  enabled: false  # Set to true to test user management features
   password_length: 32
   credential_ttl: 1h
 

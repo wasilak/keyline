@@ -15,7 +15,6 @@ import (
 	"github.com/wasilak/cachego"
 	"github.com/yourusername/keyline/internal/cache"
 	"github.com/yourusername/keyline/internal/config"
-	"github.com/yourusername/keyline/internal/mapper"
 	"github.com/yourusername/keyline/internal/session"
 	"github.com/yourusername/keyline/internal/state"
 	pkgcrypto "github.com/yourusername/keyline/pkg/crypto"
@@ -29,7 +28,6 @@ type OIDCProvider struct {
 	sessionConfig *config.SessionConfig
 	cache         *cache.OIDCCache
 	httpClient    *http.Client
-	mapper        *mapper.CredentialMapper
 }
 
 // NewOIDCProvider creates a new OIDC provider
@@ -52,7 +50,6 @@ func NewOIDCProvider(cfg *config.OIDCConfig, fullConfig *config.Config) (*OIDCPr
 		sessionConfig: &fullConfig.Session,
 		cache:         cache.NewOIDCCache(),
 		httpClient:    httpClient,
-		mapper:        mapper.NewCredentialMapper(fullConfig),
 	}
 
 	// Perform discovery during initialization

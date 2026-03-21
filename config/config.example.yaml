@@ -34,7 +34,7 @@ server:
 # ============================================================================
 oidc:
   # Enable OIDC authentication
-  enabled: true
+
   
   # OIDC provider issuer URL (e.g., https://accounts.google.com)
   # Must be HTTPS for security
@@ -87,12 +87,10 @@ oidc:
 local_users:
   # Enable local user authentication
   # Useful for service accounts, CI/CD, monitoring
-  enabled: true
+
   
   # Local user definitions
   # Generate bcrypt hashes with: htpasswd -bnBC 10 "" password | tr -d ':\n'
-  users:
-    - username: testuser
       password_bcrypt: ${TESTUSER_PASSWORD_BCRYPT}
       groups:
         - developers
@@ -262,15 +260,6 @@ elasticsearch:
   # ES user credentials for static credential mapping (legacy mode)
   # Only used when user_management.enabled is false
   # When user_management is enabled, users are created dynamically
-  users:
-    - username: admin
-      password: ${ES_ADMIN_PASSWORD}
-    - username: readonly
-      password: ${ES_READONLY_PASSWORD}
-    - username: ci_user
-      password: ${ES_CI_PASSWORD}
-    - username: monitoring_user
-      password: ${ES_MONITORING_PASSWORD}
 
 # ============================================================================
 # Dynamic User Management Configuration
@@ -280,7 +269,7 @@ user_management:
   # When enabled, Keyline automatically creates/updates ES users for ALL authenticated users
   # Provides accountability, auditing, and proper role-based access control
   # When disabled, uses static credential mapping (elasticsearch.users)
-  enabled: true
+
   
   # Generated password length (minimum: 32 characters)
   # Passwords are cryptographically random and never logged

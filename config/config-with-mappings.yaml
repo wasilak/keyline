@@ -6,14 +6,11 @@ server:
 
 # Enable both OIDC and local users for testing
 local_users:
-  enabled: true
-  users:
-    - username: testuser
       password_bcrypt: $2a$10$.5DtVFvSJulN385UxctyseY7skwExS1tRZbCeV2p43g8vkDVsAAEu  # password: "password"
       es_user: elastic
 
 oidc:
-  enabled: true
+
   issuer_url: http://localhost:8091/default
   client_id: keyline-test
   client_secret: test-secret
@@ -96,15 +93,6 @@ cache:
   backend: memory
 
 elasticsearch:
-  users:
-    - username: elastic
-      password: ${ES_PASSWORD}
-    - username: readonly_user
-      password: ${ES_PASSWORD}
-    - username: dev_user
-      password: ${ES_PASSWORD}
-    - username: john_es_user
-      password: ${ES_PASSWORD}
 
 # Upstream config is not used in forward_auth mode
 upstream:

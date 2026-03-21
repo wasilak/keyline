@@ -90,26 +90,19 @@ type CacheConfig struct {
 }
 
 // UserMgmtConfig contains dynamic user management settings
+// User management is always enabled - this is the only mode of operation
 type UserMgmtConfig struct {
-	Enabled        bool          `mapstructure:"enabled"`         // Feature flag to enable/disable user management
 	PasswordLength int           `mapstructure:"password_length"` // Length of generated passwords (default: 32)
 	CredentialTTL  time.Duration `mapstructure:"credential_ttl"`  // How long credentials are cached (default: 1h)
 }
 
 // ElasticsearchConfig contains ES credential settings and admin API configuration
 type ElasticsearchConfig struct {
-	Users              []ESUser      `mapstructure:"users"`
 	AdminUser          string        `mapstructure:"admin_user"`           // Admin username for Security API calls
 	AdminPassword      string        `mapstructure:"admin_password"`       // Admin password for Security API calls
 	URL                string        `mapstructure:"url"`                  // Elasticsearch cluster URL
 	Timeout            time.Duration `mapstructure:"timeout"`              // Timeout for API calls
 	InsecureSkipVerify bool          `mapstructure:"insecure_skip_verify"` // Skip TLS certificate verification
-}
-
-// ESUser represents an Elasticsearch user
-type ESUser struct {
-	Username string `mapstructure:"username"`
-	Password string `mapstructure:"password"`
 }
 
 // UpstreamConfig contains upstream proxy settings

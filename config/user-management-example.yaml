@@ -26,7 +26,7 @@ server:
 # OIDC Authentication Configuration
 # ============================================================================
 oidc:
-  enabled: true
+
   issuer_url: ${OIDC_ISSUER_URL}
   client_id: ${OIDC_CLIENT_ID}
   client_secret: ${OIDC_CLIENT_SECRET}
@@ -45,8 +45,6 @@ oidc:
 # Local Users Configuration (Basic Auth)
 # ============================================================================
 local_users:
-  enabled: true
-  users:
     # User with multiple groups
     - username: developer
       password_bcrypt: ${DEVELOPER_PASSWORD_BCRYPT}
@@ -129,7 +127,7 @@ user_management:
   # - User groups are mapped to ES roles via role_mappings
   # - Passwords are generated, cached, and rotated automatically
   # - ES audit logs show actual usernames (not shared accounts)
-  enabled: true
+
   
   # Generated password length (minimum: 32 characters)
   # Passwords are:

@@ -6,9 +6,6 @@ server:
 
 # Enable both OIDC and local users for testing
 local_users:
-  enabled: true
-  users:
-    - username: testuser
       password_bcrypt: $2a$10$.5DtVFvSJulN385UxctyseY7skwExS1tRZbCeV2p43g8vkDVsAAEu  # password: "password"
       groups:
         - developers
@@ -24,7 +21,7 @@ local_users:
       full_name: Admin User
 
 oidc:
-  enabled: true
+
   issuer_url: http://localhost:8091/default
   client_id: keyline-test
   client_secret: test-secret
@@ -92,14 +89,11 @@ elasticsearch:
   insecure_skip_verify: true
   
   # Static users (legacy mode, only used when user_management.enabled is false)
-  users:
-    - username: elastic
-      password: ${ES_PASSWORD}
 
 # Dynamic user management configuration
 user_management:
   # Enable for testing dynamic user management
-  enabled: false  # Set to true to test user management features
+
   password_length: 32
   credential_ttl: 1h
 

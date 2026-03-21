@@ -9,37 +9,32 @@ import (
 
 	"github.com/wasilak/cachego"
 	"github.com/yourusername/keyline/internal/config"
-	"github.com/yourusername/keyline/internal/mapper"
 	"github.com/yourusername/keyline/internal/session"
 	"github.com/yourusername/keyline/internal/usermgmt"
 )
 
-// Engine handles authentication with precedence logic
+// Engine handles authentication with dynamic user management
 type Engine struct {
-	config          *config.Config
-	cache           cachego.CacheInterface
-	oidcProvider    *OIDCProvider
-	basicProvider   *BasicAuthProvider
-	mapper          *mapper.CredentialMapper
-	userManager     usermgmt.Manager
-	sessionEnabled  bool
-	oidcEnabled     bool
-	basicEnabled    bool
-	userMgmtEnabled bool
+	config       *config.Config
+	cache        cachego.CacheInterface
+	oidcProvider *OIDCProvider
+	basicProvider *BasicAuthProvider
+	userManager  usermgmt.Manager
+	sessionEnabled bool
+	oidcEnabled    bool
+	basicEnabled   bool
 }
 
-// NewEngine creates a new authentication engine
+// NewEngine creates a new authentication engine with dynamic user management
 func NewEngine(cfg *config.Config, cache cachego.CacheInterface, oidcProvider *OIDCProvider, userManager usermgmt.Manager) (*Engine, error) {
 	engine := &Engine{
-		config:          cfg,
-		cache:           cache,
-		oidcProvider:    oidcProvider,
-		mapper:          mapper.NewCredentialMapper(cfg),
-		userManager:     userManager, // Can be nil if user management is not enabled
-		sessionEnabled:  true,        // Sessions are always enabled
-		oidcEnabled:     cfg.OIDC.Enabled,
-		basicEnabled:    cfg.LocalUsers.Enabled,
-		userMgmtEnabled: cfg.UserManagement.Enabled && userManager != nil,
+		config:       cfg,
+		cache:        cache,
+		oidcProvider: oidcProvider,
+		userManager:  userManager,
+		sessionEnabled: true,
+		oidcEnabled:    cfg.OIDC.Enabled,
+		basicEnabled:   cfg.LocalUsers.Enabled,
 	}
 
 	// Initialize Basic Auth provider if enabled
@@ -159,98 +154,46 @@ func (e *Engine) authenticateWithSession(ctx context.Context, req *EngineRequest
 		return nil
 	}
 
-	// If user management is enabled, upsert user and get dynamic credentials
-	if e.userMgmtEnabled && e.userManager != nil {
-		// Extract user metadata from session
-		authUser := &usermgmt.AuthenticatedUser{
-			Username: sess.Username,
-			Groups:   sess.Groups,
-			Email:    sess.Email,
-			FullName: sess.FullName,
-			Source:   sess.Source,
-		}
+	// Upsert user with dynamic credentials
+	authUser := &usermgmt.AuthenticatedUser{
+		Username: sess.Username,
+		Groups:   sess.Groups,
+		Email:    sess.Email,
+		FullName: sess.FullName,
+		Source:   sess.Source,
+	}
 
-		creds, err := e.userManager.UpsertUser(ctx, authUser)
-		if err != nil {
-			slog.ErrorContext(ctx, "User management failed for session",
-				slog.String("username", sess.Username),
-				slog.String("error", err.Error()),
-			)
-			return &EngineResult{
-				Authenticated: false,
-				StatusCode:    http.StatusInternalServerError,
-				Error:         fmt.Errorf("user management failed: %w", err),
-			}
-		}
-
-		// Create ES Authorization header with dynamic credentials
-		esAuthHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(creds.Username+":"+creds.Password))
-
-		slog.InfoContext(ctx, "Session authentication successful with dynamic user management",
+	creds, err := e.userManager.UpsertUser(ctx, authUser)
+	if err != nil {
+		slog.ErrorContext(ctx, "User management failed for session",
 			slog.String("username", sess.Username),
-			slog.String("method", "session"),
-			slog.String("source_ip", req.SourceIP),
-			slog.String("result", "success"),
-			slog.String("es_user", creds.Username),
+			slog.String("error", err.Error()),
 		)
-
 		return &EngineResult{
-			Authenticated: true,
-			Username:      sess.Username,
-			ESUser:        creds.Username,
-			ESPassword:    creds.Password,
-			ESAuthHeader:  esAuthHeader,
-			StatusCode:    http.StatusOK,
+			Authenticated: false,
+			StatusCode:    http.StatusInternalServerError,
+			Error:         fmt.Errorf("user management failed: %w", err),
 		}
 	}
 
-	// Fallback to static credential mapping (legacy behavior - only when user management is disabled)
-	// NOTE: This path should rarely be used. User management should be enabled for proper functionality.
-	if !e.userMgmtEnabled {
-		slog.WarnContext(ctx, "User management is disabled, using static credential mapping (legacy mode)",
-			slog.String("username", sess.Username),
-		)
+	// Create ES Authorization header with dynamic credentials
+	esAuthHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(creds.Username+":"+creds.Password))
 
-		// In legacy mode, use username as ES user directly
-		esUser := sess.Username
-		esAuthHeader, err := e.mapper.GetESAuthorizationHeader(ctx, esUser)
-		if err != nil {
-			slog.ErrorContext(ctx, "Failed to get ES authorization header",
-				slog.String("es_user", esUser),
-				slog.String("error", err.Error()),
-			)
-			return &EngineResult{
-				Authenticated: false,
-				StatusCode:    http.StatusInternalServerError,
-				Error:         fmt.Errorf("failed to get ES credentials"),
-			}
-		}
-
-		slog.InfoContext(ctx, "Session authentication successful (legacy mode)",
-			slog.String("username", sess.Username),
-			slog.String("method", "session"),
-			slog.String("source_ip", req.SourceIP),
-			slog.String("result", "success"),
-			slog.String("es_user", esUser),
-		)
-
-		return &EngineResult{
-			Authenticated: true,
-			Username:      sess.Username,
-			ESUser:        esUser,
-			ESAuthHeader:  esAuthHeader,
-			StatusCode:    http.StatusOK,
-		}
-	}
-
-	// User management is disabled and no static credentials configured
-	slog.ErrorContext(ctx, "User management is disabled and no ES credentials configured",
+	slog.InfoContext(ctx, "Session authentication successful with dynamic user management",
 		slog.String("username", sess.Username),
+		slog.String("method", "session"),
+		slog.String("source_ip", req.SourceIP),
+		slog.String("result", "success"),
+		slog.String("es_user", creds.Username),
 	)
+
 	return &EngineResult{
-		Authenticated: false,
-		StatusCode:    http.StatusInternalServerError,
-		Error:         fmt.Errorf("user management is disabled and no ES credentials configured"),
+		Authenticated: true,
+		Username:      sess.Username,
+		ESUser:        creds.Username,
+		ESPassword:    creds.Password,
+		ESAuthHeader:  esAuthHeader,
+		StatusCode:    http.StatusOK,
 	}
 }
 
@@ -290,100 +233,47 @@ func (e *Engine) authenticateWithBasicAuth(ctx context.Context, req *EngineReque
 		}
 	}
 
-	// If user management is enabled, upsert user and get dynamic credentials
-	if e.userMgmtEnabled && e.userManager != nil {
-		authUser := &usermgmt.AuthenticatedUser{
-			Username: authResult.Username,
-			Groups:   userGroups,
-			Email:    userEmail,
-			FullName: userFullName,
-			Source:   "basic_auth",
-		}
+	// Upsert user with dynamic credentials
+	authUser := &usermgmt.AuthenticatedUser{
+		Username: authResult.Username,
+		Groups:   userGroups,
+		Email:    userEmail,
+		FullName: userFullName,
+		Source:   "basic_auth",
+	}
 
-		creds, err := e.userManager.UpsertUser(ctx, authUser)
-		if err != nil {
-			slog.ErrorContext(ctx, "User management failed for Basic Auth",
-				slog.String("username", authResult.Username),
-				slog.String("error", err.Error()),
-			)
-			return &EngineResult{
-				Authenticated: false,
-				StatusCode:    http.StatusInternalServerError,
-				Error:         fmt.Errorf("user management failed: %w", err),
-			}
-		}
-
-		// Create ES Authorization header with dynamic credentials
-		esAuthHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(creds.Username+":"+creds.Password))
-
-		slog.InfoContext(ctx, "Basic Auth authentication successful with dynamic user management",
+	creds, err := e.userManager.UpsertUser(ctx, authUser)
+	if err != nil {
+		slog.ErrorContext(ctx, "User management failed for Basic Auth",
 			slog.String("username", authResult.Username),
-			slog.String("method", "basic"),
-			slog.String("source_ip", req.SourceIP),
-			slog.String("result", "success"),
-			slog.String("es_user", creds.Username),
-			slog.Any("groups", userGroups),
+			slog.String("error", err.Error()),
 		)
-
 		return &EngineResult{
-			Authenticated: true,
-			Username:      authResult.Username,
-			ESUser:        creds.Username,
-			ESPassword:    creds.Password,
-			ESAuthHeader:  esAuthHeader,
-			StatusCode:    http.StatusOK,
+			Authenticated: false,
+			StatusCode:    http.StatusInternalServerError,
+			Error:         fmt.Errorf("user management failed: %w", err),
 		}
 	}
 
-	// Fallback to static credential mapping (legacy behavior - only when user management is disabled)
-	// NOTE: This path should rarely be used. User management should be enabled for proper functionality.
-	if !e.userMgmtEnabled {
-		slog.WarnContext(ctx, "User management is disabled, using static credential mapping (legacy mode)",
-			slog.String("username", authResult.Username),
-		)
+	// Create ES Authorization header with dynamic credentials
+	esAuthHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(creds.Username+":"+creds.Password))
 
-		// In legacy mode, use username as ES user directly
-		esUser := authResult.Username
-
-		// Get ES authorization header
-		esAuthHeader, err := e.mapper.GetESAuthorizationHeader(ctx, esUser)
-		if err != nil {
-			slog.ErrorContext(ctx, "Failed to get ES authorization header",
-				slog.String("es_user", esUser),
-				slog.String("error", err.Error()),
-			)
-			return &EngineResult{
-				Authenticated: false,
-				StatusCode:    http.StatusInternalServerError,
-				Error:         fmt.Errorf("failed to get ES credentials"),
-			}
-		}
-
-		slog.InfoContext(ctx, "Basic Auth authentication successful (legacy mode)",
-			slog.String("username", authResult.Username),
-			slog.String("method", "basic"),
-			slog.String("source_ip", req.SourceIP),
-			slog.String("result", "success"),
-			slog.String("es_user", esUser),
-		)
-
-		return &EngineResult{
-			Authenticated: true,
-			Username:      authResult.Username,
-			ESUser:        esUser,
-			ESAuthHeader:  esAuthHeader,
-			StatusCode:    http.StatusOK,
-		}
-	}
-
-	// User management is disabled and no static credentials configured
-	slog.ErrorContext(ctx, "User management is disabled and no ES credentials configured",
+	slog.InfoContext(ctx, "Basic Auth authentication successful with dynamic user management",
 		slog.String("username", authResult.Username),
+		slog.String("method", "basic"),
+		slog.String("source_ip", req.SourceIP),
+		slog.String("result", "success"),
+		slog.String("es_user", creds.Username),
+		slog.Any("groups", userGroups),
 	)
+
 	return &EngineResult{
-		Authenticated: false,
-		StatusCode:    http.StatusInternalServerError,
-		Error:         fmt.Errorf("user management is disabled and no ES credentials configured"),
+		Authenticated: true,
+		Username:      authResult.Username,
+		ESUser:        creds.Username,
+		ESPassword:    creds.Password,
+		ESAuthHeader:  esAuthHeader,
+		StatusCode:    http.StatusOK,
 	}
 }
 

@@ -17,9 +17,6 @@ server:
 # Username: testuser
 # Password: password
 local_users:
-  enabled: true
-  users:
-    - username: testuser
       password_bcrypt: $2a$10$.5DtVFvSJulN385UxctyseY7skwExS1tRZbCeV2p43g8vkDVsAAEu  # password: "password"
       groups:
         - developers
@@ -36,7 +33,7 @@ local_users:
 
 # OIDC disabled for simple testing
 oidc:
-  enabled: false
+
 
 # Session configuration
 session:
@@ -83,14 +80,11 @@ elasticsearch:
   insecure_skip_verify: true
   
   # Static users (legacy mode, only used when user_management.enabled is false)
-  users:
-    - username: elastic  # Change this to your ES username
-      password: ${ES_PASSWORD}  # Set via environment variable
 
 # Dynamic user management configuration
 user_management:
   # Enable for testing dynamic user management
-  enabled: false  # Set to true to test user management features
+
   password_length: 32
   credential_ttl: 1h
 

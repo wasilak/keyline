@@ -5,7 +5,7 @@ server:
   write_timeout: 30s
   max_concurrent: 1000
 
-# Enable both OIDC and local users for testing
+# Local users for testing
 local_users:
   enabled: true
   users:
@@ -16,7 +16,7 @@ local_users:
         - users
       email: testuser@example.com
       full_name: Test User
-    
+
     - username: admin
       password_bcrypt: $2a$10$.5DtVFvSJulN385UxctyseY7skwExS1tRZbCeV2p43g8vkDVsAAEu  # password: "password"
       groups:
@@ -34,18 +34,7 @@ oidc:
     - openid
     - profile
     - email
-  # User identity claim (used as ES username when user_management is enabled)
   user_identity_claim: email
-  
-  # Legacy claim mappings (only used when user_management.enabled is false)
-  claim_mappings:
-    - claim: email
-      pattern: "*@admin.example.com"
-      es_user: elastic
-    - claim: email
-      pattern: "*@example.com"
-      es_user: elastic
-  default_es_user: elastic
 
 session:
   ttl: 24h
@@ -56,51 +45,38 @@ session:
 
 cache:
   backend: memory
-  # Credential cache TTL for user management
   credential_ttl: 1h
-  # Encryption key for cached credentials (32 bytes for AES-256)
-  encryption_key: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcw==  # base64: "test-encryption-key-32-bytes"
+  encryption_key: dGVzdC1lbmNyeXB0aW9uLWtleS0zMi1ieXRlcw==
 
-# Role mappings for dynamic user management
 role_mappings:
   - claim: groups
     pattern: "admin"
     es_roles:
       - superuser
-  
+
   - claim: groups
     pattern: "developers"
     es_roles:
       - developer
       - kibana_user
-  
+
   - claim: email
     pattern: "*@admin.example.com"
     es_roles:
       - superuser
 
-# Default roles if no mappings match
 default_es_roles:
   - viewer
   - kibana_user
 
 elasticsearch:
-  # Admin credentials for user management API
   admin_user: elastic
   admin_password: ${ES_PASSWORD}
   url: https://localhost:9201
   timeout: 30s
   insecure_skip_verify: true
-  
-  # Static users (legacy mode, only used when user_management.enabled is false)
-  users:
-    - username: elastic
-      password: ${ES_PASSWORD}
 
-# Dynamic user management configuration
 user_management:
-  # Enable for testing dynamic user management
-  enabled: false  # Set to true to test user management features
   password_length: 32
   credential_ttl: 1h
 

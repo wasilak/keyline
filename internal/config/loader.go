@@ -77,12 +77,13 @@ func substituteEnvVars(cfg *Config) error {
 	if err := substituteString(&cfg.Cache.RedisPassword); err != nil {
 		return err
 	}
+	if err := substituteString(&cfg.Cache.EncryptionKey); err != nil {
+		return err
+	}
 
-	// Elasticsearch users
-	for i := range cfg.Elasticsearch.Users {
-		if err := substituteString(&cfg.Elasticsearch.Users[i].Password); err != nil {
-			return err
-		}
+	// Elasticsearch admin password
+	if err := substituteString(&cfg.Elasticsearch.AdminPassword); err != nil {
+		return err
 	}
 
 	// Upstream config
