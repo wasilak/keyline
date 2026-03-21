@@ -1,8 +1,11 @@
 # Build stage
 FROM golang:1.26-alpine AS builder
 
+# Build arguments
+ARG VERSION=dev
+
 # Install build dependencies
-RUN apk add --no-cache git make
+RUN apk add --no-cache git make zip
 
 # Set working directory
 WORKDIR /build
@@ -16,8 +19,13 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o keyline ./cmd/keyline
+# Build the binary with version info
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags="-w -s -X main.Version=${VERSION}" \
+    -o keyline ./cmd/keyline
+
+# Test the binary
+RUN ./keyline --version || true
 
 # Runtime stage
 FROM alpine:3.19

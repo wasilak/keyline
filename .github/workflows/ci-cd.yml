@@ -1,0 +1,364 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, master]
+    tags: ["v*.*.*"]
+    paths-ignore:
+      - "docs/**"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    branches: [main, develop]
+    paths-ignore:
+      - "docs/**"
+  workflow_dispatch:
+
+env:
+  GO_VERSION: '1.26'
+  # Force Node.js 24 for all JavaScript actions (deprecation warnings suppression)
+  # Remove after June 2026 when Node.js 24 becomes default
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  # Stage 1: Test everything
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Cache Go modules
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run tests
+        run: go test -v -race ./...
+
+      - name: Check formatting
+        run: |
+          if [ -n "$(gofmt -l -s .)" ]; then
+            echo "Code not formatted. Run 'make fmt'"
+            gofmt -l -s .
+            exit 1
+          fi
+
+      - name: Build binary
+        run: make build
+
+  # Stage 2a: Build release binaries
+  build-binaries:
+    name: Build Release Binaries
+    needs: test
+    if: github.event_name != 'pull_request' && !startsWith(github.ref, 'refs/pull')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-amd64
+            artifact_name: keyline-linux-amd64
+            goos: linux
+            goarch: amd64
+
+          - os: ubuntu-latest
+            target: linux-arm64
+            artifact_name: keyline-linux-arm64
+            goos: linux
+            goarch: arm64
+
+          - os: macos-latest
+            target: darwin-amd64
+            artifact_name: keyline-darwin-amd64
+            goos: darwin
+            goarch: amd64
+
+          - os: macos-latest
+            target: darwin-arm64
+            artifact_name: keyline-darwin-arm64
+            goos: darwin
+            goarch: arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Cache Go modules
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.target }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.target }}-
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          mkdir -p ./dist
+          go build -ldflags="-w -s -X main.Version=${{ github.ref_name }}" -o ./dist/keyline ./cmd/keyline
+
+      - name: Prepare binary
+        run: |
+          mkdir -p artifacts
+          cp ./dist/keyline artifacts/${{ matrix.artifact_name }}
+          chmod +x artifacts/${{ matrix.artifact_name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: artifacts/${{ matrix.artifact_name }}
+          if-no-files-found: error
+          retention-days: 1
+
+  # Stage 2b: Build Docker images - Fan-out (parallel per-platform builds)
+  build-docker:
+    name: Build Docker (${{ matrix.platform_name }})
+    needs: test
+    if: github.event_name != 'pull_request' && !startsWith(github.ref, 'refs/pull')
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            platform_name: amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            platform_name: arm64
+            runner: ubuntu-24.04-arm # Native arm64 runner (no QEMU!)
+    outputs:
+      base-tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.0.0
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6.0.0
+        with:
+          images: ghcr.io/${{ github.repository }}
+          flavor: |
+            suffix=-${{ matrix.platform_name }},onlatest=true
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+
+      # Build and push platform-specific image (always)
+      - name: Build and push ${{ matrix.platform_name }}
+        uses: docker/build-push-action@v7.0.0
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Use platform-specific cache to avoid race conditions
+          # Each platform gets its own cache scope
+          cache-from: type=gha,scope=${{ matrix.platform_name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform_name }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+          provenance: false
+          sbom: false
+
+  # Stage 2c: Create multi-arch manifest (fan-in merge step)
+  create-manifest:
+    name: Create Multi-Arch Manifest
+    needs: [build-docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ needs.build-docker.outputs.base-tag }}
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.0.0
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6.0.0
+        with:
+          images: ghcr.io/${{ github.repository }}
+          flavor: |
+            suffix=-${{ matrix.platform_name }},onlatest=true
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha
+
+      - name: Create and push multi-arch manifest
+        run: |
+          # Get the base tag from the release ref (e.g., v1.2.6 or main)
+          REF_NAME="${{ github.ref_name }}"
+
+          # For version tags, remove the 'v' prefix to match build job tags
+          # Build jobs push: 1.2.6-amd64, manifest needs to find: 1.2.6-amd64
+          if [[ "$REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            BASE_TAG="${REF_NAME#v}"  # Remove leading 'v'
+            IS_VERSION="true"
+          elif [ "$REF_NAME" = "main" ] || [ "$REF_NAME" = "master" ]; then
+            # For main branch, use 'latest' (metadata action generates this)
+            BASE_TAG="latest"
+            IS_VERSION="false"
+          else
+            # For other branches/PRs, use sha-<short-sha> format from metadata
+            BASE_TAG="sha-${{ github.sha_short }}"
+            IS_VERSION="false"
+          fi
+
+          echo "Creating multi-arch manifest for: $BASE_TAG (ref: $REF_NAME)"
+
+          # Define platform-specific tags
+          AMD64_TAG="ghcr.io/${{ github.repository }}:${BASE_TAG}-amd64"
+          ARM64_TAG="ghcr.io/${{ github.repository }}:${BASE_TAG}-arm64"
+          BASE_IMAGE="ghcr.io/${{ github.repository }}:${BASE_TAG}"
+
+          # Check if both platform images exist
+          echo "Checking for platform images..."
+          echo "  AMD64: $AMD64_TAG"
+          echo "  ARM64: $ARM64_TAG"
+
+          if docker buildx imagetools inspect "$AMD64_TAG" > /dev/null 2>&1 && \
+             docker buildx imagetools inspect "$ARM64_TAG" > /dev/null 2>&1; then
+            echo "Both platform images found, creating manifest..."
+            docker buildx imagetools create -t "$BASE_IMAGE" "$AMD64_TAG" "$ARM64_TAG"
+            echo "✓ Created manifest: $BASE_IMAGE"
+          else
+            echo "ERROR: Platform images not found!"
+            echo "  AMD64 exists: $(docker buildx imagetools inspect $AMD64_TAG > /dev/null 2>&1 && echo 'yes' || echo 'no')"
+            echo "  ARM64 exists: $(docker buildx imagetools inspect $ARM64_TAG > /dev/null 2>&1 && echo 'yes' || echo 'no')"
+            exit 1
+          fi
+
+          # Create major.minor tag if it's a version tag (e.g., 1.2.6 -> 1.2)
+          if [ "$IS_VERSION" = "true" ]; then
+            MAJOR_MINOR=$(echo "$BASE_TAG" | sed -E 's/^([0-9]+\.[0-9]+)\.[0-9]+/\1/')
+            echo "Creating major.minor manifest: $MAJOR_MINOR"
+            docker buildx imagetools create \
+              -t "ghcr.io/${{ github.repository }}:$MAJOR_MINOR" \
+              "$AMD64_TAG" "$ARM64_TAG"
+            echo "✓ Created manifest: $MAJOR_MINOR"
+          fi
+
+          # Create sha tag manifest for non-version builds
+          if [ "$IS_VERSION" = "false" ] && [ "$BASE_TAG" != "latest" ]; then
+            echo "Creating sha tag manifest: $BASE_TAG"
+            docker buildx imagetools create \
+              -t "ghcr.io/${{ github.repository }}:$BASE_TAG" \
+              "$AMD64_TAG" "$ARM64_TAG"
+            echo "✓ Created manifest: $BASE_TAG"
+          fi
+
+  # Stage 3: Create release (only on v*.*.* tags)
+  create-release:
+    name: Create GitHub Release
+    needs: [build-binaries, create-manifest]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: keyline-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Verify artifacts exist and are valid
+        run: |
+          set -e
+          echo "Verifying release artifacts..."
+
+          # List downloaded artifacts
+          ls -lah artifacts/
+
+          # Check that we have artifacts
+          artifact_count=$(find artifacts -type f -name "keyline-*" ! -name "*.sha256" | wc -l)
+          if [ $artifact_count -eq 0 ]; then
+            echo "ERROR: No binary artifacts found!"
+            exit 1
+          fi
+          echo "✓ Found $artifact_count binary artifacts"
+
+          # Verify we have binaries for all platforms
+          expected_binaries=("keyline-linux-amd64" "keyline-linux-arm64" "keyline-darwin-amd64" "keyline-darwin-arm64")
+          for binary in "${expected_binaries[@]}"; do
+            if [ ! -f "artifacts/$binary" ]; then
+              echo "ERROR: Missing binary: $binary"
+              exit 1
+            fi
+            echo "✓ Found: $binary"
+          done
+
+      - name: Determine if pre-release
+        id: prerelease
+        run: |
+          if [[ "${{ github.ref_name }}" =~ (alpha|beta|rc) ]]; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/keyline-*
+          generate_release_notes: true
+          prerelease: ${{ steps.prerelease.outputs.prerelease }}
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
