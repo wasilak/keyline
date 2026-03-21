@@ -15,11 +15,11 @@ import (
 
 // Engine handles authentication with dynamic user management
 type Engine struct {
-	config       *config.Config
-	cache        cachego.CacheInterface
-	oidcProvider *OIDCProvider
-	basicProvider *BasicAuthProvider
-	userManager  usermgmt.Manager
+	config         *config.Config
+	cache          cachego.CacheInterface
+	oidcProvider   *OIDCProvider
+	basicProvider  *BasicAuthProvider
+	userManager    usermgmt.Manager
 	sessionEnabled bool
 	oidcEnabled    bool
 	basicEnabled   bool
@@ -28,10 +28,10 @@ type Engine struct {
 // NewEngine creates a new authentication engine with dynamic user management
 func NewEngine(cfg *config.Config, cache cachego.CacheInterface, oidcProvider *OIDCProvider, userManager usermgmt.Manager) (*Engine, error) {
 	engine := &Engine{
-		config:       cfg,
-		cache:        cache,
-		oidcProvider: oidcProvider,
-		userManager:  userManager,
+		config:         cfg,
+		cache:          cache,
+		oidcProvider:   oidcProvider,
+		userManager:    userManager,
 		sessionEnabled: true,
 		oidcEnabled:    cfg.OIDC.Enabled,
 		basicEnabled:   cfg.LocalUsers.Enabled,

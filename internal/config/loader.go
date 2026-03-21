@@ -81,7 +81,10 @@ func substituteEnvVars(cfg *Config) error {
 		return err
 	}
 
-	// Elasticsearch admin password
+	// Elasticsearch admin credentials
+	if err := substituteString(&cfg.Elasticsearch.AdminUser); err != nil {
+		return err
+	}
 	if err := substituteString(&cfg.Elasticsearch.AdminPassword); err != nil {
 		return err
 	}

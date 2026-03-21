@@ -104,15 +104,15 @@ const config = {
             items: [
               {
                 label: 'Getting Started',
-                to: 'docs/01-getting-started/about',
+                to: 'docs/getting-started/about',
               },
               {
                 label: 'Configuration',
-                to: 'docs/06-configuration/reference',
+                to: 'docs/configuration',
               },
               {
                 label: 'Deployment',
-                to: 'docs/05-deployment/docker',
+                to: 'docs/deployment/docker',
               },
             ],
           },

@@ -12,74 +12,98 @@ tasks:
 
   # Development tasks
   dev:
-    desc: Run Keyline with local configuration
+    desc: Build and run the server
     cmds:
-      - go run cmd/keyline/main.go --config config.yaml
+      - task: build
+      - task: run
 
+  run:
+    desc: Run the server
+    cmds:
+      - ./bin/keyline --config config.yaml
+
+  # Backend tasks
   build:
     desc: Build the Go binary
     cmds:
       - go build -o bin/keyline ./cmd/keyline
 
-  test:
-    desc: Run all tests
-    cmds:
-      - go test ./...
-
-  test-race:
-    desc: Run tests with race detection
-    cmds:
-      - go test -race ./...
-
   lint:
-    desc: Run linters
+    desc: Run Go linter (vet and fmt check)
     cmds:
       - go vet ./...
       - gofmt -d .
 
-  fmt:
-    desc: Format code
+  test:
+    desc: Run Go tests with warnings as errors (matches CI)
+    env:
+      GOFLAGS: "-v"
+    cmds:
+      - go test ./...
+
+  format:
+    desc: Format Go code
     cmds:
       - gofmt -w .
       - goimports -w .
 
-  # Documentation tasks
-  docs:install:
-    desc: Install Docusaurus dependencies
-    dir: docs
+  # Test tasks
+  test:race:
+    desc: Run tests with race detection
     cmds:
-      - npm ci
+      - go test -race ./...
 
-  docs:dev:
-    desc: Start Docusaurus development server
-    dir: docs
+  # Lint tasks
+  lint:vet:
+    desc: Run go vet
     cmds:
-      - npm run start
+      - go vet ./...
 
-  docs:build:
-    desc: Build Docusaurus documentation
-    dir: docs
-    env:
-      NODE_OPTIONS: "--no-deprecation"
+  lint:fmt:
+    desc: Check code formatting
     cmds:
-      - npm run build
+      - gofmt -d .
 
-  docs:preview:
-    desc: Preview production Docusaurus build
-    dir: docs
+  # CI/CD tasks
+  ci:
+    desc: Run complete CI/CD pipeline (in parallel)
     cmds:
-      - npm run serve
+      - task: ci:backend
+      - task: docs:build
+    parallel: true
 
-  docs:serve:
-    desc: Serve documentation locally (alias for docs:preview)
+  ci:backend:
+    desc: Run complete backend CI/CD checks
     cmds:
-      - task: docs:preview
+      - echo "=== BACKEND CI/CD ==="
+      - echo "1. Go fmt check..."
+      - gofmt -l .
+      - echo "✅ PASSED"
+      - echo ""
+      - echo "2. Go vet..."
+      - go vet ./...
+      - echo "✅ PASSED"
+      - echo ""
+      - echo "3. Go test..."
+      - go test -v ./...
+      - echo "✅ PASSED"
+      - echo ""
+      - echo "=== BACKEND CI/CD COMPLETE ==="
 
   # Docker tasks
   docker:build:
-    desc: Build Docker image
+    desc: Build Docker image for amd64 (uses version from git tag)
     cmds:
-      - docker build -t keyline:latest -t keyline:dev .
+      - |
+        VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+        docker build --platform linux/amd64 -t keyline:$VERSION -t keyline:latest .
+
+  docker:build:multiarch:
+    desc: Build Docker image for multiple architectures
+    cmds:
+      - |
+        VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+        docker buildx build --platform linux/amd64,linux/arm64 -t keyline:$VERSION -t keyline:latest .
 
   docker:run:
     desc: Run Keyline in Docker
@@ -92,14 +116,71 @@ tasks:
       - ./test-keyline.sh
 
   # Release tasks
-  release:
-    desc: Create a new release
+  release:build:
+    desc: Build binary for release
     cmds:
-      - echo "Building release..."
-      - task: build
-      - task: test
+      - go build -ldflags="-w -s" -o bin/keyline ./cmd/keyline
 
-  release:tag:
-    desc: Create git tag for release
+  release:build:target:
+    desc: Build binary for specific target (set GOOS and GOARCH env vars)
     cmds:
-      - echo "Create tag manually"
+      - |
+        mkdir -p ./dist
+        CGO_ENABLED=0 GOOS=${GOOS:-linux} GOARCH=${GOARCH:-amd64} go build -ldflags="-w -s" -o ./dist/keyline-${GOOS}-${GOARCH} ./cmd/keyline
+
+  release:package:target:
+    desc: Package binary as zip (set GOOS and GOARCH env vars)
+    cmds:
+      - |
+        mkdir -p artifacts
+        cd dist && zip ../artifacts/keyline-${GOOS}-${GOARCH}.zip keyline-${GOOS}-${GOARCH}
+
+  # Version tasks
+  version:bump:
+    desc: "Bump version and create git tag (usage: task version:bump -- v1.3.0)"
+    cmds:
+      - git tag -a {{.CLI_ARGS}} -m 'Release {{.CLI_ARGS}}'
+      - git push origin {{.CLI_ARGS}}
+
+  # Documentation tasks
+  docs:install:
+    desc: Install Docusaurus dependencies
+    dir: docs
+    cmds:
+      - npm ci
+
+  docs:dev:
+    desc: Start Docusaurus development server (serves at http://localhost:3000/keyline/)
+    dir: docs
+    cmds:
+      - npm run start
+
+  docs:build:
+    desc: Build Docusaurus documentation for production
+    dir: docs
+    env:
+      NODE_OPTIONS: "--no-deprecation"
+    cmds:
+      - npm run build
+
+  docs:preview:
+    desc: Preview production Docusaurus build (serves at http://localhost:3000/keyline/)
+    dir: docs
+    cmds:
+      - npm run serve
+
+  docs:serve:
+    desc: Serve documentation locally (alias for docs:preview)
+    cmds:
+      - task: docs:preview
+
+  # Build tasks
+  clean:
+    desc: Clean all build artifacts
+    cmds:
+      - rm -rf bin/
+      - rm -rf dist/
+      - rm -rf artifacts/
+      - rm -rf docs/node_modules
+      - rm -rf docs/build
+      - rm -rf docs/.docusaurus

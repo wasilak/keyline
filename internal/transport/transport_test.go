@@ -1,21 +1,22 @@
 package transport
 
 import (
-"context"
-"encoding/base64"
-"net/http"
-"net/http/httptest"
-"testing"
-"time"
+	"context"
+	"encoding/base64"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
 
-"github.com/labstack/echo/v4"
-"github.com/stretchr/testify/assert"
-"github.com/stretchr/testify/require"
-"github.com/yourusername/keyline/internal/auth"
-"github.com/yourusername/keyline/internal/cache"
-"github.com/wasilak/cachego"
-"github.com/yourusername/keyline/internal/config"
-"github.com/yourusername/keyline/internal/session"
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/wasilak/cachego"
+	"github.com/yourusername/keyline/internal/auth"
+	"github.com/yourusername/keyline/internal/cache"
+	"github.com/yourusername/keyline/internal/config"
+	"github.com/yourusername/keyline/internal/session"
+	"github.com/yourusername/keyline/internal/usermgmt"
 )
 
 func setupTestCache(t *testing.T) cachego.CacheInterface {
@@ -27,24 +28,39 @@ func setupTestCache(t *testing.T) cachego.CacheInterface {
 	return c
 }
 
+// mockUserManager is a simple mock for testing
+type mockUserManager struct{}
+
+func (m *mockUserManager) UpsertUser(ctx context.Context, user *usermgmt.AuthenticatedUser) (*usermgmt.Credentials, error) {
+	return &usermgmt.Credentials{
+		Username: user.Username,
+		Password: "mock-es-password",
+	}, nil
+}
+
+func (m *mockUserManager) InvalidateCache(ctx context.Context, username string) error {
+	return nil
+}
+
 func setupTestAuthEngine(t *testing.T, cfg *config.Config, c cachego.CacheInterface) *auth.Engine {
-	engine, err := auth.NewEngine(cfg, c, nil, nil)
+	userManager := &mockUserManager{}
+	engine, err := auth.NewEngine(cfg, c, nil, userManager)
 	require.NoError(t, err)
 	return engine
 }
 
 func createTestSession(t *testing.T, c cachego.CacheInterface, sessionID string, username string, groups []string) {
-sess := &session.Session{
-ID:        sessionID,
-Username:  username,
-Groups:    groups,
-Email:     username + "@example.com",
-FullName:  "Test User",
-Source:    "test",
-ExpiresAt: time.Now().Add(1 * time.Hour),
-}
-err := session.CreateSession(context.Background(), c, sess)
-require.NoError(t, err)
+	sess := &session.Session{
+		ID:        sessionID,
+		Username:  username,
+		Groups:    groups,
+		Email:     username + "@example.com",
+		FullName:  "Test User",
+		Source:    "test",
+		ExpiresAt: time.Now().Add(1 * time.Hour),
+	}
+	err := session.CreateSession(context.Background(), c, sess)
+	require.NoError(t, err)
 }
 
 func TestForwardAuthAdapter_SuccessfulAuthentication(t *testing.T) {
@@ -60,14 +76,22 @@ func TestForwardAuthAdapter_SuccessfulAuthentication(t *testing.T) {
 		OIDC: config.OIDCConfig{
 			Enabled: false,
 		},
-UserManagement: config.UserMgmtConfig{
-Enabled: false,
-},
-Elasticsearch: config.ElasticsearchConfig{
-Users: []config.ESUser{
-{Username: "testuser", Password: "testpass"},
-},
-},
+		UserManagement: config.UserMgmtConfig{
+			PasswordLength: 32,
+			CredentialTTL:  time.Hour,
+		},
+		Elasticsearch: config.ElasticsearchConfig{
+			AdminUser:     "test-admin",
+			AdminPassword: "test-pass",
+			URL:           "http://localhost:9200",
+		},
+		Cache: config.CacheConfig{
+			Backend:       "memory",
+			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=",
+		},
+		RoleMappings: []config.RoleMapping{
+			{Claim: "groups", Pattern: "admin", ESRoles: []string{"superuser"}},
+		},
 	}
 
 	sessionID := "test-session-123"
@@ -176,7 +200,7 @@ func TestStandaloneProxyAdapter_InternalEndpoint(t *testing.T) {
 
 	for _, path := range internalPaths {
 		t.Run(path, func(t *testing.T) {
-e := echo.New()
+			e := echo.New()
 			req := httptest.NewRequest(http.MethodGet, path, nil)
 			rec := httptest.NewRecorder()
 			ctx := e.NewContext(req, rec)

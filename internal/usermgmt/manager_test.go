@@ -1,10 +1,10 @@
 package usermgmt
 
 import (
-"context"
-"testing"
+	"context"
+	"testing"
 
-"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 // Minimal test to verify file creation works

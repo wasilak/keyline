@@ -123,14 +123,16 @@ func TestLoad_EnvVarSubstitution(t *testing.T) {
 	os.Setenv("TEST_CLIENT_SECRET", "test-client-secret")
 	os.Setenv("TEST_REDIRECT_URL", "https://test-redirect.com/callback")
 	os.Setenv("TEST_SESSION_SECRET", "test-session-secret-that-is-at-least-32-bytes")
-	os.Setenv("TEST_ES_PASSWORD", "test-es-password")
+	os.Setenv("TEST_ES_ADMIN_USER", "test-es-admin")
+	os.Setenv("TEST_ES_ADMIN_PASSWORD", "test-es-admin-password")
 	defer func() {
 		os.Unsetenv("TEST_ISSUER_URL")
 		os.Unsetenv("TEST_CLIENT_ID")
 		os.Unsetenv("TEST_CLIENT_SECRET")
 		os.Unsetenv("TEST_REDIRECT_URL")
 		os.Unsetenv("TEST_SESSION_SECRET")
-		os.Unsetenv("TEST_ES_PASSWORD")
+		os.Unsetenv("TEST_ES_ADMIN_USER")
+		os.Unsetenv("TEST_ES_ADMIN_PASSWORD")
 	}()
 
 	tmpDir := t.TempDir()
@@ -158,11 +160,21 @@ session:
 
 cache:
   backend: memory
+  encryption_key: ${TEST_SESSION_SECRET}
+
+role_mappings:
+  - claim: groups
+    pattern: "admin"
+    es_roles:
+      - superuser
+
+default_es_roles:
+  - viewer
 
 elasticsearch:
-  users:
-    - username: admin
-      password: ${TEST_ES_PASSWORD}
+  admin_user: ${TEST_ES_ADMIN_USER}
+  admin_password: ${TEST_ES_ADMIN_PASSWORD}
+  url: http://elasticsearch:9200
 
 upstream:
   url: http://kibana:5601
@@ -196,8 +208,8 @@ observability:
 	if cfg.Session.SessionSecret != "test-session-secret-that-is-at-least-32-bytes" {
 		t.Errorf("Expected session secret test-session-secret-that-is-at-least-32-bytes, got %s", cfg.Session.SessionSecret)
 	}
-	if cfg.Elasticsearch.Users[0].Password != "test-es-password" {
-		t.Errorf("Expected ES password test-es-password, got %s", cfg.Elasticsearch.Users[0].Password)
+	if cfg.Elasticsearch.AdminUser != "test-es-admin" {
+		t.Errorf("Expected ES admin user test-es-admin, got %s", cfg.Elasticsearch.AdminUser)
 	}
 }
 

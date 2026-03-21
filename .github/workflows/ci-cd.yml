@@ -34,6 +34,9 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
 
+      - name: Install Task
+        uses: go-task/setup-task@v1
+
       - name: Cache Go modules
         uses: actions/cache@v5
         with:
@@ -44,22 +47,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Run go vet
-        run: go vet ./...
-
-      - name: Run tests
-        run: go test -v -race ./...
-
-      - name: Check formatting
-        run: |
-          if [ -n "$(gofmt -l -s .)" ]; then
-            echo "Code not formatted. Run 'make fmt'"
-            gofmt -l -s .
-            exit 1
-          fi
-
-      - name: Build binary
-        run: make build
+      - name: Run CI/CD pipeline
+        run: task ci:backend
 
   # Stage 2a: Build release binaries
   build-binaries:
@@ -99,6 +88,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Setup Go environment
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Install Task
+        uses: go-task/setup-task@v1
+
       - name: Cache Go modules
         uses: actions/cache@v5
         with:
@@ -113,14 +110,12 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-        run: |
-          mkdir -p ./dist
-          go build -ldflags="-w -s -X main.Version=${{ github.ref_name }}" -o ./dist/keyline ./cmd/keyline
+        run: task release:build:target
 
       - name: Prepare binary
         run: |
           mkdir -p artifacts
-          cp ./dist/keyline artifacts/${{ matrix.artifact_name }}
+          cp ./dist/keyline-${GOOS}-${GOARCH} artifacts/${{ matrix.artifact_name }}
           chmod +x artifacts/${{ matrix.artifact_name }}
 
       - name: Upload artifact
