@@ -1,0 +1,105 @@
+# Keyline Taskfile
+# Run `task` to see all available tasks
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default:
+    desc: Show all available tasks
+    cmds:
+      - task --list
+
+  # Development tasks
+  dev:
+    desc: Run Keyline with local configuration
+    cmds:
+      - go run cmd/keyline/main.go --config config.yaml
+
+  build:
+    desc: Build the Go binary
+    cmds:
+      - go build -o bin/keyline ./cmd/keyline
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./...
+
+  test-race:
+    desc: Run tests with race detection
+    cmds:
+      - go test -race ./...
+
+  lint:
+    desc: Run linters
+    cmds:
+      - go vet ./...
+      - gofmt -d .
+
+  fmt:
+    desc: Format code
+    cmds:
+      - gofmt -w .
+      - goimports -w .
+
+  # Documentation tasks
+  docs:install:
+    desc: Install Docusaurus dependencies
+    dir: docs
+    cmds:
+      - npm ci
+
+  docs:dev:
+    desc: Start Docusaurus development server
+    dir: docs
+    cmds:
+      - npm run start
+
+  docs:build:
+    desc: Build Docusaurus documentation
+    dir: docs
+    env:
+      NODE_OPTIONS: "--no-deprecation"
+    cmds:
+      - npm run build
+
+  docs:preview:
+    desc: Preview production Docusaurus build
+    dir: docs
+    cmds:
+      - npm run serve
+
+  docs:serve:
+    desc: Serve documentation locally (alias for docs:preview)
+    cmds:
+      - task: docs:preview
+
+  # Docker tasks
+  docker:build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t keyline:latest -t keyline:dev .
+
+  docker:run:
+    desc: Run Keyline in Docker
+    cmds:
+      - docker run --rm -it -p 9000:9000 keyline:latest --config /etc/keyline/config.yaml
+
+  docker:test:
+    desc: Run Docker integration tests
+    cmds:
+      - ./test-keyline.sh
+
+  # Release tasks
+  release:
+    desc: Create a new release
+    cmds:
+      - echo "Building release..."
+      - task: build
+      - task: test
+
+  release:tag:
+    desc: Create git tag for release
+    cmds:
+      - echo "Create tag manually"

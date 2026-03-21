@@ -1,0 +1,234 @@
+/**
+ * Keyline Documentation Custom Styles
+ * Catppuccin-inspired dark theme
+ */
+
+/* Root variables for theme customization */
+:root {
+  /* Catppuccin Mocha colors */
+  --catppuccin-base: #1e1e2e;
+  --catppuccin-mantle: #181825;
+  --catppuccin-crust: #11111b;
+  --catppuccin-surface: #313244;
+  --catppuccin-overlay: #45475a;
+  --catppuccin-text: #cdd6f4;
+  --catppuccin-subtext: #a6adc8;
+  --catppuccin-blue: #89b4fa;
+  --catppuccin-green: #a6e3a1;
+  --catppuccin-red: #f38ba8;
+  --catppuccin-yellow: #f9e2af;
+  --catppuccin-purple: #cba6f7;
+  
+  /* Docusaurus theme overrides */
+  --ifm-color-primary: #a6e3a1;
+  --ifm-color-primary-dark: #94d68f;
+  --ifm-color-primary-darker: #88cf83;
+  --ifm-color-primary-darkest: #6fc069;
+  --ifm-color-primary-light: #b8f0b3;
+  --ifm-color-primary-lighter: #c4f3bf;
+  --ifm-color-primary-lightest: #e1f8dd;
+  
+  --ifm-background-color: var(--catppuccin-base);
+  --ifm-background-surface-color: var(--catppuccin-mantle);
+  --ifm-navbar-background-color: var(--catppuccin-mantle);
+  --ifm-footer-background-color: var(--catppuccin-mantle);
+  --ifm-card-background-color: var(--catppuccin-surface);
+  --ifm-code-background: var(--catppuccin-crust);
+  
+  --ifm-font-color-base: var(--catppuccin-text);
+  --ifm-heading-color: var(--catppuccin-text);
+  --ifm-navbar-link-color: var(--catppuccin-text);
+  --ifm-footer-link-color: var(--catppuccin-subtext);
+  
+  /* Code block colors */
+  --prism-background-color: var(--catppuccin-crust);
+  --prism-color: var(--catppuccin-text);
+}
+
+/* Dark mode specific overrides */
+[data-theme='dark'] {
+  --ifm-background-color: var(--catppuccin-base);
+  --ifm-background-surface-color: var(--catppuccin-mantle);
+}
+
+/* Navbar styling */
+.navbar {
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--catppuccin-surface);
+}
+
+.navbar__title {
+  font-weight: 700;
+  color: var(--catppuccin-green);
+}
+
+/* Footer styling */
+.footer {
+  border-top: 1px solid var(--catppuccin-surface);
+}
+
+/* Card styling */
+.card {
+  border: 1px solid var(--catppuccin-surface);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  border-color: var(--catppuccin-green);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Code block styling */
+code {
+  border: 1px solid var(--catppuccin-surface);
+}
+
+pre code {
+  border: none;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* Table styling */
+table {
+  border: 1px solid var(--catppuccin-surface);
+}
+
+thead {
+  background-color: var(--catppuccin-mantle);
+}
+
+tbody tr:nth-child(even) {
+  background-color: var(--catppuccin-mantle);
+}
+
+/* Admonition styling */
+.admonition {
+  border-left: 4px solid var(--catppuccin-blue);
+}
+
+.admonition.admonition-note {
+  border-left-color: var(--catppuccin-blue);
+}
+
+.admonition.admonition-tip {
+  border-left-color: var(--catppuccin-green);
+}
+
+.admonition.admonition-info {
+  border-left-color: var(--catppuccin-blue);
+}
+
+.admonition.admonition-warning {
+  border-left-color: var(--catppuccin-yellow);
+}
+
+.admonition.admonition-danger {
+  border-left-color: var(--catppuccin-red);
+}
+
+/* Mermaid diagram container */
+.mermaid {
+  background-color: var(--catppuccin-mantle);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--catppuccin-surface);
+}
+
+/* Search bar styling */
+.DocSearch {
+  --docsearch-primary-color: var(--catppuccin-green);
+  --docsearch-searchbox-background: var(--catppuccin-surface);
+  --docsearch-searchbox-focus-background: var(--catppuccin-mantle);
+  --docsearch-text-color: var(--catppuccin-text);
+}
+
+/* Sidebar styling */
+.theme-doc-sidebar-container {
+  border-right: 1px solid var(--catppuccin-surface);
+}
+
+.menu__link--active {
+  background-color: var(--catppuccin-surface);
+  border-left: 3px solid var(--catppuccin-green);
+}
+
+/* Table of contents styling */
+.table-of-contents__link--active {
+  border-left: 3px solid var(--catppuccin-green);
+  color: var(--catppuccin-green);
+}
+
+/* Pagination styling */
+.pagination-nav__link {
+  border: 1px solid var(--catppuccin-surface);
+}
+
+.pagination-nav__link:hover {
+  border-color: var(--catppuccin-green);
+}
+
+/* Breadcrumb styling */
+.breadcrumbs__link {
+  color: var(--catppuccin-subtext);
+}
+
+/* Badge styling */
+.badge {
+  background-color: var(--catppuccin-surface);
+  color: var(--catppuccin-text);
+}
+
+/* Button styling */
+.button {
+  transition: all 0.2s ease;
+}
+
+.button--primary {
+  background-color: var(--catppuccin-green);
+  color: var(--catppuccin-base);
+  border: none;
+}
+
+.button--primary:hover {
+  background-color: var(--catppuccin-blue);
+  color: var(--catppuccin-base);
+}
+
+/* Link styling */
+a {
+  color: var(--catppuccin-blue);
+}
+
+a:hover {
+  color: var(--catppuccin-green);
+}
+
+/* Custom utility classes */
+.catppuccin-accent {
+  color: var(--catppuccin-green);
+}
+
+.catppuccin-warning {
+  color: var(--catppuccin-yellow);
+}
+
+.catppuccin-danger {
+  color: var(--catppuccin-red);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .navbar__items {
+    font-size: 0.9rem;
+  }
+  
+  .hero__title {
+    font-size: 2rem;
+  }
+  
+  .hero__subtitle {
+    font-size: 1rem;
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "label": "User Management",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Dynamic Elasticsearch user management with role-based access control"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "label": "Deployment Modes",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "Choose the right deployment mode for your infrastructure"
+  }
+}

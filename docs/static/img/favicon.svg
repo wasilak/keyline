@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="faviconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a6e3a1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#89b4fa;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="#1e1e2e"/>
+  
+  <!-- Key shape with square head -->
+  <!-- Key head (square) -->
+  <rect x="4" y="11" width="8" height="10" rx="2"
+        stroke="url(#faviconGradient)" 
+        stroke-width="2.5" 
+        fill="none"/>
+  
+  <!-- Key shaft -->
+  <line x1="12" y1="16" x2="26" y2="16" 
+        stroke="url(#faviconGradient)" 
+        stroke-width="2.5" 
+        stroke-linecap="round"/>
+  
+  <!-- Key tooth -->
+  <line x1="22" y1="16" x2="22" y2="21" 
+        stroke="url(#faviconGradient)" 
+        stroke-width="2.5" 
+        stroke-linecap="round"/>
+</svg>

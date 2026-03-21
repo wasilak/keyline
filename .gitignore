@@ -53,3 +53,10 @@ debug
 __debug_bin
 
 keyline
+
+# Docusaurus (docs/)
+docs/node_modules/
+docs/build/
+docs/.docusaurus/
+docs/.vercel/
+docs/.cache/
