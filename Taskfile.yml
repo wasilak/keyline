@@ -137,11 +137,9 @@ tasks:
 
   # Version tasks
   version:bump:
-    desc: "Create local git tag (usage: task version:bump -- v1.3.0)"
+    desc: "Create local git tag (usage: task version:bump -- v1.3.0 or task version:bump -- -f v1.3.0)"
     cmds:
-      - echo "Creating local git tag: {{.CLI_ARGS}}"
-      - "git tag -a {{.CLI_ARGS}} -m 'Release {{.CLI_ARGS}}'"
-      - echo "Tag created locally. Push manually with: git push origin {{.CLI_ARGS}}"
+      - ./scripts/bump-version.sh {{.CLI_ARGS}}
 
   # Documentation tasks
   docs:install:
