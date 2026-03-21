@@ -59,7 +59,7 @@ func TestValidate_NoAuthMethodEnabled(t *testing.T) {
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -86,7 +86,7 @@ func TestValidate_OIDCMissingIssuerURL(t *testing.T) {
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -113,7 +113,7 @@ func TestValidate_OIDCMissingClientID(t *testing.T) {
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -140,7 +140,7 @@ func TestValidate_OIDCMissingClientSecret(t *testing.T) {
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -167,7 +167,7 @@ func TestValidate_OIDCMissingRedirectURL(t *testing.T) {
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -195,7 +195,7 @@ func TestValidate_OIDCRedirectURLNotHTTPS(t *testing.T) {
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -223,7 +223,7 @@ func TestValidate_OIDCRedirectURLInvalid(t *testing.T) {
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -245,7 +245,7 @@ func TestValidate_LocalUsersNoUsers(t *testing.T) {
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -274,7 +274,7 @@ func TestValidate_LocalUserMissingUsername(t *testing.T) {
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -304,7 +304,7 @@ func TestValidate_LocalUserInvalidBcrypt(t *testing.T) {
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -332,7 +332,7 @@ func TestValidate_SessionSecretTooShort(t *testing.T) {
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -360,7 +360,7 @@ func TestValidate_SessionSecretMissing(t *testing.T) {
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -388,7 +388,7 @@ func TestValidate_CacheBackendMissing(t *testing.T) {
 		},
 		Cache: CacheConfig{},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -418,7 +418,7 @@ func TestValidate_CacheBackendInvalid(t *testing.T) {
 			Backend: "invalid",
 		},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -448,7 +448,7 @@ func TestValidate_RedisMissingURL(t *testing.T) {
 			Backend: "redis",
 		},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 	}
@@ -511,7 +511,7 @@ func TestValidate_StandaloneMissingUpstreamURL(t *testing.T) {
 			Backend: "memory",
 		},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser: "admin",
+			AdminUser:     "admin",
 			AdminPassword: "password",
 		},
 		Upstream: UpstreamConfig{},
@@ -594,8 +594,7 @@ func TestValidate_UserManagementMissingAdminUser(t *testing.T) {
 			Backend:       "memory",
 			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
 		},
-		UserManagement: UserMgmtConfig{
-		},
+		UserManagement: UserMgmtConfig{},
 		Elasticsearch: ElasticsearchConfig{
 			// Missing AdminUser
 			AdminPassword: "admin-password",
@@ -628,8 +627,7 @@ func TestValidate_UserManagementMissingAdminPassword(t *testing.T) {
 			Backend:       "memory",
 			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
 		},
-		UserManagement: UserMgmtConfig{
-		},
+		UserManagement: UserMgmtConfig{},
 		Elasticsearch: ElasticsearchConfig{
 			AdminUser: "admin",
 			// Missing AdminPassword
@@ -662,8 +660,7 @@ func TestValidate_UserManagementMissingElasticsearchURL(t *testing.T) {
 			Backend:       "memory",
 			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
 		},
-		UserManagement: UserMgmtConfig{
-		},
+		UserManagement: UserMgmtConfig{},
 		Elasticsearch: ElasticsearchConfig{
 			AdminUser:     "admin",
 			AdminPassword: "admin-password",
@@ -696,8 +693,7 @@ func TestValidate_UserManagementAllAdminCredentialsPresent(t *testing.T) {
 			Backend:       "memory",
 			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
 		},
-		UserManagement: UserMgmtConfig{
-		},
+		UserManagement: UserMgmtConfig{},
 		Elasticsearch: ElasticsearchConfig{
 			AdminUser:     "admin",
 			AdminPassword: "admin-password",
@@ -773,8 +769,7 @@ func TestValidate_EncryptionKeyMissing(t *testing.T) {
 			Backend: "memory",
 			// Missing EncryptionKey
 		},
-		UserManagement: UserMgmtConfig{
-		},
+		UserManagement: UserMgmtConfig{},
 		Elasticsearch: ElasticsearchConfig{
 			AdminUser:     "admin",
 			AdminPassword: "admin-password",
@@ -814,8 +809,7 @@ func TestValidate_EncryptionKeyBase64Valid(t *testing.T) {
 			Backend:       "memory",
 			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
 		},
-		UserManagement: UserMgmtConfig{
-		},
+		UserManagement: UserMgmtConfig{},
 		Elasticsearch: ElasticsearchConfig{
 			AdminUser:     "admin",
 			AdminPassword: "admin-password",
@@ -978,8 +972,7 @@ func TestValidate_EncryptionKeyRawStringTooLong(t *testing.T) {
 			Backend:       "memory",
 			EncryptionKey: "123456789012345678901234567890123", // raw string 33 bytes (too long)
 		},
-		UserManagement: UserMgmtConfig{
-		},
+		UserManagement: UserMgmtConfig{},
 		Elasticsearch: ElasticsearchConfig{
 			AdminUser:     "admin",
 			AdminPassword: "admin-password",

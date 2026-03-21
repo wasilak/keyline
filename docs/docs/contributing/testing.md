@@ -11,7 +11,7 @@ Guide for testing Keyline.
 
 ```bash
 # Run all tests
-make test
+task test
 
 # Run with race detection
 go test -race ./...
@@ -21,21 +21,22 @@ go test -race ./...
 
 ```bash
 # Run integration tests (requires Docker)
-make test-integration
+go test -v -tags=integration ./integration/...
 ```
 
 ## Property-Based Tests
 
 ```bash
 # Run property-based tests
-make test-property
+go test -v -tags=property ./...
 ```
 
 ## Coverage
 
 ```bash
 # Generate coverage report
-make coverage
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out -o coverage.html
 ```
 
 ## Next Steps

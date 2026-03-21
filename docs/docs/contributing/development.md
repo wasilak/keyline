@@ -18,10 +18,12 @@ Guide for developing Keyline.
 
 ```bash
 # Build binary
-make build
+task build
 
 # Build for all platforms
-make build-all
+task release:build:target GOOS=linux GOARCH=amd64
+task release:build:target GOOS=darwin GOARCH=amd64
+task release:build:target GOOS=windows GOARCH=amd64
 ```
 
 ## Running Locally

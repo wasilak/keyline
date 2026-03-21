@@ -32,7 +32,11 @@ git tag -a v1.0.0 -m "Release v1.0.0"
 git push origin v1.0.0
 
 # Build release binaries
-make build-all
+task release:build:target GOOS=linux GOARCH=amd64
+task release:build:target GOOS=linux GOARCH=arm64
+task release:build:target GOOS=darwin GOARCH=amd64
+task release:build:target GOOS=darwin GOARCH=arm64
+task release:build:target GOOS=windows GOARCH=amd64
 
 # Create GitHub release
 # Upload binaries to GitHub Releases

@@ -126,10 +126,10 @@ Full guides available at [wasilak.github.io/keyline](https://wasilak.github.io/k
 
 ```bash
 # Build
-make build
+task build
 
 # Test
-make test
+task test
 
 # Run
 ./keyline --config config.yaml

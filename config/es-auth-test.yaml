@@ -2,7 +2,7 @@
 #
 # Usage:
 #   1. Set your ES password: export ES_PASSWORD="your-elasticsearch-password"
-#   2. Build Keyline: make build
+#   2. Build Keyline: task build
 #   3. Start Keyline: ./bin/keyline --config config/es-auth-test.yaml
 #   4. Test: curl -u testuser:password http://localhost:9000/_cluster/health?pretty
 

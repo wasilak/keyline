@@ -60,3 +60,6 @@ docs/build/
 docs/.docusaurus/
 docs/.vercel/
 docs/.cache/
+
+.serena/
+.spec-workflow/

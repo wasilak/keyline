@@ -5,12 +5,12 @@
 version: '3'
 
 tasks:
+  # Core workflow
   default:
     desc: Show all available tasks
     cmds:
       - task --list
 
-  # Development tasks
   dev:
     desc: Build and run the server
     cmds:
@@ -22,7 +22,7 @@ tasks:
     cmds:
       - ./bin/keyline --config config.yaml
 
-  # Backend tasks
+  # Build & Quality
   build:
     desc: Build the Go binary
     cmds:
@@ -32,7 +32,12 @@ tasks:
     desc: Run Go linter (vet and fmt check)
     cmds:
       - go vet ./...
-      - gofmt -d .
+      - |
+        if [ -n "$(gofmt -l .)" ]; then
+          echo "Code not formatted. Run 'task format' to fix."
+          gofmt -d .
+          exit 1
+        fi
 
   test:
     desc: Run Go tests with warnings as errors (matches CI)
@@ -47,24 +52,7 @@ tasks:
       - gofmt -w .
       - goimports -w .
 
-  # Test tasks
-  test:race:
-    desc: Run tests with race detection
-    cmds:
-      - go test -race ./...
-
-  # Lint tasks
-  lint:vet:
-    desc: Run go vet
-    cmds:
-      - go vet ./...
-
-  lint:fmt:
-    desc: Check code formatting
-    cmds:
-      - gofmt -d .
-
-  # CI/CD tasks
+  # CI/CD
   ci:
     desc: Run complete CI/CD pipeline (in parallel)
     cmds:
@@ -90,7 +78,7 @@ tasks:
       - echo ""
       - echo "=== BACKEND CI/CD COMPLETE ==="
 
-  # Docker tasks
+  # Docker
   docker:build:
     desc: Build Docker image for amd64 (uses version from git tag)
     cmds:
@@ -105,17 +93,7 @@ tasks:
         VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
         docker buildx build --platform linux/amd64,linux/arm64 -t keyline:$VERSION -t keyline:latest .
 
-  docker:run:
-    desc: Run Keyline in Docker
-    cmds:
-      - docker run --rm -it -p 9000:9000 keyline:latest --config /etc/keyline/config.yaml
-
-  docker:test:
-    desc: Run Docker integration tests
-    cmds:
-      - ./test-keyline.sh
-
-  # Release tasks
+  # Release
   release:build:
     desc: Build binary for release
     cmds:
@@ -128,20 +106,13 @@ tasks:
         mkdir -p ./dist
         CGO_ENABLED=0 GOOS=${GOOS:-linux} GOARCH=${GOARCH:-amd64} go build -ldflags="-w -s" -o ./dist/keyline-${GOOS}-${GOARCH} ./cmd/keyline
 
-  release:package:target:
-    desc: Package binary as zip (set GOOS and GOARCH env vars)
-    cmds:
-      - |
-        mkdir -p artifacts
-        cd dist && zip ../artifacts/keyline-${GOOS}-${GOARCH}.zip keyline-${GOOS}-${GOARCH}
-
-  # Version tasks
+  # Version
   version:bump:
     desc: "Create local git tag (usage: task version:bump -- v1.3.0 or task version:bump -- -f v1.3.0)"
     cmds:
       - ./scripts/bump-version.sh {{.CLI_ARGS}}
 
-  # Documentation tasks
+  # Documentation
   docs:install:
     desc: Install Docusaurus dependencies
     dir: docs
@@ -168,12 +139,7 @@ tasks:
     cmds:
       - npm run serve
 
-  docs:serve:
-    desc: Serve documentation locally (alias for docs:preview)
-    cmds:
-      - task: docs:preview
-
-  # Build tasks
+  # Build
   clean:
     desc: Clean all build artifacts
     cmds:
