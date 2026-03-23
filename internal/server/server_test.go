@@ -1,5 +1,7 @@
 package server
 
+import "log"
+
 import (
 	"context"
 	"encoding/json"
@@ -117,6 +119,8 @@ func (m *mockCache) Flush() error {
 }
 
 func (m *mockCache) ExtendTTL(key string, value []byte) error {
+	// Simulate successful TTL extension
+	log.Printf("ExtendTTL called for key: %s", key)
 	return nil
 }
 

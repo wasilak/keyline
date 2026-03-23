@@ -183,10 +183,6 @@ func main() {
 	if passwordLength == 0 {
 		passwordLength = 32 // Default
 	}
-	pwdGen := usermgmt.NewPasswordGenerator(passwordLength)
-	logger.Info("Password generator initialized",
-		slog.Int("password_length", passwordLength),
-	)
 
 	// Initialize credential encryptor
 	// Load encryption key from config
@@ -208,28 +204,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create encryptor instance
-	encryptor, err := usermgmt.NewEncryptor(keyBytes)
-	if err != nil {
-		logger.Error("Failed to create credential encryptor", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-	logger.Info("Credential encryptor initialized")
-
-	// Initialize role mapper
-	roleMapper := usermgmt.NewRoleMapper(cfg)
-	logger.Info("Role mapper initialized",
-		slog.Int("role_mappings_count", len(cfg.RoleMappings)),
-		slog.Int("default_roles_count", len(cfg.DefaultESRoles)),
-	)
-
 	// Initialize user manager with encryptor
-	userManager, err = usermgmt.NewManager(
+	userManager = usermgmt.NewManager(
 		esClient,
-		roleMapper,
 		cacheBackend,
-		pwdGen,
-		encryptor,
 		cfg,
 	)
 	if err != nil {
