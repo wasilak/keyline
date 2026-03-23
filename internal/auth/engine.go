@@ -72,6 +72,7 @@ type EngineResult struct {
 	SetCookie     *http.Cookie
 	StatusCode    int
 	Error         error
+	AuthUser      *usermgmt.AuthenticatedUser // full user info for retry credential regeneration
 }
 
 // Authenticate performs authentication with precedence logic:
@@ -274,6 +275,7 @@ func (e *Engine) authenticateWithBasicAuth(ctx context.Context, req *EngineReque
 		ESPassword:    creds.Password,
 		ESAuthHeader:  esAuthHeader,
 		StatusCode:    http.StatusOK,
+		AuthUser:      authUser,
 	}
 }
 

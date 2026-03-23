@@ -177,6 +177,7 @@ func (a *StandaloneProxyAdapter) HandleRequest(c echo.Context) error {
 
 func (a *StandaloneProxyAdapter) proxyWithRetry(c echo.Context, ctx context.Context, result *auth.EngineResult) error {
 	req := c.Request().Clone(ctx)
+	req.RequestURI = "" // must be empty for outgoing client requests
 
 	// Build the target URL
 	req.URL.Scheme = a.upstreamURL.Scheme
@@ -220,13 +221,6 @@ func (a *StandaloneProxyAdapter) proxyWithRetry(c echo.Context, ctx context.Cont
 			break
 		}
 
-		// Copy response headers
-		for k, v := range resp.Header {
-			for _, vv := range v {
-				c.Response().Header().Add(k, vv)
-			}
-		}
-
 		// Handle 401 - invalidate cache and retry
 		if resp.StatusCode == http.StatusUnauthorized {
 			resp.Body.Close()
@@ -250,10 +244,7 @@ func (a *StandaloneProxyAdapter) proxyWithRetry(c echo.Context, ctx context.Cont
 			}
 
 			// Get fresh credentials (this will create new ES user)
-			authUser := &usermgmt.AuthenticatedUser{
-				Username: result.Username,
-			}
-			creds, err := a.userManager.UpsertUser(ctx, authUser)
+			creds, err := a.userManager.UpsertUser(ctx, result.AuthUser)
 			if err != nil {
 				slog.ErrorContext(ctx, "Failed to get fresh credentials",
 					slog.String("username", username),
@@ -268,9 +259,15 @@ func (a *StandaloneProxyAdapter) proxyWithRetry(c echo.Context, ctx context.Cont
 			continue
 		}
 
-		// Write response
+		// Copy response headers and write response (strip hop-by-hop headers first)
+		a.removeHopByHopHeaders(resp.Header)
+		for k, v := range resp.Header {
+			for _, vv := range v {
+				c.Response().Header().Add(k, vv)
+			}
+		}
 		c.Response().WriteHeader(resp.StatusCode)
-		io.Copy(c.Response().Writer, resp.Body)
+		io.Copy(c.Response(), resp.Body)
 		resp.Body.Close()
 		return nil
 	}
@@ -278,7 +275,10 @@ func (a *StandaloneProxyAdapter) proxyWithRetry(c echo.Context, ctx context.Cont
 	if lastErr != nil {
 		return a.handleProxyError(c, ctx, lastErr)
 	}
-	return nil
+	// All retry attempts exhausted with upstream 401s
+	return c.JSON(http.StatusUnauthorized, map[string]string{
+		"error": "upstream authentication failed after retry",
+	})
 }
 
 func (a *StandaloneProxyAdapter) handleProxyError(c echo.Context, ctx context.Context, err error) error {

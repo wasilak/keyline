@@ -40,7 +40,7 @@ func (m *manager) UpsertUser(ctx context.Context, authUser *AuthenticatedUser) (
 		return nil, fmt.Errorf("cache lookup failed: %w", err)
 	}
 
-	if found {
+	if found && len(cachedCredentials) > 0 {
 		remainingTTL, exists, ttlErr := m.cache.GetItemTTL(cacheKey)
 		if ttlErr == nil && exists {
 			threshold := m.calculateTTLThreshold()
