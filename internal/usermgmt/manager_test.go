@@ -2,13 +2,13 @@ package usermgmt
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	cachegoConfig "github.com/wasilak/cachego/config"
+	"github.com/yourusername/keyline/internal/config"
 	"github.com/yourusername/keyline/internal/elasticsearch"
 )
 
@@ -92,15 +92,16 @@ func TestUpsertUser_CacheHit(t *testing.T) {
 	mockES := new(MockElasticsearchClient)
 	cacheTTL := 24 * time.Hour
 	manager := &manager{
-		cache:    mockCache,
-		esClient: mockES,
-		cacheTTL: cacheTTL,
+		cache:      mockCache,
+		esClient:   mockES,
+		cacheTTL:   cacheTTL,
+		roleMapper: NewRoleMapper(&config.Config{}),
 	}
 
 	username := "testuser"
 	cacheKey := "keyline:user:testuser:password"
 	mockCache.On("Get", cacheKey).Return([]byte("cached-password"), true, nil)
-	mockES.On("GetUser", mock.Anything, username).Return(&elasticsearch.User{}, nil)
+	mockCache.On("GetItemTTL", cacheKey).Return(2*time.Hour, true, nil)
 
 	credentials, err := manager.UpsertUser(context.TODO(), &AuthenticatedUser{Username: username})
 
@@ -114,10 +115,14 @@ func TestUpsertUser_CacheMiss(t *testing.T) {
 	mockCache := new(MockCache)
 	mockES := new(MockElasticsearchClient)
 	cacheTTL := 24 * time.Hour
+	cfg := &config.Config{
+		DefaultESRoles: []string{"viewer"},
+	}
 	manager := &manager{
-		cache:    mockCache,
-		esClient: mockES,
-		cacheTTL: cacheTTL,
+		cache:      mockCache,
+		esClient:   mockES,
+		cacheTTL:   cacheTTL,
+		roleMapper: NewRoleMapper(cfg),
 	}
 
 	username := "testuser"
@@ -125,33 +130,7 @@ func TestUpsertUser_CacheMiss(t *testing.T) {
 
 	mockCache.On("Get", cacheKey).Return([]byte{}, false, nil)
 	mockCache.On("Set", cacheKey, mock.Anything).Return(nil)
-
-	credentials, err := manager.UpsertUser(context.TODO(), &AuthenticatedUser{Username: username})
-	assert.NoError(t, err)
-	assert.Equal(t, "testuser", credentials.Username)
-	assert.NotEmpty(t, credentials.Password)
-	mockCache.AssertExpectations(t)
-}
-
-func TestUpsertUser_RetryOnCacheMiss(t *testing.T) {
-	mockCache := new(MockCache)
-	mockES := new(MockElasticsearchClient)
-	cacheTTL := 24 * time.Hour
-	manager := &manager{
-		cache:    mockCache,
-		esClient: mockES,
-		cacheTTL: cacheTTL,
-	}
-
-	username := "testuser"
-	cacheKey := "keyline:user:testuser:password"
-
-	mockCache.On("Get", cacheKey).Return([]byte("cached-password"), true, nil).Once()
-	mockCache.On("Set", cacheKey, mock.Anything).Return(nil).Once()
-	mockCache.On("Get", cacheKey).Return([]byte{}, false, nil).Once()
-	mockCache.On("Set", cacheKey, mock.Anything).Return(nil).Once()
-
-	mockES.On("GetUser", mock.Anything, username).Return(nil, fmt.Errorf("user not found")).Once()
+	mockES.On("CreateOrUpdateUser", mock.Anything, mock.Anything).Return(nil)
 
 	credentials, err := manager.UpsertUser(context.TODO(), &AuthenticatedUser{Username: username})
 	assert.NoError(t, err)
