@@ -100,7 +100,7 @@ func New(cfg *config.Config, version string, cache cachego.CacheInterface, oidcP
 		slog.Info("Configured ForwardAuth mode adapter")
 
 	case "standalone":
-		adapter, err := transport.NewStandaloneProxyAdapter(cfg, cache, authEngine)
+		adapter, err := transport.NewStandaloneProxyAdapter(cfg, cache, authEngine, userManager)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create standalone proxy adapter: %w", err)
 		}

@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"log/slog"
@@ -18,6 +19,7 @@ import (
 	"github.com/yourusername/keyline/internal/auth"
 	"github.com/yourusername/keyline/internal/config"
 	"github.com/yourusername/keyline/internal/observability"
+	"github.com/yourusername/keyline/internal/usermgmt"
 	"go.opentelemetry.io/otel"
 )
 
@@ -26,28 +28,22 @@ type StandaloneProxyAdapter struct {
 	config      *config.Config
 	cache       cachego.CacheInterface
 	authEngine  *auth.Engine
+	userManager usermgmt.Manager
 	proxy       *httputil.ReverseProxy
 	upstreamURL *url.URL
+	httpClient  *http.Client
 }
 
 // NewStandaloneProxyAdapter creates a new standalone proxy adapter
-func NewStandaloneProxyAdapter(cfg *config.Config, cache cachego.CacheInterface, authEngine *auth.Engine) (*StandaloneProxyAdapter, error) {
+func NewStandaloneProxyAdapter(cfg *config.Config, cache cachego.CacheInterface, authEngine *auth.Engine, userManager usermgmt.Manager) (*StandaloneProxyAdapter, error) {
 	// Parse upstream URL
 	upstreamURL, err := url.Parse(cfg.Upstream.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid upstream URL: %w", err)
 	}
 
-	adapter := &StandaloneProxyAdapter{
-		config:      cfg,
-		cache:       cache,
-		authEngine:  authEngine,
-		upstreamURL: upstreamURL,
-	}
-
-	// Initialize reverse proxy
-	adapter.proxy = &httputil.ReverseProxy{
-		Director: adapter.director,
+	httpClient := &http.Client{
+		Timeout: cfg.Upstream.Timeout,
 		Transport: &http.Transport{
 			MaxIdleConns:        cfg.Upstream.MaxIdleConns,
 			MaxIdleConnsPerHost: cfg.Upstream.MaxIdleConns,
@@ -57,6 +53,21 @@ func NewStandaloneProxyAdapter(cfg *config.Config, cache cachego.CacheInterface,
 				InsecureSkipVerify: cfg.Upstream.InsecureSkipVerify,
 			},
 		},
+	}
+
+	adapter := &StandaloneProxyAdapter{
+		config:      cfg,
+		cache:       cache,
+		authEngine:  authEngine,
+		userManager: userManager,
+		upstreamURL: upstreamURL,
+		httpClient:  httpClient,
+	}
+
+	// Initialize reverse proxy using custom httpClient
+	adapter.proxy = &httputil.ReverseProxy{
+		Director:     adapter.director,
+		Transport:    httpClient.Transport,
 		ErrorHandler: adapter.errorHandler,
 	}
 
@@ -160,10 +171,153 @@ func (a *StandaloneProxyAdapter) HandleRequest(c echo.Context) error {
 		return a.handleWebSocket(c, ctx, result.ESAuthHeader)
 	}
 
-	// Proxy the request
-	a.proxy.ServeHTTP(c.Response(), c.Request())
+	// Custom proxy with retry logic for 401
+	return a.proxyWithRetry(c, ctx, result)
+}
 
+func (a *StandaloneProxyAdapter) proxyWithRetry(c echo.Context, ctx context.Context, result *auth.EngineResult) error {
+	req := c.Request().Clone(ctx)
+
+	// Build the target URL
+	req.URL.Scheme = a.upstreamURL.Scheme
+	req.URL.Host = a.upstreamURL.Host
+	req.Host = a.upstreamURL.Host
+
+	// Set ES auth header
+	req.Header.Set("Authorization", result.ESAuthHeader)
+	req.Header.Del("X-Es-Authorization")
+	a.removeHopByHopHeaders(req.Header)
+
+	// Add X-Forwarded headers
+	if req.Header.Get("X-Forwarded-For") == "" {
+		req.Header.Set("X-Forwarded-For", req.RemoteAddr)
+	}
+	if req.Header.Get("X-Forwarded-Proto") == "" {
+		if req.TLS != nil {
+			req.Header.Set("X-Forwarded-Proto", "https")
+		} else {
+			req.Header.Set("X-Forwarded-Proto", "http")
+		}
+	}
+	if req.Header.Get("X-Forwarded-Host") == "" {
+		req.Header.Set("X-Forwarded-Host", req.Host)
+	}
+
+	var lastErr error
+	maxRetries := 1
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if attempt > 0 {
+			slog.InfoContext(ctx, "Retrying request after 401",
+				slog.Int("attempt", attempt),
+				slog.String("username", result.Username),
+			)
+		}
+
+		resp, err := a.httpClient.Do(req)
+		if err != nil {
+			lastErr = err
+			break
+		}
+
+		// Copy response headers
+		for k, v := range resp.Header {
+			for _, vv := range v {
+				c.Response().Header().Add(k, vv)
+			}
+		}
+
+		// Handle 401 - invalidate cache and retry
+		if resp.StatusCode == http.StatusUnauthorized {
+			resp.Body.Close()
+
+			// Get username from auth header
+			username, err := a.userManager.GetUsernameFromAuthHeader(result.ESAuthHeader)
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed to extract username from auth header",
+					slog.String("error", err.Error()),
+				)
+				break
+			}
+
+			// Invalidate cache
+			if err := a.userManager.InvalidateCache(ctx, username); err != nil {
+				slog.ErrorContext(ctx, "Failed to invalidate cache",
+					slog.String("username", username),
+					slog.String("error", err.Error()),
+				)
+				break
+			}
+
+			// Get fresh credentials (this will create new ES user)
+			authUser := &usermgmt.AuthenticatedUser{
+				Username: result.Username,
+			}
+			creds, err := a.userManager.UpsertUser(ctx, authUser)
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed to get fresh credentials",
+					slog.String("username", username),
+					slog.String("error", err.Error()),
+				)
+				break
+			}
+
+			// Update request with new credentials
+			newAuthHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(creds.Username+":"+creds.Password))
+			req.Header.Set("Authorization", newAuthHeader)
+			continue
+		}
+
+		// Write response
+		c.Response().WriteHeader(resp.StatusCode)
+		io.Copy(c.Response().Writer, resp.Body)
+		resp.Body.Close()
+		return nil
+	}
+
+	if lastErr != nil {
+		return a.handleProxyError(c, ctx, lastErr)
+	}
 	return nil
+}
+
+func (a *StandaloneProxyAdapter) handleProxyError(c echo.Context, ctx context.Context, err error) error {
+	slog.ErrorContext(ctx, "Proxy error",
+		slog.String("error", err.Error()),
+	)
+
+	if err == context.DeadlineExceeded {
+		return c.JSON(http.StatusGatewayTimeout, map[string]string{
+			"error": "Gateway Timeout: upstream request timed out",
+		})
+	}
+
+	if strings.Contains(err.Error(), "x509") || strings.Contains(err.Error(), "certificate") || strings.Contains(err.Error(), "tls") {
+		return c.JSON(http.StatusBadGateway, map[string]string{
+			"error": "TLS/SSL certificate verification failed. If using self-signed certificates, set 'insecure_skip_verify: true' in upstream config.",
+		})
+	}
+
+	if netErr, ok := err.(net.Error); ok {
+		if netErr.Timeout() {
+			return c.JSON(http.StatusGatewayTimeout, map[string]string{
+				"error": "Gateway Timeout: connection to upstream timed out",
+			})
+		}
+		return c.JSON(http.StatusBadGateway, map[string]string{
+			"error": "Bad Gateway: failed to connect to upstream Elasticsearch",
+		})
+	}
+
+	if strings.Contains(err.Error(), "connection refused") {
+		return c.JSON(http.StatusBadGateway, map[string]string{
+			"error": "Bad Gateway: connection refused by upstream Elasticsearch",
+		})
+	}
+
+	return c.JSON(http.StatusBadGateway, map[string]string{
+		"error": fmt.Sprintf("Bad Gateway: %s", err.Error()),
+	})
 }
 
 // director modifies the request before proxying

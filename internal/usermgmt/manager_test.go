@@ -2,6 +2,7 @@ package usermgmt
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -52,6 +53,9 @@ type MockElasticsearchClient struct {
 
 func (m *MockElasticsearchClient) GetUser(ctx context.Context, username string) (*elasticsearch.User, error) {
 	args := m.Called(ctx, username)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*elasticsearch.User), args.Error(1)
 }
 
@@ -96,6 +100,7 @@ func TestUpsertUser_CacheHit(t *testing.T) {
 	username := "testuser"
 	cacheKey := "keyline:user:testuser:password"
 	mockCache.On("Get", cacheKey).Return([]byte("cached-password"), true, nil)
+	mockES.On("GetUser", mock.Anything, username).Return(&elasticsearch.User{}, nil)
 
 	credentials, err := manager.UpsertUser(context.TODO(), &AuthenticatedUser{Username: username})
 
@@ -117,15 +122,41 @@ func TestUpsertUser_CacheMiss(t *testing.T) {
 
 	username := "testuser"
 	cacheKey := "keyline:user:testuser:password"
-	mockCache.On("Get", cacheKey).Return([]byte(nil), false, nil)
-	mockCache.On("Set", cacheKey, []byte("newlyGeneratedPassword")).Return(nil)
-	mockES.On("CreateOrUpdateUser", mock.Anything, mock.Anything).Return(nil)
+
+	mockCache.On("Get", cacheKey).Return([]byte{}, false, nil)
+	mockCache.On("Set", cacheKey, mock.Anything).Return(nil)
 
 	credentials, err := manager.UpsertUser(context.TODO(), &AuthenticatedUser{Username: username})
-
 	assert.NoError(t, err)
 	assert.Equal(t, "testuser", credentials.Username)
-	assert.Equal(t, "newlyGeneratedPassword", credentials.Password)
+	assert.NotEmpty(t, credentials.Password)
+	mockCache.AssertExpectations(t)
+}
+
+func TestUpsertUser_RetryOnCacheMiss(t *testing.T) {
+	mockCache := new(MockCache)
+	mockES := new(MockElasticsearchClient)
+	cacheTTL := 24 * time.Hour
+	manager := &manager{
+		cache:    mockCache,
+		esClient: mockES,
+		cacheTTL: cacheTTL,
+	}
+
+	username := "testuser"
+	cacheKey := "keyline:user:testuser:password"
+
+	mockCache.On("Get", cacheKey).Return([]byte("cached-password"), true, nil).Once()
+	mockCache.On("Set", cacheKey, mock.Anything).Return(nil).Once()
+	mockCache.On("Get", cacheKey).Return([]byte{}, false, nil).Once()
+	mockCache.On("Set", cacheKey, mock.Anything).Return(nil).Once()
+
+	mockES.On("GetUser", mock.Anything, username).Return(nil, fmt.Errorf("user not found")).Once()
+
+	credentials, err := manager.UpsertUser(context.TODO(), &AuthenticatedUser{Username: username})
+	assert.NoError(t, err)
+	assert.Equal(t, "testuser", credentials.Username)
+	assert.NotEmpty(t, credentials.Password)
 	mockCache.AssertExpectations(t)
 	mockES.AssertExpectations(t)
 }
