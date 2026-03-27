@@ -995,3 +995,181 @@ func TestValidate_EncryptionKeyRawStringTooLong(t *testing.T) {
 		t.Errorf("Expected error about 32 bytes, got: %v", err)
 	}
 }
+
+// validBaseConfig returns a minimal valid config with LDAP as the sole auth method.
+// Tests can override the LDAP block to exercise individual validation rules.
+func validLDAPBaseConfig() *Config {
+	return &Config{
+		LDAP: LDAPConfig{
+			Enabled:      true,
+			URL:          "ldap://ldap.example.com:389",
+			BindDN:       "CN=svc,DC=example,DC=com",
+			BindPassword: "secret",
+			SearchBase:   "DC=example,DC=com",
+			SearchFilter: "(sAMAccountName={username})",
+		},
+		Session: SessionConfig{
+			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+		},
+		Cache: CacheConfig{
+			Backend:       "memory",
+			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=",
+		},
+		Elasticsearch: ElasticsearchConfig{
+			AdminUser:     "admin",
+			AdminPassword: "password",
+			URL:           "http://elasticsearch:9200",
+		},
+		DefaultESRoles: []string{"viewer"},
+	}
+}
+
+func TestValidate_LDAPEnabled_Success(t *testing.T) {
+	cfg := validLDAPBaseConfig()
+
+	err := Validate(cfg)
+	if err != nil {
+		t.Errorf("Validate() failed for valid LDAP config: %v", err)
+	}
+}
+
+func TestValidate_LDAPMissingURL(t *testing.T) {
+	cfg := validLDAPBaseConfig()
+	cfg.LDAP.URL = ""
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when ldap.url is missing")
+	}
+	if !strings.Contains(err.Error(), "ldap.url is required") {
+		t.Errorf("Expected error about ldap.url, got: %v", err)
+	}
+}
+
+func TestValidate_LDAPInvalidURLScheme(t *testing.T) {
+	cfg := validLDAPBaseConfig()
+	cfg.LDAP.URL = "http://ldap.example.com:389"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when ldap.url has invalid scheme")
+	}
+	if !strings.Contains(err.Error(), "ldap.url must start with ldap://") {
+		t.Errorf("Expected error about ldap:// scheme, got: %v", err)
+	}
+}
+
+func TestValidate_LDAPMissingBindDN(t *testing.T) {
+	cfg := validLDAPBaseConfig()
+	cfg.LDAP.BindDN = ""
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when ldap.bind_dn is missing")
+	}
+	if !strings.Contains(err.Error(), "ldap.bind_dn is required") {
+		t.Errorf("Expected error about ldap.bind_dn, got: %v", err)
+	}
+}
+
+func TestValidate_LDAPMissingBindPassword(t *testing.T) {
+	cfg := validLDAPBaseConfig()
+	cfg.LDAP.BindPassword = ""
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when ldap.bind_password is missing")
+	}
+	if !strings.Contains(err.Error(), "ldap.bind_password is required") {
+		t.Errorf("Expected error about ldap.bind_password, got: %v", err)
+	}
+}
+
+func TestValidate_LDAPMissingSearchBase(t *testing.T) {
+	cfg := validLDAPBaseConfig()
+	cfg.LDAP.SearchBase = ""
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when ldap.search_base is missing")
+	}
+	if !strings.Contains(err.Error(), "ldap.search_base is required") {
+		t.Errorf("Expected error about ldap.search_base, got: %v", err)
+	}
+}
+
+func TestValidate_LDAPMissingSearchFilter(t *testing.T) {
+	cfg := validLDAPBaseConfig()
+	cfg.LDAP.SearchFilter = ""
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when ldap.search_filter is missing")
+	}
+	if !strings.Contains(err.Error(), "ldap.search_filter is required") {
+		t.Errorf("Expected error about ldap.search_filter, got: %v", err)
+	}
+}
+
+func TestValidate_LDAPSearchFilterMissingPlaceholder(t *testing.T) {
+	cfg := validLDAPBaseConfig()
+	cfg.LDAP.SearchFilter = "(objectClass=user)"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when ldap.search_filter is missing {username} placeholder")
+	}
+	if !strings.Contains(err.Error(), "{username}") {
+		t.Errorf("Expected error about {username} placeholder, got: %v", err)
+	}
+}
+
+func TestValidate_LDAPInvalidTLSMode(t *testing.T) {
+	cfg := validLDAPBaseConfig()
+	cfg.LDAP.TLSMode = "invalid"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Error("Expected error when ldap.tls_mode is invalid")
+	}
+	if !strings.Contains(err.Error(), "ldap.tls_mode must be one of") {
+		t.Errorf("Expected error about ldap.tls_mode, got: %v", err)
+	}
+}
+
+func TestValidate_LDAPDisabled_NoValidation(t *testing.T) {
+	cfg := &Config{
+		OIDC: OIDCConfig{
+			Enabled:      true,
+			IssuerURL:    "https://example.com",
+			ClientID:     "client",
+			ClientSecret: "secret",
+			RedirectURL:  "https://auth.example.com/callback",
+		},
+		LDAP: LDAPConfig{
+			Enabled: false,
+			// Intentionally invalid fields — should not trigger errors when disabled
+			URL:          "not-a-valid-url",
+			SearchFilter: "(no-placeholder-here)",
+			TLSMode:      "invalid",
+		},
+		Session: SessionConfig{
+			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+		},
+		Cache: CacheConfig{
+			Backend:       "memory",
+			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=",
+		},
+		Elasticsearch: ElasticsearchConfig{
+			AdminUser:     "admin",
+			AdminPassword: "password",
+			URL:           "http://elasticsearch:9200",
+		},
+		DefaultESRoles: []string{"viewer"},
+	}
+
+	err := Validate(cfg)
+	if err != nil {
+		t.Errorf("Validate() should not validate LDAP fields when LDAP is disabled, got: %v", err)
+	}
+}

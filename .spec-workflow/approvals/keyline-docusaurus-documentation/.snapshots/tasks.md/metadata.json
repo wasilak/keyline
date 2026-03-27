@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/keyline-docusaurus-documentation/tasks.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-21T13:58:27.808Z",
+      "trigger": "initial",
+      "approvalId": "approval_1774101507806_j2qlmilhv",
+      "approvalTitle": "Keyline Docusaurus Documentation - Tasks"
+    }
+  ]
+}

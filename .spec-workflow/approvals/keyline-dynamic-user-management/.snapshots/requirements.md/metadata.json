@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/keyline-dynamic-user-management/requirements.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-20T21:00:08.878Z",
+      "trigger": "initial",
+      "approvalId": "approval_1774040408876_baiazhq5c",
+      "approvalTitle": "Requirements for Dynamic Elasticsearch User Management"
+    }
+  ]
+}

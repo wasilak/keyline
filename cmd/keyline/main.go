@@ -98,6 +98,7 @@ func main() {
 		slog.String("config_file", configFile),
 		slog.Bool("oidc_enabled", cfg.OIDC.Enabled),
 		slog.Int("local_users_count", localUsersCount),
+		slog.Bool("ldap_enabled", cfg.LDAP.Enabled),
 		slog.String("mode", cfg.Server.Mode),
 		slog.String("cache_backend", cfg.Cache.Backend),
 	)

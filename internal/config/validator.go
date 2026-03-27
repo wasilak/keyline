@@ -14,8 +14,8 @@ func Validate(cfg *Config) error {
 	var errors []string
 
 	// Validate at least one authentication method is enabled
-	if !cfg.OIDC.Enabled && !cfg.LocalUsers.Enabled {
-		errors = append(errors, "at least one authentication method must be enabled (OIDC or local users)")
+	if !cfg.OIDC.Enabled && !cfg.LocalUsers.Enabled && !cfg.LDAP.Enabled {
+		errors = append(errors, "at least one authentication method must be enabled (OIDC, local users, or LDAP)")
 	}
 
 	// Validate OIDC configuration if enabled
@@ -159,10 +159,53 @@ func Validate(cfg *Config) error {
 		}
 	}
 
+	// Validate LDAP configuration if enabled
+	errors = validateLDAP(cfg, errors)
+
 	// Return all errors
 	if len(errors) > 0 {
 		return fmt.Errorf("configuration validation failed:\n  - %s", strings.Join(errors, "\n  - "))
 	}
 
 	return nil
+}
+
+// validateLDAP validates the LDAP configuration block when ldap.enabled is true.
+func validateLDAP(cfg *Config, errors []string) []string {
+	if !cfg.LDAP.Enabled {
+		return errors
+	}
+
+	if cfg.LDAP.URL == "" {
+		errors = append(errors, "ldap.url is required when LDAP is enabled")
+	} else {
+		if !strings.HasPrefix(cfg.LDAP.URL, "ldap://") && !strings.HasPrefix(cfg.LDAP.URL, "ldaps://") {
+			errors = append(errors, "ldap.url must start with ldap:// or ldaps://")
+		}
+	}
+
+	if cfg.LDAP.BindDN == "" {
+		errors = append(errors, "ldap.bind_dn is required when LDAP is enabled")
+	}
+
+	if cfg.LDAP.BindPassword == "" {
+		errors = append(errors, "ldap.bind_password is required when LDAP is enabled")
+	}
+
+	if cfg.LDAP.SearchBase == "" {
+		errors = append(errors, "ldap.search_base is required when LDAP is enabled")
+	}
+
+	if cfg.LDAP.SearchFilter == "" {
+		errors = append(errors, "ldap.search_filter is required when LDAP is enabled")
+	} else if !strings.Contains(cfg.LDAP.SearchFilter, "{username}") {
+		errors = append(errors, "ldap.search_filter must contain the {username} placeholder")
+	}
+
+	validTLSModes := map[string]bool{"none": true, "ldaps": true, "starttls": true, "": true}
+	if !validTLSModes[cfg.LDAP.TLSMode] {
+		errors = append(errors, "ldap.tls_mode must be one of: none, ldaps, starttls")
+	}
+
+	return errors
 }

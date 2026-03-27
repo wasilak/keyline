@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/keyline-docusaurus-documentation/design.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-21T13:54:42.654Z",
+      "trigger": "initial",
+      "approvalId": "approval_1774101282651_t7vaukssh",
+      "approvalTitle": "Keyline Docusaurus Documentation - Design"
+    }
+  ]
+}

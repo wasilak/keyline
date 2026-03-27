@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/wasilak/cachego"
 	"github.com/yourusername/keyline/internal/config"
@@ -19,10 +20,12 @@ type Engine struct {
 	cache          cachego.CacheInterface
 	oidcProvider   *OIDCProvider
 	basicProvider  *BasicAuthProvider
+	ldapProvider   *LDAPProvider
 	userManager    usermgmt.Manager
 	sessionEnabled bool
 	oidcEnabled    bool
 	basicEnabled   bool
+	ldapEnabled    bool
 }
 
 // NewEngine creates a new authentication engine with dynamic user management
@@ -35,6 +38,7 @@ func NewEngine(cfg *config.Config, cache cachego.CacheInterface, oidcProvider *O
 		sessionEnabled: true,
 		oidcEnabled:    cfg.OIDC.Enabled,
 		basicEnabled:   cfg.LocalUsers.Enabled,
+		ldapEnabled:    cfg.LDAP.Enabled,
 	}
 
 	// Initialize Basic Auth provider if enabled
@@ -44,6 +48,15 @@ func NewEngine(cfg *config.Config, cache cachego.CacheInterface, oidcProvider *O
 			return nil, fmt.Errorf("failed to initialize Basic Auth provider: %w", err)
 		}
 		engine.basicProvider = basicProvider
+	}
+
+	// Initialize LDAP provider if enabled
+	if cfg.LDAP.Enabled {
+		ldapProvider, err := NewLDAPProvider(&cfg.LDAP)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize LDAP provider: %w", err)
+		}
+		engine.ldapProvider = ldapProvider
 	}
 
 	return engine, nil
@@ -96,10 +109,23 @@ func (e *Engine) Authenticate(ctx context.Context, req *EngineRequest) *EngineRe
 	}
 
 	// 2. Check Basic Auth header (second precedence)
-	if e.basicEnabled && req.AuthorizationHeader != "" {
-		result := e.authenticateWithBasicAuth(ctx, req)
-		if result != nil {
-			return result
+	if req.AuthorizationHeader != "" {
+		// If local users is enabled and this username exists locally, use Basic Auth.
+		// Otherwise fall through to LDAP if it is enabled.
+		if e.basicEnabled && e.hasLocalUser(req.AuthorizationHeader) {
+			result := e.authenticateWithBasicAuth(ctx, req)
+			if result != nil {
+				return result
+			}
+		} else if e.ldapEnabled {
+			return e.authenticateWithLDAP(ctx, req)
+		} else if e.basicEnabled {
+			// basicEnabled but username not found locally and no LDAP — still attempt
+			// basic auth so the caller gets a proper 401 (user not found).
+			result := e.authenticateWithBasicAuth(ctx, req)
+			if result != nil {
+				return result
+			}
 		}
 	}
 
@@ -266,6 +292,100 @@ func (e *Engine) authenticateWithBasicAuth(ctx context.Context, req *EngineReque
 		slog.String("result", "success"),
 		slog.String("es_user", creds.Username),
 		slog.Any("groups", userGroups),
+	)
+
+	return &EngineResult{
+		Authenticated: true,
+		Username:      authResult.Username,
+		ESUser:        creds.Username,
+		ESPassword:    creds.Password,
+		ESAuthHeader:  esAuthHeader,
+		StatusCode:    http.StatusOK,
+		AuthUser:      authUser,
+	}
+}
+
+// hasLocalUser reports whether the given Basic Auth header refers to a username
+// that exists in the local_users list. It decodes the header without failing
+// loudly — if the header is malformed we return false and let the provider
+// produce the proper error response.
+func (e *Engine) hasLocalUser(authorizationHeader string) bool {
+	if !e.basicEnabled {
+		return false
+	}
+
+	encodedCreds := strings.TrimPrefix(authorizationHeader, "Basic ")
+	decodedBytes, err := base64.StdEncoding.DecodeString(encodedCreds)
+	if err != nil {
+		return false
+	}
+
+	username, _, err := extractCredentials(string(decodedBytes))
+	if err != nil {
+		return false
+	}
+
+	for _, u := range e.config.LocalUsers.Users {
+		if u.Username == username {
+			return true
+		}
+	}
+	return false
+}
+
+// authenticateWithLDAP validates Basic Auth credentials against the LDAP server.
+func (e *Engine) authenticateWithLDAP(ctx context.Context, req *EngineRequest) *EngineResult {
+	slog.InfoContext(ctx, "Attempting LDAP authentication")
+
+	authReq := &AuthRequest{
+		AuthorizationHeader: req.AuthorizationHeader,
+		OriginalURL:         req.OriginalURL,
+	}
+
+	authResult := e.ldapProvider.Authenticate(ctx, authReq)
+
+	if !authResult.Authenticated {
+		slog.WarnContext(ctx, "LDAP authentication failed",
+			slog.String("username", authResult.Username),
+		)
+		return &EngineResult{
+			Authenticated: false,
+			StatusCode:    http.StatusUnauthorized,
+			Error:         authResult.Error,
+		}
+	}
+
+	// Upsert user with dynamic credentials
+	authUser := &usermgmt.AuthenticatedUser{
+		Username: authResult.Username,
+		Groups:   authResult.Groups,
+		Email:    authResult.Email,
+		FullName: authResult.FullName,
+		Source:   "ldap",
+	}
+
+	creds, err := e.userManager.UpsertUser(ctx, authUser)
+	if err != nil {
+		slog.ErrorContext(ctx, "User management failed for LDAP",
+			slog.String("username", authResult.Username),
+			slog.String("error", err.Error()),
+		)
+		return &EngineResult{
+			Authenticated: false,
+			StatusCode:    http.StatusInternalServerError,
+			Error:         fmt.Errorf("user management failed: %w", err),
+		}
+	}
+
+	esAuthHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(creds.Username+":"+creds.Password))
+
+	slog.InfoContext(ctx, "LDAP authentication successful with dynamic user management",
+		slog.String("username", authResult.Username),
+		slog.String("method", "ldap"),
+		slog.String("source_ip", req.SourceIP),
+		slog.String("result", "success"),
+		slog.String("es_user", creds.Username),
+		slog.Any("groups", authResult.Groups),
 	)
 
 	return &EngineResult{

@@ -9,6 +9,7 @@ type Config struct {
 	Server         ServerConfig        `mapstructure:"server"`
 	OIDC           OIDCConfig          `mapstructure:"oidc"`
 	LocalUsers     LocalUsersConfig    `mapstructure:"local_users"`
+	LDAP           LDAPConfig          `mapstructure:"ldap"`
 	Session        SessionConfig       `mapstructure:"session"`
 	Cache          CacheConfig         `mapstructure:"cache"`
 	Elasticsearch  ElasticsearchConfig `mapstructure:"elasticsearch"`
@@ -68,6 +69,38 @@ type LocalUser struct {
 	Groups         []string `mapstructure:"groups"`
 	Email          string   `mapstructure:"email"`
 	FullName       string   `mapstructure:"full_name"`
+}
+
+// LDAPConfig contains LDAP authentication settings
+type LDAPConfig struct {
+	Enabled bool `mapstructure:"enabled"`
+
+	// Server connection
+	URL               string        `mapstructure:"url"`                // ldap:// or ldaps://
+	BindDN            string        `mapstructure:"bind_dn"`            // Service account DN
+	BindPassword      string        `mapstructure:"bind_password"`      // Service account password
+	ConnectionTimeout time.Duration `mapstructure:"connection_timeout"` // Default: 10s
+
+	// TLS
+	TLSMode       string `mapstructure:"tls_mode"`        // "none", "ldaps", "starttls"
+	TLSSkipVerify bool   `mapstructure:"tls_skip_verify"` // Skip cert verification (dev only)
+
+	// User search
+	SearchBase   string `mapstructure:"search_base"`   // e.g. "DC=example,DC=com"
+	SearchFilter string `mapstructure:"search_filter"` // e.g. "(sAMAccountName={username})"
+
+	// Group search (optional — omit both to skip group fetching)
+	GroupSearchBase   string `mapstructure:"group_search_base"`   // e.g. "DC=example,DC=com"
+	GroupSearchFilter string `mapstructure:"group_search_filter"` // e.g. "(member={user_dn})"
+
+	// Attribute mapping
+	UsernameAttribute    string `mapstructure:"username_attribute"`     // Default: sAMAccountName
+	EmailAttribute       string `mapstructure:"email_attribute"`        // Default: mail
+	DisplayNameAttribute string `mapstructure:"display_name_attribute"` // Default: displayName
+	GroupNameAttribute   string `mapstructure:"group_name_attribute"`   // Default: cn
+
+	// Access control
+	RequiredGroups []string `mapstructure:"required_groups"` // Optional — user must belong to at least one
 }
 
 // SessionConfig contains session management settings

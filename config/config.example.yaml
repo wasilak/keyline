@@ -127,6 +127,58 @@ local_users:
       full_name: Monitoring Service
 
 # ============================================================================
+# LDAP Authentication Configuration (Active Directory / OpenLDAP)
+# ============================================================================
+ldap:
+  # Enable LDAP authentication
+  # Can coexist with local_users (local users are checked first by username)
+  enabled: false
+
+  # LDAP server URL — must start with ldap:// or ldaps://
+  url: ${LDAP_URL}
+
+  # Service account used for user search (bind DN and password)
+  # Store the password in an environment variable, never in the config file
+  bind_dn: ${LDAP_BIND_DN}
+  bind_password: ${LDAP_BIND_PASSWORD}
+
+  # Connection timeout (default: 10s)
+  connection_timeout: 10s
+
+  # TLS mode: "none" (plain LDAP), "ldaps" (LDAP over TLS), or "starttls"
+  # Use "ldaps" or "starttls" in production
+  tls_mode: ldaps
+
+  # Skip TLS certificate verification — development only, do NOT use in production
+  tls_skip_verify: false
+
+  # Search base DN for user lookup
+  # Example: "DC=corp,DC=example,DC=com"
+  search_base: ${LDAP_SEARCH_BASE}
+
+  # Search filter — must contain the {username} placeholder (LDAP-injection-safe)
+  # Active Directory: (sAMAccountName={username})
+  # OpenLDAP:         (uid={username})
+  search_filter: "(sAMAccountName={username})"
+
+  # Group search (optional — omit both to skip group fetching)
+  # search_base for group objects
+  group_search_base: ${LDAP_GROUP_SEARCH_BASE}
+  # Filter to find groups for a user; {user_dn} is replaced with the authenticated user's DN
+  group_search_filter: "(member={user_dn})"
+
+  # Attribute mapping (defaults shown — override only if your schema differs)
+  username_attribute: sAMAccountName  # Active Directory default
+  email_attribute: mail
+  display_name_attribute: displayName
+  group_name_attribute: cn
+
+  # Required groups (optional) — user must belong to at least one group in this list
+  # If empty, all authenticated users are allowed
+  # required_groups:
+  #   - keyline-users
+
+# ============================================================================
 # Session Management Configuration
 # ============================================================================
 session:
@@ -449,4 +501,27 @@ observability:
 # 
 # default_es_roles:
 #   - viewer
+
+# Example 8: LDAP with Active Directory (coexisting with local service accounts)
+# -------------------------------------------------------------------------------
+# local_users:
+#   enabled: true
+#   users:
+#     - username: ci-pipeline
+#       password_bcrypt: ${CI_PASSWORD_BCRYPT}
+#       groups:
+#         - ci
+# 
+# ldap:
+#   enabled: true
+#   url: ldaps://ad.corp.example.com:636
+#   bind_dn: CN=keyline-svc,OU=ServiceAccounts,DC=corp,DC=example,DC=com
+#   bind_password: ${LDAP_BIND_PASSWORD}
+#   tls_mode: ldaps
+#   search_base: DC=corp,DC=example,DC=com
+#   search_filter: "(sAMAccountName={username})"
+#   group_search_base: OU=Groups,DC=corp,DC=example,DC=com
+#   group_search_filter: "(member={user_dn})"
+#   required_groups:
+#     - keyline-users
 

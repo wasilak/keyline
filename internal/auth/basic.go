@@ -95,7 +95,7 @@ func (p *BasicAuthProvider) Authenticate(ctx context.Context, req *AuthRequest) 
 	decodedCreds := string(decodedBytes)
 
 	// Extract username and password
-	username, password, err := p.extractCredentials(decodedCreds)
+	username, password, err := extractCredentials(decodedCreds)
 	if err != nil {
 		slog.WarnContext(ctx, "Failed to extract credentials",
 			slog.String("error", err.Error()),
@@ -148,8 +148,9 @@ func (p *BasicAuthProvider) Authenticate(ctx context.Context, req *AuthRequest) 
 	}
 }
 
-// extractCredentials splits decoded credentials on ":" separator
-func (p *BasicAuthProvider) extractCredentials(decodedCreds string) (username, password string, err error) {
+// extractCredentials splits decoded Basic Auth credentials on the first ":" separator.
+// It is a package-level function so both BasicAuthProvider and LDAPProvider can share it.
+func extractCredentials(decodedCreds string) (username, password string, err error) {
 	// Split on first ":" to handle passwords containing ":"
 	parts := strings.SplitN(decodedCreds, ":", 2)
 

@@ -42,6 +42,10 @@ func (m *mockUserManager) InvalidateCache(ctx context.Context, username string) 
 	return nil
 }
 
+func (m *mockUserManager) GetUsernameFromAuthHeader(authHeader string) (string, error) {
+	return "", nil
+}
+
 func setupTestAuthEngine(t *testing.T, cfg *config.Config, c cachego.CacheInterface) *auth.Engine {
 	userManager := &mockUserManager{}
 	engine, err := auth.NewEngine(cfg, c, nil, userManager)
@@ -161,7 +165,7 @@ func TestStandaloneProxyAdapter_Director(t *testing.T) {
 		},
 	}
 
-	adapter, err := NewStandaloneProxyAdapter(cfg, nil, nil)
+	adapter, err := NewStandaloneProxyAdapter(cfg, nil, nil, nil)
 	require.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -188,7 +192,7 @@ func TestStandaloneProxyAdapter_InternalEndpoint(t *testing.T) {
 		},
 	}
 
-	adapter, err := NewStandaloneProxyAdapter(cfg, nil, nil)
+	adapter, err := NewStandaloneProxyAdapter(cfg, nil, nil, nil)
 	require.NoError(t, err)
 
 	internalPaths := []string{

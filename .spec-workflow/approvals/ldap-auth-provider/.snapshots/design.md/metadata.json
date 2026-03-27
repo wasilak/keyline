@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/specs/ldap-auth-provider/design.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2026-03-26T17:51:39.832Z",
+      "trigger": "initial",
+      "approvalId": "approval_1774547499828_0guhj3b6a",
+      "approvalTitle": "LDAP Auth Provider — Design"
+    }
+  ]
+}
