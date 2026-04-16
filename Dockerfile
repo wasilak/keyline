@@ -28,7 +28,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 RUN ./keyline --version || true
 
 # Runtime stage
-FROM alpine:3.19
+FROM alpine:3.23
 
 # Install ca-certificates for HTTPS connections
 RUN apk --no-cache add ca-certificates tzdata
