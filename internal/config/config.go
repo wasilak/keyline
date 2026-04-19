@@ -98,6 +98,12 @@ type LDAPConfig struct {
 	EmailAttribute       string `mapstructure:"email_attribute"`        // Default: mail
 	DisplayNameAttribute string `mapstructure:"display_name_attribute"` // Default: displayName
 	GroupNameAttribute   string `mapstructure:"group_name_attribute"`   // Default: cn
+	// AttributeMapping allows overriding attribute names via a map, e.g.
+	// attribute_mapping:
+	//   username: uid
+	//   email: mail
+	//   displayName: cn
+	AttributeMapping map[string]string `mapstructure:"attribute_mapping"`
 
 	// Access control
 	RequiredGroups []string `mapstructure:"required_groups"` // Optional — user must belong to at least one

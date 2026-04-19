@@ -150,6 +150,8 @@ ldap:
   tls_mode: ldaps
 
   # Skip TLS certificate verification — development only, do NOT use in production
+  # WARNING: Setting tls_skip_verify: true disables certificate verification and
+  # weakens TLS security. Only use for local testing with self-signed certs.
   tls_skip_verify: false
 
   # Search base DN for user lookup
@@ -172,6 +174,20 @@ ldap:
   email_attribute: mail
   display_name_attribute: displayName
   group_name_attribute: cn
+
+  # Alternatively, you can provide an attribute_mapping map to override multiple
+  # attributes at once. Recognized keys: username, email, displayName, groupName
+  # Example (OpenLDAP example uses uid for username):
+  # attribute_mapping:
+  #   username: uid
+  #   email: mail
+  #   displayName: cn
+  #   groupName: cn
+
+  # Notes:
+  # - bind_password must reference an environment variable (e.g. ${LDAP_BIND_PASSWORD}).
+  # - The LDAP username attribute will be normalized by Keyline (trim, lower-case,
+  #   and replace unsupported characters) before being used as the Keyline username.
 
   # Required groups (optional) — user must belong to at least one group in this list
   # If empty, all authenticated users are allowed
@@ -524,4 +540,3 @@ observability:
 #   group_search_filter: "(member={user_dn})"
 #   required_groups:
 #     - keyline-users
-

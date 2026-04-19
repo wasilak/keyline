@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -57,7 +59,7 @@ func validLDAPConfig() *config.LDAPConfig {
 		Enabled:      true,
 		URL:          "ldap://ldap.example.com:389",
 		BindDN:       "CN=svc,DC=example,DC=com",
-		BindPassword: "svcpass",
+		BindPassword: "${LDAP_BIND_PASSWORD}",
 		SearchBase:   "DC=example,DC=com",
 		SearchFilter: "(sAMAccountName={username})",
 	}
@@ -66,8 +68,9 @@ func validLDAPConfig() *config.LDAPConfig {
 // userSearchResult returns a minimal single-entry LDAP search result for the user search step.
 func userSearchResult(dn, email, displayName string) *ldap.SearchResult {
 	entry := ldap.NewEntry(dn, map[string][]string{
-		"mail":        {email},
-		"displayName": {displayName},
+		"mail":           {email},
+		"displayName":    {displayName},
+		"sAMAccountName": {"jdoe"},
 	})
 	return &ldap.SearchResult{Entries: []*ldap.Entry{entry}}
 }
@@ -85,7 +88,17 @@ func groupSearchResult(cns ...string) *ldap.SearchResult {
 
 // newProviderWithMock creates an LDAPProvider using the given mock connection.
 func newProviderWithMock(cfg *config.LDAPConfig, conn ldapConn) *LDAPProvider {
-	p, _ := NewLDAPProvider(cfg)
+	// If BindPassword is an env var reference like ${VAR}, set a test value for it so
+	// NewLDAPProvider can resolve it during construction.
+	if strings.HasPrefix(cfg.BindPassword, "${") && strings.HasSuffix(cfg.BindPassword, "}") {
+		envVar := cfg.BindPassword[2 : len(cfg.BindPassword)-1]
+		_ = os.Setenv(envVar, "svcpass")
+	}
+
+	p, err := NewLDAPProvider(cfg)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create LDAPProvider in test helper: %v", err))
+	}
 	p.dialFn = func(_ *config.LDAPConfig) (ldapConn, error) {
 		return conn, nil
 	}
@@ -121,6 +134,11 @@ func TestNewLDAPProvider_Defaults(t *testing.T) {
 	cfg.DisplayNameAttribute = ""
 	cfg.GroupNameAttribute = ""
 	cfg.ConnectionTimeout = 0
+
+	// Ensure the environment variable referenced by BindPassword is set for this test.
+	// validLDAPConfig() sets BindPassword to ${LDAP_BIND_PASSWORD}.
+	os.Setenv("LDAP_BIND_PASSWORD", "svcpass")
+	defer os.Unsetenv("LDAP_BIND_PASSWORD")
 
 	p, err := NewLDAPProvider(cfg)
 	require.NoError(t, err)
@@ -348,4 +366,63 @@ func TestLDAPProvider_InjectionPrevention(t *testing.T) {
 	// The filter must not contain the raw special characters unescaped.
 	assert.NotContains(t, capturedFilter, ")(cn=*",
 		"LDAP filter must escape special characters to prevent injection")
+}
+
+func TestMappedUsernameNormalization(t *testing.T) {
+	cfg := validLDAPConfig()
+	// override attribute mapping to ensure mapping via config works
+	cfg.AttributeMapping = map[string]string{"username": "sAMAccountName", "email": "mail", "displayName": "displayName"}
+
+	userDN := "CN=Strange Name,DC=example,DC=com"
+
+	mock := &mockLDAPConn{
+		bindFn: func(_, _ string) error { return nil },
+		searchFn: func(req *ldap.SearchRequest) (*ldap.SearchResult, error) {
+			if req.BaseDN == cfg.SearchBase {
+				// username attribute contains spaces and capitals and illegal chars
+				entry := ldap.NewEntry(userDN, map[string][]string{
+					"sAMAccountName": {"  John.Doe@Example ", "JOHN"},
+					"mail":           {"john@example.com"},
+					"displayName":    {"John Doe"},
+				})
+				return &ldap.SearchResult{Entries: []*ldap.Entry{entry}}, nil
+			}
+			return groupSearchResult(), nil
+		},
+	}
+
+	p := newProviderWithMock(cfg, mock)
+	res := p.Authenticate(context.Background(), &AuthRequest{AuthorizationHeader: basicAuthHeader("jdoe", "pass")})
+
+	require.True(t, res.Authenticated)
+	// normalized username: "john.doe_example" => lowercased, truncate invalid chars replaced with underscore
+	assert.Equal(t, "john.doe_example", res.Username)
+}
+
+func TestMappedUsernameMissingFallsBack(t *testing.T) {
+	cfg := validLDAPConfig()
+	cfg.AttributeMapping = map[string]string{"username": "sAMAccountName", "email": "mail", "displayName": "displayName"}
+
+	userDN := "CN=NoLogin,DC=example,DC=com"
+
+	mock := &mockLDAPConn{
+		bindFn: func(_, _ string) error { return nil },
+		searchFn: func(req *ldap.SearchRequest) (*ldap.SearchResult, error) {
+			if req.BaseDN == cfg.SearchBase {
+				// no username attribute present
+				entry := ldap.NewEntry(userDN, map[string][]string{
+					"mail":        {"nologin@example.com"},
+					"displayName": {"No Login"},
+				})
+				return &ldap.SearchResult{Entries: []*ldap.Entry{entry}}, nil
+			}
+			return groupSearchResult(), nil
+		},
+	}
+
+	p := newProviderWithMock(cfg, mock)
+	res := p.Authenticate(context.Background(), &AuthRequest{AuthorizationHeader: basicAuthHeader("fallback", "pass")})
+
+	require.True(t, res.Authenticated)
+	assert.Equal(t, "fallback", res.Username)
 }

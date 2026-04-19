@@ -1004,7 +1004,7 @@ func validLDAPBaseConfig() *Config {
 			Enabled:      true,
 			URL:          "ldap://ldap.example.com:389",
 			BindDN:       "CN=svc,DC=example,DC=com",
-			BindPassword: "secret",
+			BindPassword: "${LDAP_BIND_PASSWORD}",
 			SearchBase:   "DC=example,DC=com",
 			SearchFilter: "(sAMAccountName={username})",
 		},
