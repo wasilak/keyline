@@ -1,0 +1,61 @@
+Title: LDAP Authentication Provider for Keyline
+
+Overview:
+Add LDAP as a third authentication provider to Keyline so users can authenticate using Active Directory credentials via HTTP Basic Auth. Keyline must support OIDC (browser/SSO), LDAP (AD-based programmatic or human users), and local users (service accounts with bcrypt credentials) simultaneously without conflicts.
+
+Goals:
+- Enable Basic Auth requests to authenticate against LDAP when the username is not present in local_users.
+- Preserve existing auth precedence and behavior: session cookie -> local_users -> LDAP -> OIDC fallback.
+- Integrate LDAP group memberships into the existing role-mapping pipeline so LDAP users receive the same ES role assignments.
+- Provide secure, configurable LDAP connection and searches with clear validation and sensible defaults.
+
+User Stories:
+1) As an infrastructure engineer, I want Keyline to authenticate users against an LDAP/Active Directory server, so AD-managed users can access protected services without requiring an OIDC identity provider.
+   Acceptance Criteria:
+   - When a request arrives with an Authorization: Basic header and username is not in local_users, Keyline attempts LDAP auth.
+   - Success returns 200 with X-Es-Authorization header populated with mapped Elasticsearch credentials.
+   - Failure returns 401 with no redirect; unreachable LDAP server returns 500 and logs the error.
+
+2) As a platform operator, I want a single Keyline instance to handle OIDC, LDAP, and local user auth simultaneously to avoid separate proxy instances per auth type.
+   Acceptance Criteria:
+   - Precedence: valid session cookie -> local_users (if username exists) -> LDAP (if username not in local_users and ldap.enabled) -> OIDC redirect.
+   - If username exists in local_users and password is wrong, return 401 and do not fall through to LDAP.
+
+3) As a platform operator, I want LDAP connection details, search, group search, and attribute mappings configurable in Keyline config.
+   Acceptance Criteria:
+   - ldap.enabled true requires url, bind_dn, bind_password, search_base, search_filter.
+   - ldap.url must start with ldap:// or ldaps://.
+   - search_filter must contain {username} placeholder.
+   - tls_mode must be one of none, ldaps, starttls.
+
+4) Security-focused operator: LDAP implementation must be secure.
+   Acceptance Criteria:
+   - Escape username in search filter to prevent LDAP injection.
+   - bind_password must be sourced from environment variable reference.
+   - tls_skip_verify true logs a startup warning.
+
+5) As an operator, I want LDAP groups to flow through role mapping so LDAP users get the same ES roles as other auth sources.
+   Acceptance Criteria:
+   - On successful LDAP auth, pass groups into UpsertUser and set AuthenticatedUser.Source = "ldap".
+
+Tech Stack and Architecture Decisions:
+- Language: Go
+- LDAP library: github.com/go-ldap/ldap/v3
+- No new frameworks. Use existing crypto/tls and golang.org/x/crypto for bcrypt.
+- New provider file: internal/auth/ldap.go; tests in internal/auth/ldap_test.go.
+- Config additions in internal/config/config.go and validator.go with validateLDAP integrated into existing validation.
+- Reuse AuthRequest/AuthResult types and UpsertUser pipeline.
+- extractCredentials promoted to package-level helper and reused by LDAP provider.
+
+Implementation Notes:
+- LDAPProvider implements Authenticate(ctx, *AuthRequest) *AuthResult.
+- LDAPConfig struct includes Enabled, URL, BindDN, BindPassword (env), ConnectionTimeout (default 10s), TLSMode, TLSSkipVerify, SearchBase, SearchFilter, GroupSearchBase/Filter, attribute mapping defaults for AD (sAMAccountName, mail, displayName, cn), RequiredGroups.
+- Engine wiring: add ldapProvider and ldapEnabled fields; route Basic Auth based on hasLocalUser(username).
+- Error handling: connection or bind failures → 500; user not found or wrong password → 401; group search failure non-fatal.
+
+Testing Strategy:
+- Unit tests with testify for LDAPProvider and validator. Mock LDAP connections via a ldapConn interface.
+- Integration tests for LDAP are out of scope.
+
+Deliverables:
+- PR that adds internal/auth/ldap.go, updates engine wiring and config validation, adds tests, and updates config.example.yaml.

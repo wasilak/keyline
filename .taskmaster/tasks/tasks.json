@@ -51,5 +51,160 @@
       "estimate": "0.5d",
       "status": "pending"
     }
-  ]
+  ],
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Define LDAP Configuration Structure and Validation",
+        "description": "Create the LDAPConfig struct in internal/config/config.go and integrate its validation into internal/config/validator.go, ensuring all specified configuration requirements are met.",
+        "details": "Create a `LDAPConfig` struct in `internal/config/config.go` with fields: `Enabled` (bool), `URL` (string), `BindDN` (string), `BindPassword` (string, for env var reference), `ConnectionTimeout` (time.Duration, default 10s), `TLSMode` (string, enum: 'none', 'ldaps', 'starttls'), `TLSSkipVerify` (bool), `SearchBase` (string), `SearchFilter` (string), `GroupSearchBase` (string), `GroupSearchFilter` (string), `AttributeMapping` (map[string]string, with defaults for AD: `sAMAccountName`, `mail`, `displayName`, `cn`), `RequiredGroups` ([]string). Implement validation logic in `internal/config/validator.go` to ensure:\n- `ldap.enabled: true` requires `url`, `bind_dn`, `bind_password`, `search_base`, `search_filter`.\n- `ldap.url` starts with `ldap://` or `ldaps://`.\n- `search_filter` contains `{username}` placeholder.\n- `tls_mode` is one of `none`, `ldaps`, `starttls`.\n- `bind_password` is an environment variable reference (e.g., `${ENV_VAR}`).\n- Log a warning if `tls_skip_verify` is true.",
+        "testStrategy": "Write unit tests for `internal/config/validator.go` using `testify` to cover all LDAP configuration validation rules. Test cases should include valid configurations, missing required fields, invalid URL formats, incorrect `tls_mode` values, and proper handling of `bind_password` environment variable references. Verify that a warning is logged when `tls_skip_verify` is true.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Implement Core LDAP Connection and Initial Binding Logic",
+        "description": "Develop the foundational LDAP connection establishment and initial bind logic using the `github.com/go-ldap/ldap/v3` library, respecting TLS modes and connection timeouts.",
+        "details": "Create `internal/auth/ldap.go`. Implement a function, e.g., `newLDAPClient(config LDAPConfig) (*ldap.Conn, error)`, that establishes an LDAP connection based on `config.URL` and `config.TLSMode`. Use `ldap.DialURL` for `ldap://` and `ldaps://`. For `starttls`, establish a plain connection then call `conn.StartTLS(&tls.Config{})`. Handle `config.TLSSkipVerify` by configuring `tls.Config.InsecureSkipVerify`. Apply `config.ConnectionTimeout`. Perform an initial bind using `config.BindDN` and the resolved `config.BindPassword` (from environment variable).",
+        "testStrategy": "Write unit tests for the connection function in `internal/auth/ldap_test.go`. Mock the `ldap.Client` interface to simulate successful connections, connection timeouts, and various TLS modes (none, ldaps, starttls). Verify that `TLSSkipVerify` is correctly applied to the `tls.Config` and that initial bind attempts are made with the provided credentials.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Implement LDAP User Search and Attribute Mapping",
+        "description": "Develop the logic to search for a user in LDAP based on the configured search filter and map their attributes to Keyline's internal user representation.",
+        "details": "Within `internal/auth/ldap.go`, create a function, e.g., `searchUser(conn *ldap.Conn, config LDAPConfig, username string) (*ldap.Entry, error)`, that performs an LDAP search. Construct the search filter using `config.SearchFilter`, replacing `{username}` with the provided username. Crucially, escape the username using `ldap.EscapeFilter(username)` to prevent LDAP injection. Perform the search under `config.SearchBase` with appropriate scope (e.g., `ldap.ScopeWholeSubtree`). Extract user attributes based on `config.AttributeMapping` (e.g., `sAMAccountName`, `mail`, `displayName`, `cn`) from the `ldap.Entry`.",
+        "testStrategy": "Write unit tests in `internal/auth/ldap_test.go`. Mock `ldap.Client` to simulate successful user searches, user not found scenarios, and verify that the username is correctly escaped in the search filter. Test that attributes are correctly extracted and mapped according to `AttributeMapping`.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Implement LDAP User Authentication (Bind as User)",
+        "description": "Implement the final step of LDAP authentication by attempting to bind to the LDAP server using the found user's DN and the password provided in the authentication request.",
+        "details": "In `internal/auth/ldap.go`, within the `Authenticate` method (which will implement `Authenticate(ctx, *AuthRequest) *AuthResult`): after successfully finding the user's entry (from Task 3), attempt to bind to the LDAP server using the user's `DN` (from the search result) and the password from the `AuthRequest`. If this bind is successful, the user is authenticated. If the bind fails, authentication fails (e.g., wrong password). Return an `AuthResult` with the `AuthenticatedUser` and `Source = \"ldap\"` on success, or an appropriate error on failure.",
+        "testStrategy": "Write unit tests for the `Authenticate` method in `internal/auth/ldap_test.go`. Mock `ldap.Client` to simulate successful user binds (correct password), failed user binds (incorrect password), and scenarios where the user's DN is not found or is invalid for binding. Verify that the correct `AuthResult` is returned for each scenario.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Integrate LDAP Provider into Keyline Authentication Engine",
+        "description": "Wire the new LDAP authentication provider into the existing Keyline authentication engine, ensuring correct precedence for Basic Auth requests.",
+        "details": "Modify the central authentication logic in `internal/engine/engine.go`. Add `ldapProvider` and `ldapEnabled` fields to the engine struct. Update the main authentication flow to respect the precedence:\n1.  Check for valid session cookie.\n2.  If `Authorization: Basic` header is present:\n    a.  Call `extractCredentials` (promoted to package-level helper if not already).\n    b.  Check if the username exists in `local_users`. If it does and the password is wrong, return 401 immediately (do not fall through).\n    c.  If the username is NOT in `local_users` AND `ldap.enabled` is true, attempt authentication using the new `LDAPProvider.Authenticate` method.\n3.  If Basic Auth fails or is not applicable, fall back to OIDC redirect.\nEnsure `AuthRequest`/`AuthResult` types are reused.",
+        "testStrategy": "Write unit tests for the authentication engine's dispatch logic. Mock `local_users` and the `LDAPProvider` to simulate various scenarios: valid session cookie, local user success/failure, local user not found with LDAP enabled/disabled, LDAP success/failure, and OIDC fallback. Verify that the correct authentication path is taken and appropriate HTTP status codes are returned.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          3,
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Implement LDAP Group Search",
+        "description": "Develop the functionality to search for groups an authenticated LDAP user belongs to, using configurable group search parameters.",
+        "details": "In `internal/auth/ldap.go`, after a successful user authentication (Task 4), implement a function, e.g., `searchGroups(conn *ldap.Conn, config LDAPConfig, userDN string) ([]string, error)`, to perform a group search. Use `config.GroupSearchBase` and `config.GroupSearchFilter`. The filter should typically use the user's DN or a relevant attribute (e.g., `memberOf` attribute if available, or a direct group membership search). Extract the group names from the search results. Handle group search failures as non-fatal, logging the error but allowing the authentication process to continue.",
+        "testStrategy": "Write unit tests for group search in `internal/auth/ldap_test.go`. Mock `ldap.Client` to simulate scenarios where a user belongs to multiple groups, no groups, and when a group search operation fails. Verify that group names are correctly extracted and that errors in group search are logged but do not prevent successful user authentication.",
+        "priority": "medium",
+        "dependencies": [
+          1,
+          2,
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Integrate LDAP Groups into Role Mapping Pipeline",
+        "description": "Ensure that successfully retrieved LDAP group memberships are passed into the existing role-mapping pipeline for Elasticsearch role assignments.",
+        "details": "Modify the `Authenticate` method in `internal/auth/ldap.go`. On successful LDAP authentication, after retrieving the user's groups (Task 6), ensure these groups are included in the `AuthResult` object. The PRD specifies: 'On successful LDAP auth, pass groups into UpsertUser and set AuthenticatedUser.Source = \"ldap\"'. Ensure the `AuthenticatedUser` object returned by the LDAP provider correctly sets its `Source` field to `\"ldap\"` and includes the mapped group names, which will then be consumed by the `UpsertUser` pipeline for role mapping.",
+        "testStrategy": "Write unit tests for the `Authenticate` method in `internal/auth/ldap_test.go`. Mock `ldap.Client` to simulate successful authentication with and without group memberships. Verify that the `AuthResult` returned by the LDAP provider correctly contains `AuthenticatedUser.Source = \"ldap\"` and the list of extracted groups, ready for the `UpsertUser` pipeline.",
+        "priority": "medium",
+        "dependencies": [
+          5,
+          6
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Implement Robust Error Handling and Logging",
+        "description": "Ensure comprehensive error handling and detailed logging for all LDAP operations, providing clear feedback for different failure scenarios.",
+        "details": "Implement robust error handling across all LDAP-related functions in `internal/auth/ldap.go` and the authentication engine. Specifically:\n- Connection or initial bind failures (e.g., unreachable LDAP server, incorrect bind credentials) should result in a 500 HTTP status code and be logged as errors.\n- User not found during search or incorrect password during user bind should result in a 401 HTTP status code.\n- Group search failures should be non-fatal, logged as warnings, and not prevent successful user authentication.\n- Log specific details for debugging, including LDAP server responses, connection issues, search parameters, and attribute mapping problems.",
+        "testStrategy": "Write unit tests that specifically target error conditions in `internal/auth/ldap_test.go` and the engine's authentication flow. Mock `ldap.Client` to simulate: unreachable LDAP server, incorrect initial bind credentials, search errors, user not found, incorrect user password, and group search failures. Verify that the correct HTTP status codes (401, 500) are returned and appropriate error/warning messages are logged.",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3,
+          4,
+          6
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Update `config.example.yaml` and Documentation",
+        "description": "Provide a clear and comprehensive example configuration for LDAP in `config.example.yaml` and update any relevant internal documentation.",
+        "details": "Add a new `ldap` section to `config.example.yaml` that includes all configurable parameters defined in Task 1. Provide clear comments for each parameter, explaining its purpose, expected values (e.g., `tls_mode` options), and the format for `bind_password` (environment variable reference). Include sensible default values or placeholders. Explicitly mention the logging of a warning when `tls_skip_verify` is true. Review and update any other internal documentation that might be affected by the addition of the LDAP provider.",
+        "testStrategy": "Perform a manual review of the updated `config.example.yaml` to ensure it is clear, complete, and accurately reflects all LDAP configuration options and their requirements as per the PRD. Verify that comments are informative and easy to understand for an operator.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Create `internal/auth/ldap_test.go` and Comprehensive Unit Tests",
+        "description": "Set up the dedicated test file for the LDAP provider and add comprehensive unit tests covering all core functionalities and edge cases, using mocked LDAP connections.",
+        "details": "Create `internal/auth/ldap_test.go` if not already created in previous tasks. Utilize `testify` for assertions. Implement a mock `ldap.Client` interface to simulate LDAP server responses, as integration tests are out of scope. Write unit tests for:\n- `LDAPProvider.Authenticate` success path, including attribute mapping and group retrieval.\n- `LDAPProvider.Authenticate` for user not found and wrong password scenarios.\n- Username escaping in search filters.\n- Correct handling of `tls_mode` and `tls_skip_verify`.\n- Error handling for connection failures, bind failures, and search errors.\n- Ensure high test coverage for `internal/auth/ldap.go`.",
+        "testStrategy": "Execute all unit tests in `internal/auth/ldap_test.go`. Ensure that tests cover all acceptance criteria for LDAP authentication, group mapping, and error handling. Verify that the mocked LDAP responses correctly trigger the expected logic paths and outcomes, confirming the robustness and correctness of the LDAP provider implementation.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2026-04-19T13:54:32.023Z",
+      "updated": "2026-04-19T13:54:32.023Z",
+      "description": "Tasks for master context"
+    }
+  }
 }
