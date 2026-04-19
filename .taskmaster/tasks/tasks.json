@@ -1,0 +1,55 @@
+{
+  "spec": "ldap-auth-provider",
+  "prd": ".taskmaster/docs/prd.txt",
+  "tasks": [
+    {
+      "id": "1",
+      "title": "Implement LDAP authentication provider",
+      "description": "Add internal/auth/ldap.go implementing LDAPProvider Authenticate(ctx, *AuthRequest) *AuthResult using github.com/go-ldap/ldap/v3. Add unit tests in internal/auth/ldap_test.go with mocked ldapConn. Ensure escaping of username and correct error handling.",
+      "estimate": "3-4d",
+      "status": "pending"
+    },
+    {
+      "id": "2",
+      "title": "Add configuration and validation for LDAP",
+      "description": "Update internal/config/config.go and validator.go to include LDAPConfig fields (enabled, url, bind_dn, bind_password env ref, search_base, search_filter, tls_mode, tls_skip_verify, group_search_base/filter). Add defaults and validate requirements only when ldap.enabled is true. Update config.example.yaml.",
+      "estimate": "0.5-1d",
+      "status": "pending"
+    },
+    {
+      "id": "3",
+      "title": "Wire LDAP provider into auth engine",
+      "description": "Add ldapProvider and ldapEnabled wiring in engine. Route Basic Auth to LDAP only when username not in local_users and ldap.enabled. Ensure precedence: session cookie -> local_users -> LDAP -> OIDC. Update engine tests to cover precedence cases.",
+      "estimate": "1-2d",
+      "status": "pending"
+    },
+    {
+      "id": "4",
+      "title": "Integrate LDAP groups into role mapping",
+      "description": "On successful LDAP auth, pass groups into UpsertUser via AuthenticatedUser.Groups and set AuthenticatedUser.Source = \"ldap\". Validate RoleMappings apply to LDAP users and add tests.",
+      "estimate": "1d",
+      "status": "pending"
+    },
+    {
+      "id": "5",
+      "title": "Testing: unit and integration notes",
+      "description": "Add unit tests for LDAPProvider, validator, and engine wiring using testify. Document integration test plan for LDAP (out of scope to run) and mock examples. Ensure tests do not log passwords.",
+      "estimate": "1d",
+      "status": "pending"
+    },
+    {
+      "id": "6",
+      "title": "Documentation and examples",
+      "description": "Update README/CONTRIBUTING with LDAP feature notes. Update config.example.yaml and add example for LDAP env variable usage. Add migration notes if any.",
+      "estimate": "0.5d",
+      "status": "pending"
+    },
+    {
+      "id": "7",
+      "title": "Create PR and run code review checklist",
+      "description": "Prepare PR including files and tests. Run linters and unit tests locally. Request review and verify CI passes.",
+      "estimate": "0.5d",
+      "status": "pending"
+    }
+  ]
+}
