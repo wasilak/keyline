@@ -13,9 +13,9 @@ require (
 	github.com/wasilak/loggergo v1.8.2
 	github.com/wasilak/otelgo v1.3.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.67.0
-	go.opentelemetry.io/otel v1.42.0
-	go.opentelemetry.io/otel/metric v1.42.0
-	go.opentelemetry.io/otel/trace v1.42.0
+	go.opentelemetry.io/otel v1.43.0
+	go.opentelemetry.io/otel/metric v1.43.0
+	go.opentelemetry.io/otel/trace v1.43.0
 	golang.org/x/crypto v0.49.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 )
