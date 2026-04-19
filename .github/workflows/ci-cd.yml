@@ -176,7 +176,7 @@ jobs:
 
       # Build and push platform-specific image (always)
       - name: Build and push ${{ matrix.platform_name }}
-        uses: docker/build-push-action@v7.0.0
+        uses: docker/build-push-action@v7.1.0
         with:
           context: .
           platforms: ${{ matrix.platform }}
