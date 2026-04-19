@@ -2,19 +2,19 @@
   "models": {
     "main": {
       "provider": "google",
-      "modelId": "gemini-pro",
+      "modelId": "gemini-2.5-flash",
       "maxTokens": 120000,
       "temperature": 0.2
     },
     "research": {
       "provider": "google",
-      "modelId": "gemini-pro",
+      "modelId": "gemini-2.5-flash",
       "maxTokens": 8700,
       "temperature": 0.1
     },
     "fallback": {
       "provider": "google",
-      "modelId": "gemini-pro",
+      "modelId": "gemini-2.5-flash",
       "maxTokens": 120000,
       "temperature": 0.2
     }
