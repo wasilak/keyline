@@ -8,7 +8,7 @@ services:
     command: ["--config", "/etc/keyline/config.yaml"]
 
   traefik:
-    image: traefik:v2.11
+    image: traefik:v3.6
     ports:
       - "80:80"
       - "8080:8080"
