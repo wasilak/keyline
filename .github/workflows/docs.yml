@@ -32,7 +32,7 @@ jobs:
           cache-dependency-path: docs/package-lock.json
 
       - name: Install Task
-        uses: go-task/setup-task@v1
+        uses: go-task/setup-task@v2
 
       - name: Install docs dependencies
         run: task docs:install
