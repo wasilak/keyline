@@ -4,7 +4,8 @@ go 1.26
 
 require (
 	github.com/go-ldap/ldap/v3 v3.4.13
-	github.com/labstack/echo/v4 v4.15.2
+	github.com/labstack/echo/v4 v4.15.1
+	github.com/labstack/echo/v5 v5.1.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/samber/slog-echo v1.21.0
 	github.com/spf13/viper v1.21.0
