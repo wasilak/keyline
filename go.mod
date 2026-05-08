@@ -8,6 +8,7 @@ require (
 	github.com/labstack/echo/v5 v5.1.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/samber/slog-echo v1.23.0
+	github.com/samber/slog-echo/v2 v2.0.0
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	github.com/wasilak/cachego v0.0.11
