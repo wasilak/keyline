@@ -167,6 +167,11 @@ func Validate(cfg *Config) error {
 		}
 	}
 
+	// Warn about disabled OTel TLS verification
+	if cfg.Observability.OTelTLSSkipVerify {
+		log.Printf("warning: observability.otel_tls_skip_verify is true — TLS verification is disabled for OTel collector, not recommended for production")
+	}
+
 	// Validate LDAP configuration if enabled
 	errors = validateLDAP(cfg, errors)
 

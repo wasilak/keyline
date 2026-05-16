@@ -177,4 +177,8 @@ type ObservabilityConfig struct {
 
 	// Metrics
 	MetricsEnabled bool `mapstructure:"metrics_enabled"`
+
+	// TLS configuration for OTel collector connection
+	// OTelTLSSkipVerify disables TLS certificate verification (development only)
+	OTelTLSSkipVerify bool `mapstructure:"otel_tls_skip_verify"`
 }

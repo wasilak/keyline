@@ -348,7 +348,7 @@
         "testStrategy": "Implement unit tests for the CORS middleware in `internal/server/server_test.go`. Test cases should include requests from allowed origins (expect 200 OK), disallowed origins (expect CORS error/rejection), and when `allowed_origins` is empty (expect all cross-origin requests rejected). Verify the validator warns for `*`.",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -411,7 +411,7 @@
             "parentId": "undefined"
           }
         ],
-        "updatedAt": "2026-05-16T18:16:06.287Z"
+        "updatedAt": "2026-05-16T18:19:03.547Z"
       },
       {
         "id": "19",
@@ -421,7 +421,7 @@
         "testStrategy": "Add unit tests to verify that when `tls_skip_verify` is `false`, TLS verification is enabled. Test that when `tls_skip_verify` is `true`, the warning message is logged at startup. Use a mock OTel collector or a test setup that can simulate TLS handshake failures to confirm correct behavior.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -481,7 +481,8 @@
             "testStrategy": null,
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-05-16T18:19:43.827Z"
       },
       {
         "id": "20",
@@ -1260,9 +1261,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-16T18:16:06.287Z",
+      "lastModified": "2026-05-16T18:19:43.827Z",
       "taskCount": 15,
-      "completedCount": 1,
+      "completedCount": 2,
       "tags": [
         "concerns"
       ]

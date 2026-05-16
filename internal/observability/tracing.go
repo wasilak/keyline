@@ -52,12 +52,16 @@ func InitTracer(ctx context.Context, cfg *config.ObservabilityConfig) (trace.Tra
 		}
 	}
 
+	// Configure TLS based on settings
+	// Default: TLS verification enabled (secure)
+	builder := tracing.NewBuilder()
+	if cfg.OTelTLSSkipVerify {
+		slog.WarnContext(ctx, "OTel collector TLS verification is disabled — not recommended for production")
+		builder = builder.WithTLSInsecure()
+	}
+
 	// Use otelgo to initialize tracing
-	// otelgo uses environment variables for configuration
-	// Set them before calling Build
-	_, traceProvider, err := tracing.NewBuilder().
-		WithTLSInsecure(). // TODO: Make configurable based on endpoint scheme
-		Build(ctx)
+	_, traceProvider, err := builder.Build(ctx)
 
 	if err != nil {
 		slog.WarnContext(ctx, "Failed to initialize OpenTelemetry tracing, using no-op tracer",

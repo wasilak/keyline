@@ -393,6 +393,11 @@ observability:
   # 1.0 = 100% sampling (all requests traced)
   # 0.1 = 10% sampling (1 in 10 requests traced)
   otel_trace_ratio: 1.0
+
+  # TLS certificate verification for OTel collector connection
+  # Set to true to skip TLS verification (development only — NOT recommended for production)
+  # Default: false (TLS verification enabled)
+  otel_tls_skip_verify: false
   
   # Prometheus metrics
   metrics_enabled: true
