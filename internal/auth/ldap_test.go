@@ -426,3 +426,315 @@ func TestMappedUsernameMissingFallsBack(t *testing.T) {
 	require.True(t, res.Authenticated)
 	assert.Equal(t, "fallback", res.Username)
 }
+
+// --- Constructor edge cases ---
+
+func TestNewLDAPProvider_InlineBindPasswordRejected(t *testing.T) {
+	cfg := validLDAPConfig()
+	cfg.BindPassword = "plaintext-secret"
+
+	p, err := NewLDAPProvider(cfg)
+	assert.Error(t, err)
+	assert.Nil(t, p)
+	assert.Contains(t, err.Error(), "environment variable reference")
+}
+
+func TestNewLDAPProvider_BindPasswordEnvVarNotSet(t *testing.T) {
+	os.Unsetenv("LDAP_MISSING_VAR")
+	cfg := validLDAPConfig()
+	cfg.BindPassword = "${LDAP_MISSING_VAR}"
+
+	p, err := NewLDAPProvider(cfg)
+	assert.Error(t, err)
+	assert.Nil(t, p)
+	assert.Contains(t, err.Error(), "LDAP_MISSING_VAR")
+}
+
+func TestNewLDAPProvider_BindPasswordEmptyEnvVarName(t *testing.T) {
+	cfg := validLDAPConfig()
+	cfg.BindPassword = "${}"
+
+	p, err := NewLDAPProvider(cfg)
+	assert.Error(t, err)
+	assert.Nil(t, p)
+	assert.Contains(t, err.Error(), "empty")
+}
+
+// --- Authenticate edge cases ---
+
+func TestLDAPProvider_Authenticate_MissingHeader(t *testing.T) {
+	cfg := validLDAPConfig()
+	os.Setenv("LDAP_BIND_PASSWORD", "svcpass")
+	defer os.Unsetenv("LDAP_BIND_PASSWORD")
+
+	p, err := NewLDAPProvider(cfg)
+	require.NoError(t, err)
+
+	result := p.Authenticate(context.Background(), &AuthRequest{AuthorizationHeader: ""})
+
+	assert.False(t, result.Authenticated)
+	require.NotNil(t, result.Error)
+	assert.Contains(t, result.Error.Error(), "missing Authorization header")
+}
+
+func TestLDAPProvider_Authenticate_NonBasicHeader(t *testing.T) {
+	cfg := validLDAPConfig()
+	os.Setenv("LDAP_BIND_PASSWORD", "svcpass")
+	defer os.Unsetenv("LDAP_BIND_PASSWORD")
+
+	p, err := NewLDAPProvider(cfg)
+	require.NoError(t, err)
+
+	result := p.Authenticate(context.Background(), &AuthRequest{
+		AuthorizationHeader: "Bearer sometoken",
+	})
+
+	assert.False(t, result.Authenticated)
+	require.NotNil(t, result.Error)
+	assert.Contains(t, result.Error.Error(), "not Basic auth")
+}
+
+func TestLDAPProvider_Authenticate_InvalidBase64(t *testing.T) {
+	cfg := validLDAPConfig()
+	os.Setenv("LDAP_BIND_PASSWORD", "svcpass")
+	defer os.Unsetenv("LDAP_BIND_PASSWORD")
+
+	p, err := NewLDAPProvider(cfg)
+	require.NoError(t, err)
+
+	result := p.Authenticate(context.Background(), &AuthRequest{
+		AuthorizationHeader: "Basic not-valid-base64!!!",
+	})
+
+	assert.False(t, result.Authenticated)
+	require.NotNil(t, result.Error)
+	assert.Contains(t, result.Error.Error(), "invalid base64")
+}
+
+func TestLDAPProvider_Authenticate_DialFailure(t *testing.T) {
+	cfg := validLDAPConfig()
+	os.Setenv("LDAP_BIND_PASSWORD", "svcpass")
+	defer os.Unsetenv("LDAP_BIND_PASSWORD")
+
+	p, err := NewLDAPProvider(cfg)
+	require.NoError(t, err)
+	p.dialFn = func(_ *config.LDAPConfig) (ldapConn, error) {
+		return nil, fmt.Errorf("connection refused")
+	}
+
+	result := p.Authenticate(context.Background(), &AuthRequest{
+		AuthorizationHeader: basicAuthHeader("jdoe", "pass"),
+	})
+
+	assert.False(t, result.Authenticated)
+	require.NotNil(t, result.Error)
+	assert.Contains(t, result.Error.Error(), "LDAP connection failed")
+}
+
+func TestLDAPProvider_Authenticate_ServiceAccountRebindFail(t *testing.T) {
+	cfg := validLDAPConfig()
+	cfg.GroupSearchBase = "OU=groups,DC=example,DC=com"
+	cfg.GroupSearchFilter = "(member={user_dn})"
+
+	userDN := "CN=jdoe,DC=example,DC=com"
+	bindCall := 0
+
+	mock := &mockLDAPConn{
+		bindFn: func(_, _ string) error {
+			bindCall++
+			if bindCall == 3 { // third bind = service account re-bind after user bind
+				return fmt.Errorf("re-bind failed")
+			}
+			return nil
+		},
+		searchFn: func(req *ldap.SearchRequest) (*ldap.SearchResult, error) {
+			return userSearchResult(userDN, "jdoe@example.com", "John Doe"), nil
+		},
+	}
+
+	p := newProviderWithMock(cfg, mock)
+	result := p.Authenticate(context.Background(), &AuthRequest{
+		AuthorizationHeader: basicAuthHeader("jdoe", "pass"),
+	})
+
+	assert.False(t, result.Authenticated)
+	require.NotNil(t, result.Error)
+	assert.Contains(t, result.Error.Error(), "LDAP service unavailable")
+}
+
+// --- Group search filter substitution ---
+
+func TestLDAPProvider_GroupSearchFilter_UserDNSubstituted(t *testing.T) {
+	cfg := validLDAPConfig()
+	cfg.GroupSearchBase = "OU=groups,DC=example,DC=com"
+	cfg.GroupSearchFilter = "(member={user_dn})"
+
+	userDN := "CN=jdoe,OU=people,DC=example,DC=com"
+	var capturedGroupFilter string
+
+	mock := &mockLDAPConn{
+		bindFn: func(_, _ string) error { return nil },
+		searchFn: func(req *ldap.SearchRequest) (*ldap.SearchResult, error) {
+			if req.BaseDN == cfg.GroupSearchBase {
+				capturedGroupFilter = req.Filter
+				return groupSearchResult(), nil
+			}
+			return userSearchResult(userDN, "jdoe@example.com", "John Doe"), nil
+		},
+	}
+
+	p := newProviderWithMock(cfg, mock)
+	p.Authenticate(context.Background(), &AuthRequest{
+		AuthorizationHeader: basicAuthHeader("jdoe", "pass"),
+	})
+
+	// {user_dn} must be replaced with the actual (escaped) user DN — not the literal placeholder.
+	assert.NotContains(t, capturedGroupFilter, "{user_dn}")
+	assert.Contains(t, capturedGroupFilter, "CN=jdoe")
+}
+
+func TestLDAPProvider_GroupSearch_NoBaseConfigured_ReturnsEmpty(t *testing.T) {
+	cfg := validLDAPConfig()
+	// No GroupSearchBase / GroupSearchFilter set.
+
+	userDN := "CN=jdoe,DC=example,DC=com"
+	searchCalls := 0
+
+	mock := &mockLDAPConn{
+		bindFn: func(_, _ string) error { return nil },
+		searchFn: func(_ *ldap.SearchRequest) (*ldap.SearchResult, error) {
+			searchCalls++
+			return userSearchResult(userDN, "jdoe@example.com", "John Doe"), nil
+		},
+	}
+
+	p := newProviderWithMock(cfg, mock)
+	result := p.Authenticate(context.Background(), &AuthRequest{
+		AuthorizationHeader: basicAuthHeader("jdoe", "pass"),
+	})
+
+	require.True(t, result.Authenticated)
+	assert.Empty(t, result.Groups)
+	// Only one search should happen (user search); group search must be skipped.
+	assert.Equal(t, 1, searchCalls)
+}
+
+func TestLDAPProvider_GroupSearch_EmptyResult(t *testing.T) {
+	cfg := validLDAPConfig()
+	cfg.GroupSearchBase = "OU=groups,DC=example,DC=com"
+	cfg.GroupSearchFilter = "(member={user_dn})"
+
+	userDN := "CN=jdoe,DC=example,DC=com"
+
+	mock := &mockLDAPConn{
+		bindFn: func(_, _ string) error { return nil },
+		searchFn: func(req *ldap.SearchRequest) (*ldap.SearchResult, error) {
+			if req.BaseDN == cfg.SearchBase {
+				return userSearchResult(userDN, "jdoe@example.com", "John Doe"), nil
+			}
+			return &ldap.SearchResult{}, nil // user is in no groups
+		},
+	}
+
+	p := newProviderWithMock(cfg, mock)
+	result := p.Authenticate(context.Background(), &AuthRequest{
+		AuthorizationHeader: basicAuthHeader("jdoe", "pass"),
+	})
+
+	require.True(t, result.Authenticated)
+	assert.Empty(t, result.Groups)
+}
+
+// --- dialLDAP TLS mode tests ---
+// These tests call the real dialLDAP against an unreachable address to verify
+// each TLS branch executes and surfaces the expected error prefix.
+
+func TestDialLDAP_PlaintextMode(t *testing.T) {
+	cfg := &config.LDAPConfig{URL: "ldap://127.0.0.1:19389", TLSMode: ""}
+	_, err := dialLDAP(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "LDAP dial failed")
+}
+
+func TestDialLDAP_NoneMode(t *testing.T) {
+	cfg := &config.LDAPConfig{URL: "ldap://127.0.0.1:19389", TLSMode: "none"}
+	_, err := dialLDAP(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "LDAP dial failed")
+}
+
+func TestDialLDAP_LDAPSMode(t *testing.T) {
+	cfg := &config.LDAPConfig{URL: "ldaps://127.0.0.1:19636", TLSMode: "ldaps", TLSSkipVerify: true}
+	_, err := dialLDAP(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "LDAPS dial failed")
+}
+
+func TestDialLDAP_StartTLSMode(t *testing.T) {
+	cfg := &config.LDAPConfig{URL: "ldap://127.0.0.1:19389", TLSMode: "starttls"}
+	_, err := dialLDAP(cfg)
+	require.Error(t, err)
+	// starttls first dials plain then negotiates — connection refused hits the plain dial.
+	assert.Contains(t, err.Error(), "LDAP dial failed")
+}
+
+func TestDialLDAP_TLSSkipVerify_PropagatedToConfig(t *testing.T) {
+	// TLSSkipVerify=true with ldaps — error should come from LDAPS dial (not TLS verify),
+	// confirming the TLS config was constructed and passed to DialURL.
+	cfg := &config.LDAPConfig{URL: "ldaps://127.0.0.1:19636", TLSMode: "ldaps", TLSSkipVerify: true}
+	_, err := dialLDAP(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "LDAPS dial failed")
+}
+
+// --- normalizeUsername table-driven tests ---
+
+func TestNormalizeUsername(t *testing.T) {
+	cases := []struct {
+		input string
+		want  string
+	}{
+		{"jdoe", "jdoe"},
+		{"  jdoe  ", "jdoe"},
+		{"JDOE", "jdoe"},
+		{"john.doe", "john.doe"},
+		{"john-doe", "john-doe"},
+		{"john_doe", "john_doe"},
+		{"john@example.com", "john_example.com"},
+		{"  John.Doe@Example ", "john.doe_example"},
+		{"!!!bad!!!", "bad"},
+		{"", ""},
+		{"@@@", ""},
+		{"a@@b", "a_b"},
+		{"__leading", "leading"},
+		{"trailing__", "trailing"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			assert.Equal(t, tc.want, normalizeUsername(tc.input))
+		})
+	}
+}
+
+// --- hasAnyGroup table-driven tests ---
+
+func TestHasAnyGroup(t *testing.T) {
+	cases := []struct {
+		userGroups     []string
+		requiredGroups []string
+		want           bool
+	}{
+		{[]string{"admins", "users"}, []string{"admins"}, true},
+		{[]string{"users"}, []string{"admins"}, false},
+		{[]string{}, []string{"admins"}, false},
+		{[]string{"admins"}, []string{}, false},
+		{[]string{}, []string{}, false},
+		{[]string{"a", "b", "c"}, []string{"x", "b"}, true},
+	}
+
+	for _, tc := range cases {
+		got := hasAnyGroup(tc.userGroups, tc.requiredGroups)
+		assert.Equal(t, tc.want, got, "userGroups=%v requiredGroups=%v", tc.userGroups, tc.requiredGroups)
+	}
+}
