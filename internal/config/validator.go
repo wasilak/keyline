@@ -67,8 +67,8 @@ func Validate(cfg *Config) error {
 	// Validate session configuration
 	if cfg.Session.SessionSecret == "" {
 		errors = append(errors, "session.session_secret is required")
-	} else {
-		// Validate session secret is at least 32 bytes
+	} else if !isEnvVarRef(cfg.Session.SessionSecret) {
+		// Validate session secret is at least 32 bytes (skip for env-var references)
 		decoded, err := base64.StdEncoding.DecodeString(cfg.Session.SessionSecret)
 		if err != nil {
 			// Try as raw string
@@ -109,8 +109,8 @@ func Validate(cfg *Config) error {
 	// Validate encryption key (required for caching credentials)
 	if cfg.Cache.EncryptionKey == "" {
 		errors = append(errors, "cache.encryption_key is required (must be 32 bytes for AES-256)")
-	} else {
-		// Validate encryption key is 32 bytes
+	} else if !isEnvVarRef(cfg.Cache.EncryptionKey) {
+		// Validate encryption key is 32 bytes (skip for env-var references)
 		// First try as raw string
 		if len(cfg.Cache.EncryptionKey) == 32 {
 			// Valid raw string
@@ -172,6 +172,26 @@ func Validate(cfg *Config) error {
 		log.Printf("warning: observability.otel_tls_skip_verify is true — TLS verification is disabled for OTel collector, not recommended for production")
 	}
 
+	// Validate sensitive fields use environment variable references
+	// This prevents secrets from being committed to version control
+	sensitiveFields := []struct {
+		name  string
+		value string
+	}{
+		{"elasticsearch.admin_user", cfg.Elasticsearch.AdminUser},
+		{"elasticsearch.admin_password", cfg.Elasticsearch.AdminPassword},
+		{"oidc.client_secret", cfg.OIDC.ClientSecret},
+		{"session.session_secret", cfg.Session.SessionSecret},
+		{"cache.encryption_key", cfg.Cache.EncryptionKey},
+		{"cache.redis_password", cfg.Cache.RedisPassword},
+	}
+
+	for _, field := range sensitiveFields {
+		if errMsg := requireEnvVarRef(field.name, field.value); errMsg != "" {
+			errors = append(errors, errMsg)
+		}
+	}
+
 	// Validate LDAP configuration if enabled
 	errors = validateLDAP(cfg, errors)
 
@@ -181,6 +201,23 @@ func Validate(cfg *Config) error {
 	}
 
 	return nil
+}
+
+// requireEnvVarRef validates that a sensitive field uses ${ENV_VAR} format.
+// Returns an error message if the value is not in the required format.
+func requireEnvVarRef(fieldName, value string) string {
+	if value == "" {
+		return ""
+	}
+	if !isEnvVarRef(value) {
+		return fmt.Sprintf("%s must be an environment variable reference in the form ${ENV_VAR}", fieldName)
+	}
+	return ""
+}
+
+// isEnvVarRef checks if a value is an environment variable reference (${VAR}).
+func isEnvVarRef(value string) bool {
+	return strings.HasPrefix(value, "${") && strings.HasSuffix(value, "}")
 }
 
 // validateLDAP validates the LDAP configuration block when ldap.enabled is true.

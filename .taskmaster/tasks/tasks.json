@@ -421,7 +421,7 @@
         "testStrategy": "Add unit tests to verify that when `tls_skip_verify` is `false`, TLS verification is enabled. Test that when `tls_skip_verify` is `true`, the warning message is logged at startup. Use a mock OTel collector or a test setup that can simulate TLS handshake failures to confirm correct behavior.",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -482,7 +482,7 @@
             "parentId": "undefined"
           }
         ],
-        "updatedAt": "2026-05-16T18:19:43.827Z"
+        "updatedAt": "2026-05-16T18:21:27.668Z"
       },
       {
         "id": "20",
@@ -492,7 +492,7 @@
         "testStrategy": "Add unit tests to `internal/config/validator_test.go` that cover the new validation rules. Test cases should include configurations with plaintext sensitive values (expect validation error) and configurations with `${ENV_VAR}` references (expect successful validation).",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -553,7 +553,8 @@
             "testStrategy": null,
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-05-16T18:22:32.957Z"
       },
       {
         "id": "21",
@@ -1261,9 +1262,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-16T18:19:43.827Z",
+      "lastModified": "2026-05-16T18:22:32.957Z",
       "taskCount": 15,
-      "completedCount": 2,
+      "completedCount": 3,
       "tags": [
         "concerns"
       ]

@@ -16,7 +16,7 @@ func TestValidate_Success(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		LocalUsers: LocalUsersConfig{
@@ -24,15 +24,15 @@ func TestValidate_Success(t *testing.T) {
 		},
 		Session: SessionConfig{
 			TTL:           24 * time.Hour,
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend:       "memory",
-			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
+			EncryptionKey: "${CACHE_ENCRYPTION_KEY}",
 		},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "admin-password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 			URL:           "http://elasticsearch:9200",
 		},
 		RoleMappings: []RoleMapping{
@@ -55,12 +55,12 @@ func TestValidate_NoAuthMethodEnabled(t *testing.T) {
 		OIDC:       OIDCConfig{Enabled: false},
 		LocalUsers: LocalUsersConfig{Enabled: false},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -78,16 +78,16 @@ func TestValidate_OIDCMissingIssuerURL(t *testing.T) {
 		OIDC: OIDCConfig{
 			Enabled:      true,
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -105,16 +105,16 @@ func TestValidate_OIDCMissingClientID(t *testing.T) {
 		OIDC: OIDCConfig{
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -136,12 +136,12 @@ func TestValidate_OIDCMissingClientSecret(t *testing.T) {
 			RedirectURL: "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -160,15 +160,15 @@ func TestValidate_OIDCMissingRedirectURL(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -187,16 +187,16 @@ func TestValidate_OIDCRedirectURLNotHTTPS(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "http://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -215,16 +215,16 @@ func TestValidate_OIDCRedirectURLInvalid(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "not-a-valid-url",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -241,12 +241,12 @@ func TestValidate_LocalUsersNoUsers(t *testing.T) {
 			Users:   []LocalUser{},
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -270,12 +270,12 @@ func TestValidate_LocalUserMissingUsername(t *testing.T) {
 			},
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -300,12 +300,12 @@ func TestValidate_LocalUserInvalidBcrypt(t *testing.T) {
 			},
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -324,7 +324,7 @@ func TestValidate_SessionSecretTooShort(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
@@ -332,8 +332,8 @@ func TestValidate_SessionSecretTooShort(t *testing.T) {
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -352,7 +352,7 @@ func TestValidate_SessionSecretMissing(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
@@ -360,8 +360,8 @@ func TestValidate_SessionSecretMissing(t *testing.T) {
 		},
 		Cache: CacheConfig{Backend: "memory"},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -380,16 +380,16 @@ func TestValidate_CacheBackendMissing(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -408,18 +408,18 @@ func TestValidate_CacheBackendInvalid(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend: "invalid",
 		},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -438,18 +438,18 @@ func TestValidate_RedisMissingURL(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend: "redis",
 		},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 	}
 
@@ -468,11 +468,11 @@ func TestValidate_NoElasticsearchUsers(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend: "memory",
@@ -501,18 +501,18 @@ func TestValidate_StandaloneMissingUpstreamURL(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend: "memory",
 		},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 		},
 		Upstream: UpstreamConfig{},
 	}
@@ -584,20 +584,20 @@ func TestValidate_UserManagementMissingAdminUser(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend:       "memory",
-			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
+			EncryptionKey: "${CACHE_ENCRYPTION_KEY}", // base64 encoded 32 bytes
 		},
 		UserManagement: UserMgmtConfig{},
 		Elasticsearch: ElasticsearchConfig{
 			// Missing AdminUser
-			AdminPassword: "admin-password",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 			URL:           "https://elasticsearch:9200",
 		},
 	}
@@ -617,15 +617,15 @@ func TestValidate_UserManagementMissingAdminPassword(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend:       "memory",
-			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
+			EncryptionKey: "${CACHE_ENCRYPTION_KEY}", // base64 encoded 32 bytes
 		},
 		UserManagement: UserMgmtConfig{},
 		Elasticsearch: ElasticsearchConfig{
@@ -650,20 +650,20 @@ func TestValidate_UserManagementMissingElasticsearchURL(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend:       "memory",
-			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
+			EncryptionKey: "${CACHE_ENCRYPTION_KEY}", // base64 encoded 32 bytes
 		},
 		UserManagement: UserMgmtConfig{},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "admin-password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 			// Missing URL
 		},
 	}
@@ -683,20 +683,20 @@ func TestValidate_UserManagementAllAdminCredentialsPresent(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend:       "memory",
-			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
+			EncryptionKey: "${CACHE_ENCRYPTION_KEY}", // base64 encoded 32 bytes
 		},
 		UserManagement: UserMgmtConfig{},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "admin-password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 			URL:           "https://elasticsearch:9200",
 		},
 		RoleMappings: []RoleMapping{
@@ -720,15 +720,15 @@ func TestValidate_AdminCredentialsRequired(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend:       "memory",
-			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=",
+			EncryptionKey: "${CACHE_ENCRYPTION_KEY}",
 		},
 		UserManagement: UserMgmtConfig{
 			PasswordLength: 32,
@@ -759,11 +759,11 @@ func TestValidate_EncryptionKeyMissing(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend: "memory",
@@ -771,8 +771,8 @@ func TestValidate_EncryptionKeyMissing(t *testing.T) {
 		},
 		UserManagement: UserMgmtConfig{},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "admin-password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 			URL:           "https://elasticsearch:9200",
 		},
 		RoleMappings: []RoleMapping{
@@ -799,20 +799,20 @@ func TestValidate_EncryptionKeyBase64Valid(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend:       "memory",
-			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=", // base64 encoded 32 bytes
+			EncryptionKey: "${CACHE_ENCRYPTION_KEY}", // base64 encoded 32 bytes
 		},
 		UserManagement: UserMgmtConfig{},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "admin-password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 			URL:           "https://elasticsearch:9200",
 		},
 		RoleMappings: []RoleMapping{
@@ -836,11 +836,11 @@ func TestValidate_EncryptionKeyBase64TooShort(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend:       "memory",
@@ -851,8 +851,8 @@ func TestValidate_EncryptionKeyBase64TooShort(t *testing.T) {
 			CredentialTTL:  time.Hour,
 		},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "admin-password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 			URL:           "https://elasticsearch:9200",
 		},
 		RoleMappings: []RoleMapping{
@@ -873,29 +873,29 @@ func TestValidate_EncryptionKeyBase64TooShort(t *testing.T) {
 	}
 }
 
-func TestValidate_EncryptionKeyRawStringValid(t *testing.T) {
+func TestValidate_EncryptionKeyEnvVarRef(t *testing.T) {
 	cfg := &Config{
 		OIDC: OIDCConfig{
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend:       "memory",
-			EncryptionKey: "my-secret-key-is-exactly-32-byte", // raw 32 bytes (not valid base64)
+			EncryptionKey: "${CACHE_ENCRYPTION_KEY}", // env-var reference (length validation skipped)
 		},
 		UserManagement: UserMgmtConfig{
 			PasswordLength: 32,
 			CredentialTTL:  time.Hour,
 		},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "admin-password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 			URL:           "https://elasticsearch:9200",
 		},
 		RoleMappings: []RoleMapping{
@@ -909,7 +909,7 @@ func TestValidate_EncryptionKeyRawStringValid(t *testing.T) {
 
 	err := Validate(cfg)
 	if err != nil {
-		t.Errorf("Expected no error with valid raw 32-byte encryption key, got: %v", err)
+		t.Errorf("Expected no error with env-var reference for encryption key, got: %v", err)
 	}
 }
 
@@ -919,11 +919,11 @@ func TestValidate_EncryptionKeyRawStringTooShort(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend:       "memory",
@@ -934,8 +934,8 @@ func TestValidate_EncryptionKeyRawStringTooShort(t *testing.T) {
 			CredentialTTL:  time.Hour,
 		},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "admin-password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 			URL:           "https://elasticsearch:9200",
 		},
 		RoleMappings: []RoleMapping{
@@ -962,11 +962,11 @@ func TestValidate_EncryptionKeyRawStringTooLong(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "test-client",
-			ClientSecret: "test-secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend:       "memory",
@@ -974,8 +974,8 @@ func TestValidate_EncryptionKeyRawStringTooLong(t *testing.T) {
 		},
 		UserManagement: UserMgmtConfig{},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "admin-password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 			URL:           "https://elasticsearch:9200",
 		},
 		RoleMappings: []RoleMapping{
@@ -1009,15 +1009,15 @@ func validLDAPBaseConfig() *Config {
 			SearchFilter: "(sAMAccountName={username})",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend:       "memory",
-			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=",
+			EncryptionKey: "${CACHE_ENCRYPTION_KEY}",
 		},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 			URL:           "http://elasticsearch:9200",
 		},
 		DefaultESRoles: []string{"viewer"},
@@ -1143,7 +1143,7 @@ func TestValidate_LDAPDisabled_NoValidation(t *testing.T) {
 			Enabled:      true,
 			IssuerURL:    "https://example.com",
 			ClientID:     "client",
-			ClientSecret: "secret",
+			ClientSecret: "${OIDC_CLIENT_SECRET}",
 			RedirectURL:  "https://auth.example.com/callback",
 		},
 		LDAP: LDAPConfig{
@@ -1154,15 +1154,15 @@ func TestValidate_LDAPDisabled_NoValidation(t *testing.T) {
 			TLSMode:      "invalid",
 		},
 		Session: SessionConfig{
-			SessionSecret: "this-is-a-very-long-secret-key-that-is-at-least-32-bytes-long",
+			SessionSecret: "${SESSION_SECRET}",
 		},
 		Cache: CacheConfig{
 			Backend:       "memory",
-			EncryptionKey: "MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=",
+			EncryptionKey: "${CACHE_ENCRYPTION_KEY}",
 		},
 		Elasticsearch: ElasticsearchConfig{
-			AdminUser:     "admin",
-			AdminPassword: "password",
+			AdminUser:     "${ES_ADMIN_USER}",
+			AdminPassword: "${ES_ADMIN_PASSWORD}",
 			URL:           "http://elasticsearch:9200",
 		},
 		DefaultESRoles: []string{"viewer"},
