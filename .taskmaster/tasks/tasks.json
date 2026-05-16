@@ -636,7 +636,7 @@
         "testStrategy": "Run the newly created unit tests. Use `go test -cover ./internal/auth` to verify line coverage meets the >80% requirement. Review test output to ensure all expected authentication outcomes and HTTP status codes are correctly asserted.",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -698,7 +698,7 @@
             "parentId": "undefined"
           }
         ],
-        "updatedAt": "2026-05-16T18:40:56.050Z"
+        "updatedAt": "2026-05-16T18:52:46.611Z"
       },
       {
         "id": "23",
@@ -708,7 +708,7 @@
         "testStrategy": "Run the integration tests using `go test -tags=integration ./integration`. Verify that all LDAP scenarios (authentication, search, TLS) pass against a real LDAP server instance. Ensure the containerized setup is robust and cleans up resources properly.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -771,7 +771,8 @@
             "testStrategy": null,
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-05-16T18:53:59.825Z"
       },
       {
         "id": "24",
@@ -1264,9 +1265,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-16T18:40:56.050Z",
+      "lastModified": "2026-05-16T18:53:59.826Z",
       "taskCount": 15,
-      "completedCount": 5,
+      "completedCount": 6,
       "tags": [
         "concerns"
       ]
