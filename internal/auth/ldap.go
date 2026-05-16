@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log/slog"
+	"os"
 	"strings"
 	"time"
 
@@ -64,6 +65,41 @@ func NewLDAPProvider(cfg *config.LDAPConfig) (*LDAPProvider, error) {
 		cfg.ConnectionTimeout = ldapDefaultConnectionTimeout
 	}
 
+	// Allow attribute mapping via map in config. If provided, override the explicit fields.
+	if cfg.AttributeMapping != nil {
+		if v, ok := cfg.AttributeMapping["username"]; ok && v != "" {
+			cfg.UsernameAttribute = v
+		}
+		if v, ok := cfg.AttributeMapping["email"]; ok && v != "" {
+			cfg.EmailAttribute = v
+		}
+		if v, ok := cfg.AttributeMapping["displayName"]; ok && v != "" {
+			cfg.DisplayNameAttribute = v
+		}
+		if v, ok := cfg.AttributeMapping["groupName"]; ok && v != "" {
+			cfg.GroupNameAttribute = v
+		}
+	}
+
+	// Resolve bind password from environment variable reference. Expect form ${ENV_VAR}.
+	if cfg.BindPassword == "" {
+		return nil, fmt.Errorf("ldap.bind_password is required")
+	}
+	if strings.HasPrefix(cfg.BindPassword, "${") && strings.HasSuffix(cfg.BindPassword, "}") {
+		envVar := cfg.BindPassword[2 : len(cfg.BindPassword)-1]
+		if envVar == "" {
+			return nil, fmt.Errorf("ldap.bind_password environment variable name is empty")
+		}
+		val := os.Getenv(envVar)
+		if val == "" {
+			return nil, fmt.Errorf("ldap.bind_password environment variable %s is not set", envVar)
+		}
+		cfg.BindPassword = val
+	} else {
+		// Enforce env var format — project is greenfield.
+		return nil, fmt.Errorf("ldap.bind_password must be an environment variable reference in the form ${ENV_VAR}")
+	}
+
 	return &LDAPProvider{
 		config: cfg,
 		dialFn: dialLDAP,
@@ -119,7 +155,7 @@ func (p *LDAPProvider) Authenticate(ctx context.Context, req *AuthRequest) *Auth
 	}
 
 	// --- 4. Search for the user ---
-	userDN, email, displayName, err := p.searchUser(conn, safeUsername)
+	userDN, mappedUsername, email, displayName, err := p.searchUser(conn, safeUsername)
 	if err != nil {
 		slog.WarnContext(ctx, "LDAP user search failed",
 			slog.String("username", username),
@@ -160,9 +196,17 @@ func (p *LDAPProvider) Authenticate(ctx context.Context, req *AuthRequest) *Auth
 		slog.Any("groups", groups),
 	)
 
+	// Use mappedUsername (from LDAP attribute) when available; fall back to provided username.
+	finalUsername := username
+	if mappedUsername != "" {
+		if n := normalizeUsername(mappedUsername); n != "" {
+			finalUsername = n
+		}
+	}
+
 	return &AuthResult{
 		Authenticated: true,
-		Username:      username,
+		Username:      finalUsername,
 		Email:         email,
 		FullName:      displayName,
 		Groups:        groups,
@@ -172,7 +216,7 @@ func (p *LDAPProvider) Authenticate(ctx context.Context, req *AuthRequest) *Auth
 
 // searchUser performs an LDAP search to find the user DN and attributes.
 // Returns the user's DN, email, display name, and any error.
-func (p *LDAPProvider) searchUser(conn ldapConn, safeUsername string) (userDN, email, displayName string, err error) {
+func (p *LDAPProvider) searchUser(conn ldapConn, safeUsername string) (userDN, mappedUsername, email, displayName string, err error) {
 	filter := strings.ReplaceAll(p.config.SearchFilter, "{username}", safeUsername)
 
 	req := ldap.NewSearchRequest(
@@ -193,15 +237,16 @@ func (p *LDAPProvider) searchUser(conn ldapConn, safeUsername string) (userDN, e
 
 	result, err := conn.Search(req)
 	if err != nil {
-		return "", "", "", fmt.Errorf("LDAP user search error: %w", err)
+		return "", "", "", "", fmt.Errorf("LDAP user search error: %w", err)
 	}
 
 	if len(result.Entries) == 0 {
-		return "", "", "", fmt.Errorf("user not found")
+		return "", "", "", "", fmt.Errorf("user not found")
 	}
 
 	entry := result.Entries[0]
 	return entry.DN,
+		entry.GetAttributeValue(p.config.UsernameAttribute),
 		entry.GetAttributeValue(p.config.EmailAttribute),
 		entry.GetAttributeValue(p.config.DisplayNameAttribute),
 		nil
@@ -292,4 +337,32 @@ func hasAnyGroup(userGroups, requiredGroups []string) bool {
 		}
 	}
 	return false
+}
+
+// normalizeUsername converts an LDAP username attribute into a safe Keyline username.
+// Rules:
+// - trim spaces
+// - lowercase
+// - allow: a-z, 0-9, '.', '_', '-'
+// - replace other chars with single underscore
+// - collapse multiple underscores and trim leading/trailing underscores
+func normalizeUsername(u string) string {
+	u = strings.TrimSpace(u)
+	u = strings.ToLower(u)
+	var b strings.Builder
+	lastUnderscore := false
+	for _, r := range u {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '.' || r == '_' || r == '-' {
+			b.WriteRune(r)
+			lastUnderscore = false
+			continue
+		}
+		if !lastUnderscore {
+			b.WriteByte('_')
+			lastUnderscore = true
+		}
+	}
+	s := b.String()
+	s = strings.Trim(s, "_")
+	return s
 }

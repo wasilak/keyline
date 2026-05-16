@@ -1,21 +1,21 @@
 {
   "models": {
     "main": {
-      "provider": "google",
-      "modelId": "gemini-2.5-flash",
-      "maxTokens": 120000,
+      "provider": "ollama",
+      "modelId": "qwen3-coder:30b-64k",
+      "maxTokens": 64000,
       "temperature": 0.2
     },
     "research": {
-      "provider": "google",
-      "modelId": "gemini-2.5-flash",
-      "maxTokens": 8700,
+      "provider": "ollama",
+      "modelId": "qwen3-coder:30b-64k",
+      "maxTokens": 64000,
       "temperature": 0.1
     },
     "fallback": {
-      "provider": "google",
-      "modelId": "gemini-2.5-flash",
-      "maxTokens": 120000,
+      "provider": "ollama",
+      "modelId": "qwen3-coder:30b-64k",
+      "maxTokens": 64000,
       "temperature": 0.2
     }
   },
@@ -31,7 +31,7 @@
     "responseLanguage": "English",
     "enableCodebaseAnalysis": true,
     "enableProxy": false,
-    "anonymousTelemetry": true,
+    "anonymousTelemetry": false,
     "defaultTag": "master",
     "azureOpenaiBaseURL": "https://your-endpoint.openai.azure.com/",
     "userId": "1234567890"

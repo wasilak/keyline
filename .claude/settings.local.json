@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__taskmaster__initialize_project",
+      "mcp__taskmaster__parse_prd",
+      "Bash(npx task-master-ai:*)",
+      "Bash(npx --yes task-master-ai@0.43.1 parse-prd .taskmaster/docs/prd.txt --num-tasks=0 --force)",
+      "Bash(task-master parse-prd:*)",
+      "Bash(task-master list:*)",
+      "Bash(task-master models:*)",
+      "mcp__taskmaster__get_tasks"
+    ]
+  },
+  "disabledMcpjsonServers": [
+    "task-master-ai"
+  ]
+}

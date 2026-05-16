@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/base64"
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 
@@ -205,6 +206,32 @@ func validateLDAP(cfg *Config, errors []string) []string {
 	validTLSModes := map[string]bool{"none": true, "ldaps": true, "starttls": true, "": true}
 	if !validTLSModes[cfg.LDAP.TLSMode] {
 		errors = append(errors, "ldap.tls_mode must be one of: none, ldaps, starttls")
+	}
+
+	// If attribute_mapping is provided, validate keys are recognized
+	if cfg.LDAP.AttributeMapping != nil {
+		for k := range cfg.LDAP.AttributeMapping {
+			switch k {
+			case "username", "email", "displayName", "groupName":
+				// ok
+			default:
+				errors = append(errors, fmt.Sprintf("ldap.attribute_mapping contains unknown key: %s", k))
+			}
+		}
+	}
+
+	// bind_password must be provided as an environment variable reference like ${ENV_VAR}.
+	// This project is greenfield; enforce it strictly to avoid secrets in config.
+	if cfg.LDAP.BindPassword == "" {
+		errors = append(errors, "ldap.bind_password is required when LDAP is enabled")
+	} else if !(strings.HasPrefix(cfg.LDAP.BindPassword, "${") && strings.HasSuffix(cfg.LDAP.BindPassword, "}")) {
+		errors = append(errors, "ldap.bind_password must be an environment variable reference in the form ${ENV_VAR}")
+	}
+
+	// Warn when skipping TLS verification
+	if cfg.LDAP.TLSSkipVerify {
+		// Use log package for a simple warning; validation should not fail for this, only warn
+		log.Printf("warning: ldap.tls_skip_verify is true — this weakens TLS security and should only be used for testing")
 	}
 
 	return errors
