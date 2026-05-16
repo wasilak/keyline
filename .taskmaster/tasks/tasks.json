@@ -97,12 +97,12 @@
           "1",
           "2"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [],
         "complexity": 5,
         "recommendedSubtasks": 3,
         "expansionPrompt": "Break down this task with a focus on wire ldap provider into auth engine.",
-        "updatedAt": "2026-04-19T17:06:58.844Z"
+        "updatedAt": "2026-05-16T17:18:35.688Z"
       },
       {
         "id": "4",
@@ -116,11 +116,12 @@
           "2",
           "3"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [],
         "complexity": 5,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Break down this task with a focus on integrate ldap groups into role mapping."
+        "expansionPrompt": "Break down this task with a focus on integrate ldap groups into role mapping.",
+        "updatedAt": "2026-05-16T17:18:35.767Z"
       },
       {
         "id": "5",
@@ -134,11 +135,12 @@
           "3",
           "4"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [],
         "complexity": 5,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Break down this task with a focus on testing: unit and integration notes."
+        "expansionPrompt": "Break down this task with a focus on testing: unit and integration notes.",
+        "updatedAt": "2026-05-16T17:18:35.786Z"
       },
       {
         "id": "6",
@@ -152,11 +154,12 @@
           "2",
           "4"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [],
         "complexity": 5,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Break down this task with a focus on documentation and examples."
+        "expansionPrompt": "Break down this task with a focus on documentation and examples.",
+        "updatedAt": "2026-05-16T17:18:36.034Z"
       },
       {
         "id": "7",
@@ -169,11 +172,12 @@
           "5",
           "6"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [],
         "complexity": 5,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Break down this task with a focus on create pr and run code review checklist."
+        "expansionPrompt": "Break down this task with a focus on create pr and run code review checklist.",
+        "updatedAt": "2026-05-16T17:18:36.483Z"
       },
       {
         "id": "8",
@@ -188,8 +192,9 @@
           "4",
           "6"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-05-16T17:18:37.360Z"
       },
       {
         "id": "9",
@@ -201,8 +206,9 @@
         "dependencies": [
           "1"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-05-16T17:18:37.839Z"
       },
       {
         "id": "10",
@@ -221,15 +227,16 @@
           "7",
           "8"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-05-16T17:22:33.939Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-04-19T17:35:46.750Z",
+      "lastModified": "2026-05-16T17:22:33.939Z",
       "taskCount": 10,
-      "completedCount": 2,
+      "completedCount": 10,
       "tags": [
         "master"
       ]
