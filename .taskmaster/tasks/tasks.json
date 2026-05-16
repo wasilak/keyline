@@ -564,7 +564,7 @@
         "testStrategy": "Implement unit tests for the session store in `internal/session/store_test.go`. Test cases should verify that after a session is created and then explicitly deleted using the `Delete` method, subsequent attempts to retrieve that session return an error or `nil` (indicating not found), confirming true deletion.",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -626,7 +626,7 @@
             "parentId": "undefined"
           }
         ],
-        "updatedAt": "2026-05-16T18:30:59.898Z"
+        "updatedAt": "2026-05-16T18:37:46.593Z"
       },
       {
         "id": "22",
@@ -636,7 +636,7 @@
         "testStrategy": "Run the newly created unit tests. Use `go test -cover ./internal/auth` to verify line coverage meets the >80% requirement. Review test output to ensure all expected authentication outcomes and HTTP status codes are correctly asserted.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -697,7 +697,8 @@
             "testStrategy": null,
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-05-16T18:40:56.050Z"
       },
       {
         "id": "23",
@@ -1263,9 +1264,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-16T18:30:59.898Z",
+      "lastModified": "2026-05-16T18:40:56.050Z",
       "taskCount": 15,
-      "completedCount": 4,
+      "completedCount": 5,
       "tags": [
         "concerns"
       ]
