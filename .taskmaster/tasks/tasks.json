@@ -1,57 +1,6 @@
 {
   "spec": "ldap-auth-provider",
   "prd": ".taskmaster/docs/prd.txt",
-  "tasks": [
-    {
-      "id": "1",
-      "title": "Implement LDAP authentication provider",
-      "description": "Add internal/auth/ldap.go implementing LDAPProvider Authenticate(ctx, *AuthRequest) *AuthResult using github.com/go-ldap/ldap/v3. Add unit tests in internal/auth/ldap_test.go with mocked ldapConn. Ensure escaping of username and correct error handling.",
-      "estimate": "3-4d",
-      "status": "pending"
-    },
-    {
-      "id": "2",
-      "title": "Add configuration and validation for LDAP",
-      "description": "Update internal/config/config.go and validator.go to include LDAPConfig fields (enabled, url, bind_dn, bind_password env ref, search_base, search_filter, tls_mode, tls_skip_verify, group_search_base/filter). Add defaults and validate requirements only when ldap.enabled is true. Update config.example.yaml.",
-      "estimate": "0.5-1d",
-      "status": "pending"
-    },
-    {
-      "id": "3",
-      "title": "Wire LDAP provider into auth engine",
-      "description": "Add ldapProvider and ldapEnabled wiring in engine. Route Basic Auth to LDAP only when username not in local_users and ldap.enabled. Ensure precedence: session cookie -> local_users -> LDAP -> OIDC. Update engine tests to cover precedence cases.",
-      "estimate": "1-2d",
-      "status": "pending"
-    },
-    {
-      "id": "4",
-      "title": "Integrate LDAP groups into role mapping",
-      "description": "On successful LDAP auth, pass groups into UpsertUser via AuthenticatedUser.Groups and set AuthenticatedUser.Source = \"ldap\". Validate RoleMappings apply to LDAP users and add tests.",
-      "estimate": "1d",
-      "status": "pending"
-    },
-    {
-      "id": "5",
-      "title": "Testing: unit and integration notes",
-      "description": "Add unit tests for LDAPProvider, validator, and engine wiring using testify. Document integration test plan for LDAP (out of scope to run) and mock examples. Ensure tests do not log passwords.",
-      "estimate": "1d",
-      "status": "pending"
-    },
-    {
-      "id": "6",
-      "title": "Documentation and examples",
-      "description": "Update README/CONTRIBUTING with LDAP feature notes. Update config.example.yaml and add example for LDAP env variable usage. Add migration notes if any.",
-      "estimate": "0.5d",
-      "status": "pending"
-    },
-    {
-      "id": "7",
-      "title": "Create PR and run code review checklist",
-      "description": "Prepare PR including files and tests. Run linters and unit tests locally. Request review and verify CI passes.",
-      "estimate": "0.5d",
-      "status": "pending"
-    }
-  ],
   "master": {
     "tasks": [
       {
@@ -239,7 +188,1002 @@
       "completedCount": 10,
       "tags": [
         "master"
-      ]
+      ],
+      "created": "2026-05-16T17:22:33.941Z",
+      "description": "Tasks live here by default",
+      "updated": "2026-05-16T17:22:33.941Z"
+    }
+  },
+  "concerns": {
+    "tasks": [
+      {
+        "id": 16,
+        "title": "Correct Go Version in go.mod",
+        "description": "Fix the invalid Go version specified in the go.mod file to reflect the actual minimum supported Go version for the project.",
+        "details": "Locate `go.mod` and identify the `go` directive. Correct `go 1.26` to the actual supported version (e.g., `go 1.22` or `go 1.23` based on CI/Dockerfile). After modification, run `go mod tidy` to ensure module consistency. Example: `sed -i 's/go 1.26/go 1.22/g' go.mod && go mod tidy`.",
+        "testStrategy": "Verify that `go mod tidy` completes without errors and that the project builds successfully using the corrected Go version. Check CI pipelines to ensure they pass with the updated `go.mod`.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Identify and Update Go Version in go.mod",
+            "description": "Locate the go.mod file and identify the go directive to update the Go version to the actual supported version",
+            "dependencies": [],
+            "details": "Analyze the project's CI configuration and Dockerfile to determine the minimum supported Go version. Update the go directive in go.mod from 'go 1.26' to the correct version (e.g., 'go 1.22' or 'go 1.23'). Ensure the change aligns with the project's build environment requirements.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Execute go mod tidy After Go Version Update",
+            "description": "Run go mod tidy to ensure module consistency after updating the Go version in go.mod",
+            "dependencies": [
+              1
+            ],
+            "details": "After modifying the go.mod file to correct the Go version, execute 'go mod tidy' command to update the go.sum file and ensure all dependencies are compatible with the new Go version. Verify that no dependency conflicts or missing modules are introduced.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Replace go-jose.v2 with go-jose/v3 Library",
+            "description": "Update go.mod to replace the deprecated go-jose.v2 library with the maintained go-jose/v3 library",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify go.mod to replace 'gopkg.in/square/go-jose.v2' with 'github.com/go-jose/go-jose/v3'. Update all import paths in relevant files including internal/oidc/provider.go. Review API changes between v2 and v3 to ensure code compatibility and adapt as necessary.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Update Configuration for OTel TLS Verification",
+            "description": "Add configurable TLS verification setting for OpenTelemetry collector connection",
+            "dependencies": [
+              1
+            ],
+            "details": "Add 'observability.tls_skip_verify' boolean field (default false) to internal/config/config.go. Modify OTel collector client configuration in internal/observability/tracing.go to respect this setting. Implement startup warning when TLS verification is disabled with explanation of security risks.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 5,
+            "title": "Create Unit Tests for Authentication Engine",
+            "description": "Develop comprehensive unit tests for the authentication engine to ensure code quality and prevent regressions",
+            "dependencies": [
+              1
+            ],
+            "details": "Create internal/auth/engine_test.go file with comprehensive test cases covering all authentication dispatch paths including valid session cookies, Basic Auth scenarios, OIDC redirects, and error conditions. Mock external dependencies and verify correct HTTP status codes for each authentication path with >80% line coverage.",
+            "status": "pending",
+            "testStrategy": null
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "Upgrade go-jose.v2 to go-jose/v3",
+        "description": "Replace the deprecated `gopkg.in/square/go-jose.v2` library with the maintained `github.com/go-jose/go-jose/v3` to address potential security vulnerabilities and ensure continued support for OIDC JWT verification.",
+        "details": "Update `go.mod` by replacing `gopkg.in/square/go-jose.v2` with `github.com/go-jose/go-jose/v3`. Update all import paths in relevant files (e.g., `internal/oidc/provider.go`). Review API changes between v2 and v3 and adapt code as necessary. Run `go mod tidy` after changes. Example: `go get github.com/go-jose/go-jose/v3 && go mod tidy`.",
+        "testStrategy": "Run the full test suite, paying close attention to OIDC-related tests. Manually verify the end-to-end OIDC authentication flow to ensure JWT verification and session establishment work correctly after the upgrade.",
+        "priority": "high",
+        "dependencies": [
+          16
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Update go.mod to replace go-jose.v2 with go-jose/v3",
+            "description": "Replace the deprecated go-jose.v2 import path with the new go-jose/v3 in the go.mod file",
+            "dependencies": [],
+            "details": "Modify the go.mod file to change the import path from 'gopkg.in/square/go-jose.v2' to 'github.com/go-jose/go-jose/v3'. Run 'go get github.com/go-jose/go-jose/v3 && go mod tidy' to update dependencies and clean up the module file.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Update all import paths in relevant source files",
+            "description": "Identify and update all import statements that reference the old go-jose.v2 package to use go-jose/v3",
+            "dependencies": [
+              1
+            ],
+            "details": "Scan the codebase for all files importing 'gopkg.in/square/go-jose.v2' and update them to use 'github.com/go-jose/go-jose/v3'. Focus on files like 'internal/oidc/provider.go' and any other files that may contain jose-related imports. Ensure all references are updated consistently.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Review and adapt API changes between go-jose v2 and v3",
+            "description": "Analyze the API differences between go-jose v2 and v3 to identify and implement necessary code adaptations",
+            "dependencies": [
+              2
+            ],
+            "details": "Review the official go-jose v3 documentation and release notes to identify breaking changes or API modifications. Update code that relies on specific v2 methods or structures to be compatible with v3. Pay special attention to JWT handling, key management, and encryption/decryption functions used in OIDC verification.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Run go mod tidy and verify module consistency",
+            "description": "Execute go mod tidy to clean up and verify the module dependencies after the upgrade",
+            "dependencies": [
+              3
+            ],
+            "details": "Run 'go mod tidy' to resolve all dependencies and ensure the go.mod and go.sum files are consistent with the updated imports. Verify that no unused dependencies remain and that all required packages are properly included. Test that the build completes successfully without dependency errors.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 5,
+            "title": "Execute comprehensive OIDC-related tests",
+            "description": "Run the full test suite with specific focus on OIDC authentication and JWT verification functionality",
+            "dependencies": [
+              4
+            ],
+            "details": "Execute the complete test suite and pay particular attention to OIDC-related tests. Manually verify the end-to-end OIDC authentication flow including JWT verification and session establishment to ensure the upgrade hasn't broken existing functionality. Monitor for any test failures related to JWT processing or OIDC provider operations.",
+            "status": "pending",
+            "testStrategy": "Run the full test suite, paying close attention to OIDC-related tests. Manually verify the end-to-end OIDC authentication flow to ensure JWT verification and session establishment work correctly after the upgrade."
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "title": "Restrict CORS to Configurable Allowed Origins",
+        "description": "Replace the wildcard CORS origin with a configurable allowlist to prevent cross-site request forgery and protect Elasticsearch credentials.",
+        "details": "Modify `internal/config/config.go` to add a `cors.allowed_origins` field (slice of strings) to the configuration structure, potentially under a new `ServerConfig` section. In `internal/server/server.go`, update the CORS middleware to use this allowlist. If `allowed_origins` is empty or not configured, default to rejecting all cross-origin requests. Add validation in `internal/config/validator.go` to warn if `*` is present in `allowed_origins`. Update `config.example.yaml`.",
+        "testStrategy": "Implement unit tests for the CORS middleware in `internal/server/server_test.go`. Test cases should include requests from allowed origins (expect 200 OK), disallowed origins (expect CORS error/rejection), and when `allowed_origins` is empty (expect all cross-origin requests rejected). Verify the validator warns for `*`.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add CORS configuration field to server config",
+            "description": "Modify the configuration structure in internal/config/config.go to include a cors.allowed_origins field as a slice of strings under a ServerConfig section",
+            "dependencies": [],
+            "details": "Update the ServerConfig struct in internal/config/config.go to add a new field 'allowed_origins' of type []string. Ensure the field is properly tagged for YAML unmarshaling and consider adding it under a dedicated CORS section within the server configuration. The change should maintain backward compatibility where possible.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Implement configurable CORS middleware",
+            "description": "Update the CORS middleware in internal/server/server.go to use the configurable allowlist instead of wildcard origin",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify the CORS middleware setup in internal/server/server.go to read the allowed_origins from the configuration. Implement logic to check incoming Origin headers against the allowlist. If the list is empty or not configured, default to rejecting all cross-origin requests. Ensure proper error handling and response codes for rejected requests.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Add configuration validation for CORS allowlist",
+            "description": "Add validation logic in internal/config/validator.go to warn when wildcard '*' is present in allowed_origins",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement validation in internal/config/validator.go to scan the allowed_origins list for '*' values and emit appropriate warnings. This should be a non-fatal validation that alerts users to potentially insecure configurations. The validation should be integrated into the existing configuration validation flow and should not break the application when '*' is detected.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Update configuration example file",
+            "description": "Modify config.example.yaml to include the new CORS configuration options with appropriate documentation",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Update the config.example.yaml file to include the new cors.allowed_origins field with example values showing proper syntax. Add clear documentation about the purpose of the field and security implications of different configurations. Ensure the example demonstrates both valid configurations (with specific origins) and the default empty configuration behavior.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 5,
+            "title": "Implement comprehensive CORS middleware tests",
+            "description": "Write unit tests for the CORS middleware in internal/server/server_test.go to verify correct behavior with various origin configurations",
+            "dependencies": [
+              2
+            ],
+            "details": "Create test cases in internal/server/server_test.go covering: requests from allowed origins (expect 200 OK), requests from disallowed origins (expect CORS rejection), and empty allowed_origins (expect all cross-origin requests rejected). Include tests for edge cases and ensure proper HTTP status codes and headers are returned in each scenario. Verify the middleware correctly integrates with the new configuration structure.",
+            "status": "pending",
+            "testStrategy": "Implement unit tests for the CORS middleware in internal/server/server_test.go. Test cases should include requests from allowed origins (expect 200 OK), disallowed origins (expect CORS error/rejection), and when allowed_origins is empty (expect all cross-origin requests rejected). Verify the middleware correctly handles the new configuration structure and returns appropriate HTTP status codes and CORS headers."
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "title": "Enforce TLS Verification on OTel Collector Connection",
+        "description": "Make OpenTelemetry collector TLS verification configurable, defaulting to `true`, to prevent MITM attacks on telemetry data.",
+        "details": "Add `observability.tls_skip_verify` (boolean, default `false`) to `internal/config/config.go`. In `internal/observability/tracing.go` or `internal/transport/`, modify the OTel collector client configuration to respect this setting. When `tls_skip_verify` is `true`, log a startup warning: `\"OTel collector TLS verification is disabled — not recommended for production\"`. Update `config.example.yaml` with the new field and a comment explaining the risk.",
+        "testStrategy": "Add unit tests to verify that when `tls_skip_verify` is `false`, TLS verification is enabled. Test that when `tls_skip_verify` is `true`, the warning message is logged at startup. Use a mock OTel collector or a test setup that can simulate TLS handshake failures to confirm correct behavior.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add TLS Skip Verify Configuration Field",
+            "description": "Add the observability.tls_skip_verify boolean field to the configuration structure with default false value",
+            "dependencies": [],
+            "details": "Modify internal/config/config.go to include the new observability.tls_skip_verify field in the configuration struct. The field should default to false to maintain security by default. Ensure the field is properly documented in the config structure comments.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Implement TLS Verification Logic in OTel Client",
+            "description": "Modify OTel collector client configuration to respect the TLS verification setting",
+            "dependencies": [
+              1
+            ],
+            "details": "Update the OTel collector client configuration in either internal/observability/tracing.go or internal/transport/ to conditionally enable/disable TLS verification based on the new tls_skip_verify setting. When tls_skip_verify is true, the client should skip certificate verification but still maintain other security measures.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Add Startup Warning for Disabled TLS Verification",
+            "description": "Log a warning message when TLS verification is disabled at startup",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement logic in the application startup sequence to check if tls_skip_verify is true and log the warning message: \"OTel collector TLS verification is disabled — not recommended for production\". This warning should be clearly visible to operators and should emphasize the security risk.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Update Configuration Example File",
+            "description": "Add the new configuration field to the example configuration file with explanatory comment",
+            "dependencies": [
+              3
+            ],
+            "details": "Modify config.example.yaml to include the new observability.tls_skip_verify field with a default value of false. Add a comprehensive comment explaining the security implications of disabling TLS verification and why it's not recommended for production environments.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 5,
+            "title": "Implement Unit Tests for TLS Configuration",
+            "description": "Create unit tests to verify TLS verification behavior and warning logging",
+            "dependencies": [
+              4
+            ],
+            "details": "Write unit tests that verify the correct behavior when tls_skip_verify is false (TLS verification enabled) and when it's true (warning logged). Test the configuration loading process and ensure the warning message is properly emitted at startup. Include tests for configuration validation and proper field parsing.",
+            "status": "pending",
+            "testStrategy": null
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "title": "Enforce Env-Var References for Sensitive Config Fields",
+        "description": "Require `${ENV_VAR}` format for all sensitive configuration fields to prevent plaintext secrets from being committed to version control.",
+        "details": "Identify all sensitive fields: Elasticsearch username/password, OIDC client secret, and any other API keys. In `internal/config/validator.go`, add validation rules similar to `ldap.bind_password` to reject plaintext values for these fields and enforce the `${ENV_VAR}` format. Update `config.example.yaml` to use `${VAR}` placeholders for all identified sensitive fields.",
+        "testStrategy": "Add unit tests to `internal/config/validator_test.go` that cover the new validation rules. Test cases should include configurations with plaintext sensitive values (expect validation error) and configurations with `${ENV_VAR}` references (expect successful validation).",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Identify and Document All Sensitive Configuration Fields",
+            "description": "Identify all sensitive configuration fields that require environment variable references instead of plaintext values",
+            "dependencies": [],
+            "details": "Analyze the current configuration structure to identify all fields containing sensitive data such as Elasticsearch username/password, OIDC client secret, and any other API keys. Document these fields in a comprehensive list including their current data types and expected environment variable references. This will serve as the basis for validation rules and example configuration updates.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Implement Validation Rules for Sensitive Fields in Config Validator",
+            "description": "Add validation logic in internal/config/validator.go to enforce ${ENV_VAR} format for sensitive fields",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify the validation logic in internal/config/validator.go to check that sensitive fields (Elasticsearch username/password, OIDC client secret, etc.) follow the ${ENV_VAR} format. The validation should reject plaintext values and only accept properly formatted environment variable references similar to how ldap.bind_password is currently validated. Add appropriate error messages for invalid configurations.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Update Configuration Example File with Environment Variable Placeholders",
+            "description": "Modify config.example.yaml to use ${VAR} placeholders for all identified sensitive fields",
+            "dependencies": [
+              1
+            ],
+            "details": "Update the config.example.yaml file to replace all plaintext sensitive values with appropriate ${ENV_VAR} placeholders. Ensure that the example configuration clearly documents what environment variables are expected for each sensitive field. This will serve as the reference for users to properly configure their environment variables.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Add Unit Tests for New Validation Logic",
+            "description": "Create comprehensive unit tests covering the new validation rules for sensitive configuration fields",
+            "dependencies": [
+              2
+            ],
+            "details": "Add tests to internal/config/validator_test.go that verify the new validation rules work correctly. Test cases should include configurations with plaintext sensitive values (expecting validation errors) and configurations with proper ${ENV_VAR} references (expecting successful validation). Include edge cases and ensure comprehensive coverage of all identified sensitive fields.",
+            "status": "pending",
+            "testStrategy": "Add unit tests to internal/config/validator_test.go that cover the new validation rules. Test cases should include configurations with plaintext sensitive values (expect validation error) and configurations with ${ENV_VAR} references (expect successful validation)."
+          },
+          {
+            "id": 5,
+            "title": "Verify Configuration Loading and Environment Variable Resolution",
+            "description": "Ensure that the configuration loading process properly resolves environment variable references for sensitive fields",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Test that the configuration loading process correctly resolves environment variable references in sensitive fields. Verify that when a configuration is loaded with ${ENV_VAR} placeholders, the system properly substitutes the actual environment variable values. This includes testing that the validation occurs before resolution and that invalid formats are properly rejected.",
+            "status": "pending",
+            "testStrategy": null
+          }
+        ]
+      },
+      {
+        "id": 21,
+        "title": "Upgrade/Replace Session Store for True Deletion",
+        "description": "Address the session deletion problem by upgrading `cachego` or replacing it with an alternative that supports true session deletion, rather than overwriting with empty values.",
+        "details": "First, check if a newer version of `cachego` (beyond v0.0.11) provides a `Delete` method. If so, upgrade the library and adapt `internal/session/store.go` to use it. If not, replace `cachego` with a library like `patrickmn/go-cache` or implement a thin wrapper around a suitable key-value store. Ensure the session store interface includes a `Delete(key string) error` method. Update all session expiry and logout code paths in `internal/session/store.go` and `internal/usermgmt/` to call this new `Delete` method.",
+        "testStrategy": "Implement unit tests for the session store in `internal/session/store_test.go`. Test cases should verify that after a session is created and then explicitly deleted using the `Delete` method, subsequent attempts to retrieve that session return an error or `nil` (indicating not found), confirming true deletion.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Investigate cachego version compatibility and Delete method availability",
+            "description": "Check if a newer version of cachego beyond v0.0.11 provides a Delete method implementation",
+            "dependencies": [],
+            "details": "Review the cachego library documentation and GitHub releases to determine if version 0.0.12 or later includes a Delete method. If available, prepare a plan for upgrading the dependency. If not available, identify alternative session store libraries that support true deletion.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Implement session store interface with Delete method",
+            "description": "Modify the session store interface to include a Delete method for true session deletion",
+            "dependencies": [
+              1
+            ],
+            "details": "Update the session store interface definition in `internal/session/store.go` to include a `Delete(key string) error` method. Ensure the interface is consistent with existing methods like Get, Set, and Expire. Create a thin wrapper or adapter if needed for the chosen session store library.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Upgrade or replace cachego with alternative session store",
+            "description": "Either upgrade cachego to a version with Delete support or replace it with a suitable alternative library",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "If a newer version of cachego with Delete method is available, update go.mod to use that version. If not, replace cachego with a library like `patrickmn/go-cache` or implement a thin wrapper around a suitable key-value store. Ensure the new implementation supports all required session store operations including Delete.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Update session store implementation to use Delete method",
+            "description": "Modify session store implementation to properly use the new Delete method in all code paths",
+            "dependencies": [
+              3
+            ],
+            "details": "Update `internal/session/store.go` to implement the Delete method using the chosen session store library. Modify session expiry and logout code paths to call the new Delete method instead of overwriting with empty values. Ensure all session management code properly handles the deletion operation.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 5,
+            "title": "Update user management code to use new Delete functionality",
+            "description": "Modify user management code to utilize the new session deletion capabilities",
+            "dependencies": [
+              4
+            ],
+            "details": "Update all session expiry and logout code paths in `internal/usermgmt/` to call the new Delete method from the session store. Ensure that user logout, session timeout, and other session cleanup operations properly delete sessions from the store rather than just overwriting them with empty values.",
+            "status": "pending",
+            "testStrategy": null
+          }
+        ]
+      },
+      {
+        "id": 22,
+        "title": "Add Unit Tests for Authentication Engine",
+        "description": "Create comprehensive unit tests for `internal/auth/engine.go`, which contains core authentication dispatch logic, to improve code quality and prevent regressions.",
+        "details": "Create a new file `internal/auth/engine_test.go`. Mock all external dependencies such as the local users map, LDAP provider, OIDC provider, and session store. Implement test cases to cover all authentication dispatch paths: valid session cookie, Basic Auth (local user correct/wrong password, unknown user with/without LDAP), unknown user with LDAP enabled/disabled, no auth header leading to OIDC redirect. Verify that correct HTTP status codes are returned for each path. Aim for >80% line coverage on `engine.go`.",
+        "testStrategy": "Run the newly created unit tests. Use `go test -cover ./internal/auth` to verify line coverage meets the >80% requirement. Review test output to ensure all expected authentication outcomes and HTTP status codes are correctly asserted.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Authentication Engine Test File and Setup Mock Dependencies",
+            "description": "Create the test file for the authentication engine and establish mock implementations for all external dependencies",
+            "dependencies": [],
+            "details": "Create internal/auth/engine_test.go file with proper test structure. Implement mocks for local users map, LDAP provider, OIDC provider, and session store. Set up test fixtures and initialize mock objects for each dependency. Ensure all mocks implement the required interfaces from the original engine.go file.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Implement Test Cases for Valid Session Cookie Authentication Path",
+            "description": "Create test cases covering the authentication flow when a valid session cookie is present",
+            "dependencies": [
+              1
+            ],
+            "details": "Write test functions to verify that when a valid session cookie is present, the engine correctly authenticates the user and returns appropriate HTTP status codes. Mock the session store to return valid session data and ensure proper response handling for authenticated requests.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Implement Basic Auth Test Cases for Local Users",
+            "description": "Create comprehensive test cases for Basic Auth authentication with local users including correct/incorrect password scenarios",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement test cases covering local user authentication with correct password, incorrect password, and unknown user scenarios. Test both positive and negative outcomes for local user authentication. Mock the local users map to return expected user data or indicate user not found.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Implement LDAP Integration Test Cases for Unknown Users",
+            "description": "Create test cases covering authentication scenarios when users are unknown to local system with LDAP enabled/disabled",
+            "dependencies": [
+              1,
+              3
+            ],
+            "details": "Develop test scenarios for unknown users when LDAP is enabled and disabled. Test the LDAP provider integration when local user lookup fails. Mock LDAP provider responses for successful authentication, authentication failure, and connection errors. Ensure proper fallback behavior between local and LDAP authentication paths.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 5,
+            "title": "Implement OIDC Redirect and Complete Authentication Flow Tests",
+            "description": "Create test cases covering the OIDC redirect flow and verify proper HTTP status code responses",
+            "dependencies": [
+              1
+            ],
+            "details": "Write tests for the scenario when no authentication header is present, ensuring proper OIDC redirect behavior. Mock OIDC provider to return appropriate redirect URLs and verify correct HTTP status codes are returned. Implement coverage verification to ensure >80% line coverage of engine.go is achieved.",
+            "status": "pending",
+            "testStrategy": null
+          }
+        ]
+      },
+      {
+        "id": 23,
+        "title": "Add LDAP Integration Tests",
+        "description": "Implement integration tests for the LDAP provider to validate real LDAP protocol behavior, including TLS negotiation, search, and authentication scenarios.",
+        "details": "Create a new file `integration/ldap_test.go` and gate it with `//go:build integration`. Utilize `testcontainers-go` or a Docker Compose fixture to spin up a containerized LDAP server (e.g., `glauth` or `osixia/openldap`). Implement test cases covering successful authentication, incorrect password, user not found, group search functionality, and secure TLS connections (`ldaps`). Document how to run these integration tests in the project's README or a new `docs/testing.md` file.",
+        "testStrategy": "Run the integration tests using `go test -tags=integration ./integration`. Verify that all LDAP scenarios (authentication, search, TLS) pass against a real LDAP server instance. Ensure the containerized setup is robust and cleans up resources properly.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set up LDAP integration test environment",
+            "description": "Create the integration test file and configure the test environment using testcontainers-go to spin up a containerized LDAP server",
+            "dependencies": [],
+            "details": "Create `integration/ldap_test.go` file with `//go:build integration` tag. Implement container setup using testcontainers-go with either glauth or osixia/openldap images. Configure the test environment to expose necessary ports and set up initial LDAP server configuration for testing",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Implement LDAP authentication test cases",
+            "description": "Write comprehensive test cases for LDAP authentication scenarios including successful login, incorrect password, and user not found",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement test functions covering successful authentication with valid credentials, authentication failure with incorrect password, and user not found scenarios. Use the containerized LDAP server to validate these authentication flows against real LDAP protocol behavior",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Add LDAP group search functionality tests",
+            "description": "Create test cases for LDAP group search operations and verify group membership functionality",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement tests for LDAP group search functionality including user group membership queries, group-based access control scenarios, and proper LDAP search filter handling. Ensure tests validate the LDAP search protocol behavior with the containerized server",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Implement TLS/SSL connection testing",
+            "description": "Develop test cases for secure LDAP connections using LDAPS protocol and TLS negotiation",
+            "dependencies": [
+              1
+            ],
+            "details": "Create test scenarios for secure LDAP connections using LDAPS protocol. Implement TLS negotiation testing, certificate validation, and secure connection establishment. Verify that the LDAP provider properly handles secure connections and TLS handshake failures",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 5,
+            "title": "Document and finalize integration test execution",
+            "description": "Update project documentation with instructions for running LDAP integration tests and verify test execution",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Update project README or create a new `docs/testing.md` file with clear instructions on how to run integration tests using `go test -tags=integration ./integration`. Verify that all test cases execute successfully and document any prerequisites or environment requirements for running the LDAP integration tests",
+            "status": "pending",
+            "testStrategy": null
+          }
+        ]
+      },
+      {
+        "id": 24,
+        "title": "Handle OIDC State Token Cleanup Errors",
+        "description": "Prevent replay attacks by properly handling and logging errors that occur during OIDC state token cleanup, returning a 500 error if cleanup is non-recoverable.",
+        "details": "Locate the OIDC state token cleanup logic in `internal/server/callback.go` or the OIDC state handler. Modify the code to log a warning (at minimum) if state token cleanup fails, including the error details and the state token identifier. If the cleanup failure indicates a non-recoverable issue (e.g., underlying store unavailability), return an HTTP 500 Internal Server Error to the client instead of proceeding with the authentication flow.",
+        "testStrategy": "Add unit tests to simulate OIDC state token cleanup failures. Verify that a warning log message is emitted with relevant context when cleanup fails. For non-recoverable errors, assert that the server returns a 500 HTTP status code.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Locate OIDC State Token Cleanup Logic",
+            "description": "Identify and examine the OIDC state token cleanup implementation in the codebase",
+            "dependencies": [],
+            "details": "Review the `internal/server/callback.go` file and related OIDC state handler code to locate the specific cleanup logic that handles state token removal. Analyze the current error handling patterns and identify where cleanup failures occur during the authentication flow.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Implement Warning Log for Cleanup Failures",
+            "description": "Add warning level logging for OIDC state token cleanup errors with contextual information",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify the cleanup code to emit a warning log message when state token deletion fails. The log should include the state token identifier and the specific error details to aid in debugging and monitoring. Ensure the logging uses appropriate structured logging patterns.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Identify Non-Recoverable Cleanup Errors",
+            "description": "Determine which cleanup failure scenarios should result in HTTP 500 errors",
+            "dependencies": [
+              2
+            ],
+            "details": "Analyze the error types that indicate non-recoverable issues such as underlying store unavailability or database connection failures. Create logic to distinguish between recoverable and non-recoverable cleanup errors to determine when to return HTTP 500 status codes instead of proceeding with authentication.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Return HTTP 500 for Non-Recoverable Cleanup Failures",
+            "description": "Modify code to return HTTP 500 error when cleanup fails with non-recoverable issues",
+            "dependencies": [
+              3
+            ],
+            "details": "Update the OIDC callback handler to check for non-recoverable cleanup errors and return an HTTP 500 Internal Server Error to the client in those cases. Ensure the error handling doesn't break the authentication flow for recoverable failures and maintains proper error propagation.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 5,
+            "title": "Add Unit Tests for Cleanup Error Handling",
+            "description": "Create comprehensive unit tests for OIDC state token cleanup error scenarios",
+            "dependencies": [
+              4
+            ],
+            "details": "Implement unit tests that simulate various OIDC state token cleanup failure conditions. Verify that warning logs are emitted with proper context when cleanup fails, and that non-recoverable errors result in HTTP 500 responses. Include tests for both recoverable and non-recoverable error scenarios.",
+            "status": "pending",
+            "testStrategy": null
+          }
+        ]
+      },
+      {
+        "id": 25,
+        "title": "Handle Session Expiry Deletion Errors",
+        "description": "Improve observability by logging errors that occur during session expiry deletion, without altering the non-fatal deletion behavior.",
+        "details": "Locate the session expiry deletion code paths within the session management module. Modify the code to log any errors returned from the session store's deletion operation at `WARN` level. Ensure the log message includes contextual information such as the session ID and the error details. The existing behavior of not failing the request due to deletion errors should be preserved.",
+        "testStrategy": "Add unit tests that mock the session store's `Delete` method to return an error during session expiry. Verify that a `WARN` level log message is emitted containing the expected session ID and error details, and that the overall session expiry process does not fatally error out.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Locate Session Expiry Deletion Code Paths",
+            "description": "Identify all code paths within the session management module that handle session expiry deletion operations",
+            "dependencies": [],
+            "details": "Examine the session management module to find all locations where session expiry deletion occurs. This includes looking at the session store implementation, expiry handlers, and any cleanup routines. Document the specific files and functions involved in the deletion process.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Implement WARN Level Error Logging for Deletion Operations",
+            "description": "Modify the session store's deletion operation to log errors at WARN level with contextual information",
+            "dependencies": [
+              1
+            ],
+            "details": "Update the session store's Delete method or related deletion logic to capture any errors returned from the underlying store. Log these errors at WARN level including the session ID and error details. Ensure the logging format includes sufficient context for debugging purposes while preserving the existing non-fatal behavior.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Verify Existing Non-Fatal Deletion Behavior Preserved",
+            "description": "Confirm that the modification does not alter the current behavior of not failing requests due to deletion errors",
+            "dependencies": [
+              2
+            ],
+            "details": "Test that when deletion operations fail, the system continues to process requests normally without throwing fatal errors. Create test cases that simulate deletion failures while ensuring the overall session management flow remains intact and user requests are not interrupted.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Create Unit Tests for Error Logging",
+            "description": "Develop unit tests that verify WARN level logging occurs during session expiry deletion errors",
+            "dependencies": [
+              2
+            ],
+            "details": "Write unit tests that mock the session store's Delete method to return specific error conditions. Verify that appropriate WARN level log messages are emitted with the correct session ID and error details. Ensure tests confirm the logging behavior without affecting the overall flow.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 5,
+            "title": "Validate Log Message Contextual Information",
+            "description": "Ensure log messages contain required contextual information including session ID and error details",
+            "dependencies": [
+              4
+            ],
+            "details": "Verify that the logged error messages include the session ID and comprehensive error details. Test various error scenarios to ensure consistent contextual information is always included in WARN level logs. Validate that the logging implementation meets observability requirements for debugging session expiry issues.",
+            "status": "pending",
+            "testStrategy": null
+          }
+        ]
+      },
+      {
+        "id": 26,
+        "title": "Resolve Graceful Shutdown Connection TODOs",
+        "description": "Implement proper connection closing for all services during graceful shutdown to prevent resource leaks and ensure clean process termination.",
+        "details": "Locate the three `// TODO: close connection` comments in `cmd/keyline/main.go` within the graceful shutdown path. Implement logic to explicitly close connections for: LDAP clients (if pooled), Elasticsearch client connections, and the OpenTelemetry exporter. Introduce a configurable drain timeout for the shutdown process. Example: `server.Shutdown(ctx)` should ensure all connections are closed.",
+        "testStrategy": "Conduct an integration test or manual verification. Start the Keyline server, make some requests to establish connections (e.g., LDAP, ES, OTel), then trigger a graceful shutdown (e.g., via SIGTERM). Monitor the process to ensure it exits cleanly without goroutine leaks or open file descriptors. Use tools like `lsof` or `netstat` to confirm ports are released.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Locate and Identify Connection TODOs in Graceful Shutdown Path",
+            "description": "Identify the three specific TODO comments in cmd/keyline/main.go that require connection closing implementation within the graceful shutdown logic.",
+            "dependencies": [],
+            "details": "Examine the cmd/keyline/main.go file to locate exactly three // TODO: close connection comments within the graceful shutdown handler. Document the specific connection types that need to be closed: LDAP clients (pooled), Elasticsearch client connections, and OpenTelemetry exporter. Create a clear mapping of where each connection is established and how it should be properly closed during shutdown.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Implement LDAP Client Connection Closing Logic",
+            "description": "Add explicit connection closing logic for LDAP clients during graceful shutdown, handling both pooled and non-pooled connections.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement proper LDAP connection closing in the graceful shutdown path by checking if the LDAP client uses connection pooling and closing pooled connections appropriately. Ensure that any LDAP client instances created during server startup are properly closed before the process terminates. Use appropriate LDAP client close methods or connection pool cleanup functions.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Implement Elasticsearch Client Connection Cleanup",
+            "description": "Add explicit connection closing for Elasticsearch client connections during graceful shutdown to prevent resource leaks.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement Elasticsearch client connection cleanup in the graceful shutdown handler by calling the appropriate close or shutdown methods on the Elasticsearch client instance. Ensure that all active connections, HTTP connections, and any connection pool resources are properly released. Verify that the Elasticsearch client supports graceful shutdown and implement the appropriate cleanup pattern.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Implement OpenTelemetry Exporter Connection Closing",
+            "description": "Add explicit connection closing logic for OpenTelemetry exporter connections during graceful shutdown.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement proper closing of OpenTelemetry exporter connections during graceful shutdown by calling the shutdown or close methods on the OpenTelemetry exporter instance. Ensure that all active spans, telemetry data transmission, and network connections are properly terminated. Handle any specific exporter connection cleanup required by the OpenTelemetry SDK.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 5,
+            "title": "Add Configurable Drain Timeout for Shutdown Process",
+            "description": "Introduce a configurable timeout parameter for the shutdown process to ensure proper connection draining before process termination.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Add a configurable drain timeout parameter that can be set via environment variables or configuration flags. Modify the server.Shutdown(ctx) call to use this timeout value, ensuring that all connections are given adequate time to drain before the process terminates. Implement proper context handling with timeout to prevent indefinite hanging during shutdown operations.",
+            "status": "pending",
+            "testStrategy": null
+          }
+        ]
+      },
+      {
+        "id": 27,
+        "title": "Remove Duplicate OTel Initialization Path",
+        "description": "Consolidate OpenTelemetry initialization by either deleting the unused `InitTracer` function or wiring it in as the single canonical entry point.",
+        "details": "Audit `internal/observability/tracing.go` to identify the currently active OTel initialization path and the unused `InitTracer` function. If `InitTracer` is completely superseded, delete it. If it contains useful logic, refactor the active initialization to call `InitTracer` and remove the duplicate code. Add a comment at the canonical initialization site explaining it is the single entry point for OTel setup.",
+        "testStrategy": "Verify that OpenTelemetry tracing continues to function correctly after the changes. Ensure traces are still being generated and exported to the OTel collector. Run existing tests that rely on tracing to confirm no regressions.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Audit OTel Initialization Paths in tracing.go",
+            "description": "Analyze the internal/observability/tracing.go file to identify the currently active OTel initialization path and locate the unused InitTracer function",
+            "dependencies": [],
+            "details": "Review the tracing.go file to understand the current OTel setup implementation, identify which initialization function is actively used, and determine if InitTracer contains any unique functionality that should be preserved rather than deleted",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Determine InitTracer Usage and Supersession Status",
+            "description": "Evaluate whether InitTracer is completely superseded by the active initialization path or contains useful logic that should be preserved",
+            "dependencies": [
+              1
+            ],
+            "details": "Compare the logic in the active initialization path with InitTracer to determine if they perform the same operations or if InitTracer has unique functionality that should be integrated into the canonical path",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Refactor or Delete InitTracer Function",
+            "description": "Either delete the unused InitTracer function or refactor the active initialization to call InitTracer to eliminate duplicate code",
+            "dependencies": [
+              2
+            ],
+            "details": "If InitTracer is completely redundant, remove it entirely. If it contains useful logic, modify the active initialization path to call InitTracer and remove duplicate code sections, ensuring all functionality is preserved",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Add Canonical Entry Point Documentation",
+            "description": "Add a comment at the canonical OTel initialization site explaining it is the single entry point for OTel setup",
+            "dependencies": [
+              3
+            ],
+            "details": "Place a clear comment at the main OTel initialization function that explicitly states this is the single canonical entry point for all OpenTelemetry setup, making it clear to future developers that this is the only place where OTel should be initialized",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 5,
+            "title": "Verify OTel Tracing Continues to Function",
+            "description": "Confirm that OpenTelemetry tracing continues to work correctly after consolidation of initialization paths",
+            "dependencies": [
+              4
+            ],
+            "details": "Run existing tests to verify that traces are still being generated and exported to the OTel collector, ensuring no regressions in the tracing functionality after the consolidation of initialization paths",
+            "status": "pending",
+            "testStrategy": "Verify that OpenTelemetry tracing continues to function correctly after the changes. Ensure traces are still being generated and exported to the OTel collector. Run existing tests that rely on tracing to confirm no regressions."
+          }
+        ]
+      },
+      {
+        "id": 28,
+        "title": "Fix Inconsistent Test Env Var Cleanup",
+        "description": "Ensure all `os.Setenv` calls within test files are properly cleaned up to prevent test pollution and ensure isolated test execution.",
+        "details": "Audit all `*_test.go` files in the codebase for calls to `os.Setenv`. For each instance found, ensure there is a corresponding `defer os.Unsetenv(\"VAR_NAME\")` immediately following it, or refactor to use `t.Setenv(\"VAR_NAME\", \"value\")` (available since Go 1.17) which handles cleanup automatically. Example: `t.Setenv(\"KEYLINE_TEST_VAR\", \"test_value\")`.",
+        "testStrategy": "Run the entire suite of unit and integration tests multiple times, including in parallel (`go test -p 4`). Verify that no tests fail due to environment variable pollution from previous tests. Specifically, look for flaky tests that might pass or fail inconsistently.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Audit Test Files for os.Setenv Usage",
+            "description": "Scan all *_test.go files in the codebase to identify instances of os.Setenv calls that may not be properly cleaned up.",
+            "dependencies": [],
+            "details": "Create a script or use static analysis tools to traverse the codebase and find all occurrences of os.Setenv in test files. Document each instance with file path, line number, and the environment variable being set.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Implement os.Unsetenv Cleanup for Existing os.Setenv Calls",
+            "description": "Add proper cleanup for identified os.Setenv calls by adding defer os.Unsetenv statements immediately after each set operation.",
+            "dependencies": [
+              1
+            ],
+            "details": "For each os.Setenv call found in subtask 1, add a corresponding defer os.Unsetenv statement on the next line. Ensure the cleanup happens immediately after the set operation to maintain test isolation. Handle edge cases where multiple environment variables are set in sequence.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Refactor os.Setenv to Use t.Setenv Where Possible",
+            "description": "Replace os.Setenv calls with t.Setenv where Go version supports it (1.17+) to automatically handle cleanup.",
+            "dependencies": [
+              1
+            ],
+            "details": "Identify test files that use Go 1.17 or higher and refactor os.Setenv calls to use t.Setenv instead. This approach automatically handles cleanup. Update any necessary imports and ensure all tests continue to pass after refactoring.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Verify Test Isolation and Clean Execution",
+            "description": "Run the complete test suite to ensure no environment variable pollution occurs between tests.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Execute the full unit and integration test suite with parallel execution (go test -p 4) to verify that no tests fail due to environment variable pollution. Monitor for flaky tests that might have been caused by improper cleanup and ensure all tests pass consistently.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 5,
+            "title": "Document and Validate Cleanup Strategy",
+            "description": "Create documentation for the new environment variable cleanup approach and validate it works across all test scenarios.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Document the new approach to environment variable handling in test files, including when to use os.Setenv with manual cleanup vs t.Setenv. Validate the implementation with a comprehensive test run that includes edge cases and ensures no regression in existing functionality.",
+            "status": "pending",
+            "testStrategy": null
+          }
+        ]
+      },
+      {
+        "id": 29,
+        "title": "Warn on Plaintext LDAP Connection",
+        "description": "Log a warning message at startup when the LDAP connection is configured to use plaintext, alerting operators to potential security risks.",
+        "details": "In `internal/auth/ldap.go`, within the `dialLDAP` function, add a conditional check for the `tls_mode` configuration. If `tls_mode` is empty (`\"\"`) or explicitly set to `\"none\"`, log a startup warning message: `\"LDAP TLS mode is 'none' — credentials will be transmitted in plaintext. Use 'ldaps' or 'starttls' in production.\"`. This should be a warning log, not an error, and should not prevent the server from starting.",
+        "testStrategy": "Add a unit test to `internal/auth/ldap_test.go` that configures the LDAP provider with `tls_mode` set to `\"\"` or `\"none\"`. Verify that the specified warning message is emitted in the logs during the LDAP provider initialization. Ensure no warning is logged when `tls_mode` is `\"ldaps\"` or `\"starttls\"`.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add plaintext LDAP warning check in dialLDAP function",
+            "description": "Implement conditional logic in the dialLDAP function to detect when TLS mode is set to empty string or 'none' and log a warning message",
+            "dependencies": [],
+            "details": "Modify the `dialLDAP` function in `internal/auth/ldap.go` to check the `tls_mode` configuration parameter. When `tls_mode` is empty (`\"\"`) or explicitly set to `\"none\"`, log a warning message using the existing logging infrastructure. The warning message should be: 'LDAP TLS mode is 'none' — credentials will be transmitted in plaintext. Use 'ldaps' or 'starttls' in production.' Ensure this is a warning-level log, not an error, and does not prevent server startup.",
+            "status": "pending",
+            "testStrategy": "Add unit test in `internal/auth/ldap_test.go` that configures LDAP provider with `tls_mode` set to `\"\"` or `\"none\"` and verifies the warning message is emitted during initialization"
+          },
+          {
+            "id": 2,
+            "title": "Implement LDAP client connection closing during shutdown",
+            "description": "Add logic to explicitly close LDAP client connections during graceful shutdown process",
+            "dependencies": [],
+            "details": "Locate the TODO comment in `cmd/keyline/main.go` related to closing LDAP connections during graceful shutdown. Implement proper connection closing logic for LDAP clients, particularly if they are pooled. Ensure that the connection closing happens before the server shutdown process completes and that it respects the configurable drain timeout.",
+            "status": "pending",
+            "testStrategy": "Create integration test that starts server, establishes LDAP connection, sends SIGTERM, and verifies LDAP connection is properly closed without resource leaks"
+          },
+          {
+            "id": 3,
+            "title": "Implement Elasticsearch client connection closing during shutdown",
+            "description": "Add logic to explicitly close Elasticsearch client connections during graceful shutdown process",
+            "dependencies": [],
+            "details": "Find the TODO comment in `cmd/keyline/main.go` concerning Elasticsearch client connection closing. Implement explicit connection closing for the Elasticsearch client during the graceful shutdown path. This should ensure that all active connections are properly terminated and cleaned up before the server exits, preventing resource leaks and ensuring clean process termination.",
+            "status": "pending",
+            "testStrategy": "Develop integration test that creates ES connections, triggers graceful shutdown, and confirms all ES connections are closed properly without open file descriptors"
+          },
+          {
+            "id": 4,
+            "title": "Implement OpenTelemetry exporter connection closing during shutdown",
+            "description": "Add logic to explicitly close OpenTelemetry exporter connections during graceful shutdown process",
+            "dependencies": [],
+            "details": "Identify and implement the TODO comment in `cmd/keyline/main.go` for closing OpenTelemetry exporter connections. Ensure that the OpenTelemetry exporter connection is properly closed during graceful shutdown, allowing for clean termination of telemetry data transmission and preventing resource leaks in the shutdown sequence.",
+            "status": "pending",
+            "testStrategy": "Create integration test that initializes OTel exporter, triggers graceful shutdown, and verifies exporter connection is properly closed without goroutine leaks"
+          },
+          {
+            "id": 5,
+            "title": "Add configurable drain timeout for graceful shutdown",
+            "description": "Implement a configurable timeout for the graceful shutdown process to ensure proper connection draining",
+            "dependencies": [],
+            "details": "Add a configurable drain timeout parameter to the graceful shutdown logic in `cmd/keyline/main.go`. This timeout should be used to control how long the shutdown process waits for active connections to drain before forcibly terminating. The timeout should be configurable via environment variable or command-line flag to allow operators to adjust based on their specific requirements and connection patterns.",
+            "status": "pending",
+            "testStrategy": "Write integration test that sets custom drain timeout, performs shutdown, and verifies connections are properly drained within the specified timeout period before forced termination"
+          }
+        ]
+      },
+      {
+        "id": 30,
+        "title": "Warn When AttributeMapping Overrides Explicit Fields",
+        "description": "Log a debug or info message when `attribute_mapping` implicitly overrides explicitly set LDAP attribute fields, to aid in configuration debugging.",
+        "details": "In `internal/auth/ldap.go`, within the `NewLDAPProvider` function, add logic to detect when a key in `attribute_mapping` (e.g., `email`) corresponds to an explicitly configured, non-empty attribute field (e.g., `email_attribute`). When such an override occurs, log a `DEBUG` or `INFO` level message stating: `\"attribute_mapping.email overrides email_attribute — using mapped value\"` (adjusting for the specific attribute).",
+        "testStrategy": "Add a unit test to `internal/auth/ldap_test.go` that configures both an explicit attribute field (e.g., `email_attribute`) and a corresponding entry in `attribute_mapping`. Verify that the specified debug/info log message is emitted during the LDAP provider initialization, confirming the override detection. Ensure no log message is emitted if there's no override.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Identify Override Scenarios in LDAP Provider Configuration",
+            "description": "Analyze the LDAP provider configuration structure to identify when attribute_mapping keys correspond to explicitly set attribute fields",
+            "dependencies": [],
+            "details": "Examine the internal/auth/ldap.go file to understand the structure of the LDAP provider configuration and identify which fields are explicitly set (like email_attribute) and how they relate to attribute_mapping keys (like email). Create a mapping of attribute names that could potentially conflict between explicit fields and attribute_mapping entries.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Implement Override Detection Logic",
+            "description": "Add logic to detect when attribute_mapping implicitly overrides explicitly configured LDAP attribute fields",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify the NewLDAPProvider function in internal/auth/ldap.go to iterate through attribute_mapping keys and check if corresponding explicit attribute fields are set. Implement a function that compares the mapping keys against configured explicit fields and identifies conflicts. The logic should handle multiple attribute mappings and ensure proper detection of overrides.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Add Debug/Info Logging for Override Detection",
+            "description": "Implement logging functionality to output debug or info messages when attribute_mapping overrides explicit fields",
+            "dependencies": [
+              2
+            ],
+            "details": "Integrate logging functionality within the override detection logic to emit DEBUG or INFO level messages when conflicts are detected. The log message should follow the format: 'attribute_mapping.{key} overrides {explicit_field} — using mapped value' where {key} and {explicit_field} are dynamically replaced with actual attribute names. Ensure appropriate log level is used for debugging purposes.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Create Unit Test for Override Detection",
+            "description": "Develop unit tests to verify that override detection and logging works correctly",
+            "dependencies": [
+              3
+            ],
+            "details": "Create tests in internal/auth/ldap_test.go that configure both explicit attribute fields (like email_attribute) and corresponding entries in attribute_mapping. The tests should verify that the correct debug/info log messages are emitted during LDAP provider initialization when overrides occur. Include test cases for multiple attributes and edge cases where no override occurs.",
+            "status": "pending",
+            "testStrategy": "Add a unit test to internal/auth/ldap_test.go that configures both an explicit attribute field (e.g., email_attribute) and a corresponding entry in attribute_mapping. Verify that the specified debug/info log message is emitted during the LDAP provider initialization, confirming the override"
+          },
+          {
+            "id": 5,
+            "title": "Validate Implementation with Integration Testing",
+            "description": "Test the complete implementation to ensure it works correctly in various configuration scenarios",
+            "dependencies": [
+              4
+            ],
+            "details": "Run comprehensive tests including edge cases such as empty attribute fields, non-overlapping mappings, and multiple conflicting attributes. Verify that the logging works correctly in different environments and that the implementation doesn't break existing functionality. Ensure that the implementation handles all expected attribute types and doesn't produce false positives or negatives.",
+            "status": "pending",
+            "testStrategy": null
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2026-05-16T17:28:00.027Z",
+      "updated": "2026-05-16T17:32:54.446Z",
+      "description": "Tasks for concerns context"
     }
   }
 }

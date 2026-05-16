@@ -1,0 +1,125 @@
+{
+	"meta": {
+		"generatedAt": "2026-05-16T17:35:29.879Z",
+		"tasksAnalyzed": 7,
+		"totalTasks": 7,
+		"analysisCount": 14,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": false
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Implement LDAP authentication provider",
+			"complexityScore": 8,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down the implementation of the LDAPProvider, focusing on the `Authenticate` method, secure username handling, error management, and comprehensive unit testing with mocked LDAP connections.",
+			"reasoning": "This task involves implementing a core authentication mechanism, which is inherently complex due to security considerations, external library integration (go-ldap), and the need for robust error handling and username escaping. Mocking LDAP connections for unit tests can also be challenging. The 3-4 day estimate reflects this complexity."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Add configuration and validation for LDAP",
+			"complexityScore": 4,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Detail the steps for defining LDAP configuration fields, implementing conditional validation logic, and updating configuration examples.",
+			"reasoning": "This task is moderately complex, involving updates to existing configuration structures and validation logic. The main challenge is ensuring all fields are correctly defined, defaults are set, and validation is conditional based on the 'enabled' flag. Updating example files is straightforward."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Wire LDAP provider into auth engine",
+			"complexityScore": 7,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Outline the integration of the LDAP provider into the authentication engine, focusing on defining the authentication precedence, implementing the routing logic, and ensuring robust test coverage for all precedence scenarios.",
+			"reasoning": "Wiring a new authentication provider into an existing engine, especially with a defined precedence order (session -> local -> LDAP -> OIDC), introduces significant complexity. It requires careful modification of core authentication flow, potential refactoring, and extensive testing to ensure no regressions and correct behavior across all scenarios."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Integrate LDAP groups into role mapping",
+			"complexityScore": 6,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Describe the process of extracting LDAP groups, integrating them into the `AuthenticatedUser` structure, updating the `UpsertUser` mechanism, and thoroughly testing role mapping with LDAP groups.",
+			"reasoning": "This task extends the authentication flow to integrate with another core system (role mapping). It requires correctly extracting group information from LDAP, passing it through the user object, and ensuring existing role mapping logic correctly interprets these new groups. Thorough testing is crucial to validate the mapping."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Testing: unit and integration notes",
+			"complexityScore": 6,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Detail the creation of unit tests for the LDAP provider, configuration validator, and authentication engine, along with the documentation of a comprehensive integration test plan, emphasizing secure handling of sensitive data.",
+			"reasoning": "While 'just' testing, this task is critical and complex due to the nature of authentication. It requires comprehensive unit tests for multiple components, careful mocking, and the design of a robust integration test plan. Ensuring no sensitive data (passwords) are logged during tests adds another layer of complexity."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Documentation and examples",
+			"complexityScore": 3,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "List the specific documentation updates required, including README, CONTRIBUTING, configuration examples, environment variable usage, and any necessary migration notes.",
+			"reasoning": "This is a relatively low-complexity task focused on writing and updating documentation. The main challenge is ensuring completeness, clarity, and accuracy across various documentation files and examples. It's dependent on all previous tasks being completed to provide accurate information."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Create PR and run code review checklist",
+			"complexityScore": 2,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "This task is a standard procedural step and does not require further subtask expansion.",
+			"reasoning": "This task represents a standard development workflow step. It involves preparing a pull request, running local checks, and initiating the code review process. While essential, it's procedural and does not involve new implementation or significant technical challenges beyond ensuring previous tasks are complete and correct."
+		},
+		{
+			"taskId": "1",
+			"taskTitle": "Implement LDAP authentication provider",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on implement ldap authentication provider.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": "2",
+			"taskTitle": "Add configuration and validation for LDAP",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on add configuration and validation for ldap.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": "3",
+			"taskTitle": "Wire LDAP provider into auth engine",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on wire ldap provider into auth engine.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": "4",
+			"taskTitle": "Integrate LDAP groups into role mapping",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on integrate ldap groups into role mapping.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": "5",
+			"taskTitle": "Testing: unit and integration notes",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on testing: unit and integration notes.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": "6",
+			"taskTitle": "Documentation and examples",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on documentation and examples.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		},
+		{
+			"taskId": "7",
+			"taskTitle": "Create PR and run code review checklist",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down this task with a focus on create pr and run code review checklist.",
+			"reasoning": "Automatically added due to missing analysis in AI response."
+		}
+	]
+}
