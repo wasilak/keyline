@@ -23,10 +23,10 @@ func setupLDAPContainer(ctx context.Context, t *testing.T) (testcontainers.Conta
 		Image:        "osixia/openldap:1.5.0",
 		ExposedPorts: []string{"389/tcp", "636/tcp"},
 		Env: map[string]string{
-			"LDAP_ORGANISATION": "Test Organization",
-			"LDAP_DOMAIN":       "example.com",
+			"LDAP_ORGANISATION":   "Test Organization",
+			"LDAP_DOMAIN":         "example.com",
 			"LDAP_ADMIN_PASSWORD": "admin",
-			"LDAP_BASE_DN":      "dc=example,dc=com",
+			"LDAP_BASE_DN":        "dc=example,dc=com",
 		},
 		WaitingFor: wait.ForLog("slapd starting").WithStartupTimeout(30 * time.Second),
 	}
@@ -51,19 +51,19 @@ func setupLDAPContainer(ctx context.Context, t *testing.T) (testcontainers.Conta
 	}
 
 	ldapURL := fmt.Sprintf("ldap://%s:%s", host, mappedPort.Port())
-	
+
 	t.Logf("LDAP container started at %s", ldapURL)
-	
+
 	// Wait a bit more for LDAP to be fully ready
 	time.Sleep(2 * time.Second)
-	
+
 	return container, ldapURL, mappedPort.Int()
 }
 
 // TestLDAP_Authentication_Success tests successful LDAP authentication
 func TestLDAP_Authentication_Success(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Start LDAP container
 	container, ldapURL, _ := setupLDAPContainer(ctx, t)
 	defer func() {
@@ -99,7 +99,7 @@ func TestLDAP_Authentication_Success(t *testing.T) {
 	// The default osixia/openldap image comes with pre-configured users:
 	// - cn=admin,dc=example,dc=com (admin user)
 	// We need to add a test user or use the admin for testing
-	
+
 	// Test authentication with admin user
 	authReq := &auth.AuthRequest{
 		AuthorizationHeader: "Basic " + basicAuth("admin", "admin"),
@@ -119,7 +119,7 @@ func TestLDAP_Authentication_Success(t *testing.T) {
 // TestLDAP_Authentication_InvalidCredentials tests authentication with wrong password
 func TestLDAP_Authentication_InvalidCredentials(t *testing.T) {
 	ctx := context.Background()
-	
+
 	container, ldapURL, _ := setupLDAPContainer(ctx, t)
 	defer func() {
 		if err := container.Terminate(ctx); err != nil {
@@ -163,7 +163,7 @@ func TestLDAP_Authentication_InvalidCredentials(t *testing.T) {
 // TestLDAP_Authentication_UserNotFound tests authentication for non-existent user
 func TestLDAP_Authentication_UserNotFound(t *testing.T) {
 	ctx := context.Background()
-	
+
 	container, ldapURL, _ := setupLDAPContainer(ctx, t)
 	defer func() {
 		if err := container.Terminate(ctx); err != nil {
@@ -204,7 +204,7 @@ func TestLDAP_Authentication_UserNotFound(t *testing.T) {
 // TestLDAP_TLS_SkipVerify tests LDAPS connection with TLS verification disabled
 func TestLDAP_TLS_SkipVerify(t *testing.T) {
 	ctx := context.Background()
-	
+
 	container, _, _ := setupLDAPContainer(ctx, t)
 	defer func() {
 		if err := container.Terminate(ctx); err != nil {
@@ -224,7 +224,7 @@ func TestLDAP_TLS_SkipVerify(t *testing.T) {
 	}
 
 	ldapsURL := fmt.Sprintf("ldaps://%s:%s", host, ldapsPort.Port())
-	
+
 	cfg := &config.LDAPConfig{
 		Enabled:           true,
 		URL:               ldapsURL,
@@ -291,12 +291,12 @@ func TestLDAP_ConnectionTimeout(t *testing.T) {
 	if result.Authenticated {
 		t.Error("Expected authentication to fail with timeout")
 	}
-	
+
 	// Should complete within reasonable time (timeout + some buffer)
 	if elapsed > 5*time.Second {
 		t.Errorf("Authentication took too long: %v", elapsed)
 	}
-	
+
 	t.Logf("Connection timeout test completed in %v", elapsed)
 }
 

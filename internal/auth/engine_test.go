@@ -51,7 +51,7 @@ var _ cachego.CacheInterface = (*MockCache)(nil)
 
 // MockUserManager implements usermgmt.Manager for testing
 type MockUserManager struct {
-	upsertFunc   func(ctx context.Context, user *usermgmt.AuthenticatedUser) (*usermgmt.Credentials, error)
+	upsertFunc     func(ctx context.Context, user *usermgmt.AuthenticatedUser) (*usermgmt.Credentials, error)
 	invalidateFunc func(ctx context.Context, username string) error
 }
 
@@ -188,7 +188,7 @@ func TestNewEngine(t *testing.T) {
 func TestEngine_AuthenticateWithSession(t *testing.T) {
 	ctx := context.Background()
 	cache := NewMockCache()
-	
+
 	// Create a session
 	sess := &session.Session{
 		ID:        "test-session-id",
@@ -202,7 +202,7 @@ func TestEngine_AuthenticateWithSession(t *testing.T) {
 	}
 	sessionData, _ := json.Marshal(sess)
 	cache.Set("session:test-session-id", sessionData)
-	
+
 	cfg := &config.Config{
 		Session: config.SessionConfig{
 			CookieName: "keyline_session",
@@ -211,7 +211,7 @@ func TestEngine_AuthenticateWithSession(t *testing.T) {
 		LDAP:       config.LDAPConfig{Enabled: false},
 		OIDC:       config.OIDCConfig{Enabled: false},
 	}
-	
+
 	userManager := &MockUserManager{
 		upsertFunc: func(ctx context.Context, user *usermgmt.AuthenticatedUser) (*usermgmt.Credentials, error) {
 			return &usermgmt.Credentials{
@@ -220,9 +220,9 @@ func TestEngine_AuthenticateWithSession(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	engine, _ := NewEngine(cfg, cache, nil, userManager)
-	
+
 	req := &EngineRequest{
 		Method:   "GET",
 		Path:     "/",
@@ -235,9 +235,9 @@ func TestEngine_AuthenticateWithSession(t *testing.T) {
 			},
 		},
 	}
-	
+
 	result := engine.Authenticate(ctx, req)
-	
+
 	if !result.Authenticated {
 		t.Errorf("Expected authenticated but got: %v", result.Error)
 	}
@@ -431,26 +431,26 @@ func TestEngine_AuthenticateWithBasicAuth_UnknownUser_NoLDAP(t *testing.T) {
 func TestEngine_NoAuthMethodAvailable(t *testing.T) {
 	ctx := context.Background()
 	cache := NewMockCache()
-	
+
 	cfg := &config.Config{
 		Session:    config.SessionConfig{CookieName: "keyline_session"},
 		LocalUsers: config.LocalUsersConfig{Enabled: false},
 		LDAP:       config.LDAPConfig{Enabled: false},
 		OIDC:       config.OIDCConfig{Enabled: false},
 	}
-	
+
 	userManager := &MockUserManager{}
 	engine, _ := NewEngine(cfg, cache, nil, userManager)
-	
+
 	req := &EngineRequest{
 		Method:   "GET",
 		Path:     "/",
 		Host:     "example.com",
 		SourceIP: "127.0.0.1",
 	}
-	
+
 	result := engine.Authenticate(ctx, req)
-	
+
 	if result.Authenticated {
 		t.Error("Expected not authenticated")
 	}
@@ -463,7 +463,7 @@ func TestEngine_NoAuthMethodAvailable(t *testing.T) {
 func TestEngine_SessionNotFound(t *testing.T) {
 	ctx := context.Background()
 	cache := NewMockCache()
-	
+
 	cfg := &config.Config{
 		Session: config.SessionConfig{
 			CookieName: "keyline_session",
@@ -472,10 +472,10 @@ func TestEngine_SessionNotFound(t *testing.T) {
 		LDAP:       config.LDAPConfig{Enabled: false},
 		OIDC:       config.OIDCConfig{Enabled: false},
 	}
-	
+
 	userManager := &MockUserManager{}
 	engine, _ := NewEngine(cfg, cache, nil, userManager)
-	
+
 	req := &EngineRequest{
 		Method:   "GET",
 		Path:     "/",
@@ -488,9 +488,9 @@ func TestEngine_SessionNotFound(t *testing.T) {
 			},
 		},
 	}
-	
+
 	result := engine.Authenticate(ctx, req)
-	
+
 	// Should fall through to 401 since session not found and no other auth
 	if result.Authenticated {
 		t.Error("Expected not authenticated")
@@ -504,7 +504,7 @@ func TestEngine_SessionNotFound(t *testing.T) {
 func TestEngine_UserManagerFailure(t *testing.T) {
 	ctx := context.Background()
 	cache := NewMockCache()
-	
+
 	// Create a session
 	sess := &session.Session{
 		ID:        "test-session-id",
@@ -518,7 +518,7 @@ func TestEngine_UserManagerFailure(t *testing.T) {
 	}
 	sessionData, _ := json.Marshal(sess)
 	cache.Set("session:test-session-id", sessionData)
-	
+
 	cfg := &config.Config{
 		Session: config.SessionConfig{
 			CookieName: "keyline_session",
@@ -527,16 +527,16 @@ func TestEngine_UserManagerFailure(t *testing.T) {
 		LDAP:       config.LDAPConfig{Enabled: false},
 		OIDC:       config.OIDCConfig{Enabled: false},
 	}
-	
+
 	// User manager that fails
 	userManager := &MockUserManager{
 		upsertFunc: func(ctx context.Context, user *usermgmt.AuthenticatedUser) (*usermgmt.Credentials, error) {
 			return nil, fmt.Errorf("user management error")
 		},
 	}
-	
+
 	engine, _ := NewEngine(cfg, cache, nil, userManager)
-	
+
 	req := &EngineRequest{
 		Method:   "GET",
 		Path:     "/",
@@ -549,9 +549,9 @@ func TestEngine_UserManagerFailure(t *testing.T) {
 			},
 		},
 	}
-	
+
 	result := engine.Authenticate(ctx, req)
-	
+
 	if result.Authenticated {
 		t.Error("Expected not authenticated due to user manager failure")
 	}
@@ -564,7 +564,7 @@ func TestEngine_UserManagerFailure(t *testing.T) {
 func TestEngine_ExpiredSession(t *testing.T) {
 	ctx := context.Background()
 	cache := NewMockCache()
-	
+
 	// Create an expired session
 	sess := &session.Session{
 		ID:        "expired-session-id",
@@ -578,7 +578,7 @@ func TestEngine_ExpiredSession(t *testing.T) {
 	}
 	sessionData, _ := json.Marshal(sess)
 	cache.Set("session:expired-session-id", sessionData)
-	
+
 	cfg := &config.Config{
 		Session: config.SessionConfig{
 			CookieName: "keyline_session",
@@ -587,10 +587,10 @@ func TestEngine_ExpiredSession(t *testing.T) {
 		LDAP:       config.LDAPConfig{Enabled: false},
 		OIDC:       config.OIDCConfig{Enabled: false},
 	}
-	
+
 	userManager := &MockUserManager{}
 	engine, _ := NewEngine(cfg, cache, nil, userManager)
-	
+
 	req := &EngineRequest{
 		Method:   "GET",
 		Path:     "/",
@@ -603,9 +603,9 @@ func TestEngine_ExpiredSession(t *testing.T) {
 			},
 		},
 	}
-	
+
 	result := engine.Authenticate(ctx, req)
-	
+
 	// Should fall through to 401 since session is expired
 	if result.Authenticated {
 		t.Error("Expected not authenticated")
@@ -626,16 +626,16 @@ func TestEngine_hasLocalUser(t *testing.T) {
 			},
 		},
 	}
-	
+
 	engine := &Engine{
 		config:       cfg,
 		basicEnabled: true,
 	}
-	
+
 	tests := []struct {
-		name            string
-		authHeader      string
-		expectedLocal   bool
+		name          string
+		authHeader    string
+		expectedLocal bool
 	}{
 		{
 			name:          "Local user exists",
@@ -653,7 +653,7 @@ func TestEngine_hasLocalUser(t *testing.T) {
 			expectedLocal: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := engine.hasLocalUser(tt.authHeader)

@@ -708,7 +708,7 @@
         "testStrategy": "Run the integration tests using `go test -tags=integration ./integration`. Verify that all LDAP scenarios (authentication, search, TLS) pass against a real LDAP server instance. Ensure the containerized setup is robust and cleans up resources properly.",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -772,7 +772,7 @@
             "parentId": "undefined"
           }
         ],
-        "updatedAt": "2026-05-16T18:53:59.825Z"
+        "updatedAt": "2026-05-16T18:56:38.986Z"
       },
       {
         "id": "24",
@@ -1265,9 +1265,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-16T18:53:59.826Z",
+      "lastModified": "2026-05-16T18:56:38.986Z",
       "taskCount": 15,
-      "completedCount": 6,
+      "completedCount": 7,
       "tags": [
         "concerns"
       ]

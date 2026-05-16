@@ -104,7 +104,9 @@ func DeleteSession(ctx context.Context, cache cachego.CacheInterface, sessionID 
 	key := keyPrefix + sessionID
 
 	// Try to use Delete method if cache supports it (ExtendedCacheInterface)
-	if deleter, ok := cache.(interface{ Delete(context.Context, string) error }); ok {
+	if deleter, ok := cache.(interface {
+		Delete(context.Context, string) error
+	}); ok {
 		if err := deleter.Delete(ctx, key); err != nil {
 			slog.ErrorContext(ctx, "Failed to delete session",
 				slog.String("session_id", sessionID),

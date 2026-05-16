@@ -9,12 +9,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-jose/go-jose/v3"
 	"github.com/yourusername/keyline/internal/cache"
 	"github.com/yourusername/keyline/internal/config"
-	"github.com/go-jose/go-jose/v3"
 )
 
 // Mock OIDC server for testing
+//
+//lint:ignore U1000 Used by integration tests and for future test expansion
 func setupMockOIDCServer(t *testing.T) (*httptest.Server, string) {
 	mux := http.NewServeMux()
 
@@ -578,6 +580,8 @@ func TestParseJWKS_Invalid(t *testing.T) {
 }
 
 // Helper function to create a test JWKS
+//
+//lint:ignore U1000 Used by integration tests and for future test expansion
 func createTestJWKS() *jose.JSONWebKeySet {
 	return &jose.JSONWebKeySet{
 		Keys: []jose.JSONWebKey{

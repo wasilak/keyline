@@ -135,7 +135,7 @@ func (c *client) CreateOrUpdateUser(ctx context.Context, req *UserRequest) error
 	if req.Email != "" {
 		body["email"] = req.Email
 	}
-	if req.Metadata != nil && len(req.Metadata) > 0 {
+	if len(req.Metadata) > 0 {
 		body["metadata"] = req.Metadata
 	}
 

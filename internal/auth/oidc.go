@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-jose/go-jose/v3"
 	"github.com/wasilak/cachego"
 	"github.com/yourusername/keyline/internal/cache"
 	"github.com/yourusername/keyline/internal/config"
@@ -19,7 +20,6 @@ import (
 	"github.com/yourusername/keyline/internal/state"
 	pkgcrypto "github.com/yourusername/keyline/pkg/crypto"
 	"go.opentelemetry.io/otel"
-	"github.com/go-jose/go-jose/v3"
 )
 
 // OIDCProvider implements OIDC authentication

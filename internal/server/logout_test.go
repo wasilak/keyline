@@ -99,7 +99,7 @@ func TestHandleLogout_WithValidSession(t *testing.T) {
 	assert.Equal(t, http.SameSiteLaxMode, clearCookie.SameSite)
 
 	// Verify session was deleted from store
-	retrievedSession, err := session.GetSession(ctx, server.cache, testSession.ID)
+	retrievedSession, _ := session.GetSession(ctx, server.cache, testSession.ID)
 	assert.Nil(t, retrievedSession)
 	// Session not found is not an error in GetSession - it just returns nil
 }
@@ -380,12 +380,12 @@ func TestHandleLogout_SubsequentRequestsUnauthenticated(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify session no longer exists after logout
-	retrievedSession, err = session.GetSession(ctx, server.cache, testSession.ID)
+	retrievedSession, _ = session.GetSession(ctx, server.cache, testSession.ID)
 	assert.Nil(t, retrievedSession)
 	// Session not found is not an error - GetSession returns nil
 
 	// Subsequent requests with the same session ID should be treated as unauthenticated
-	retrievedSession, err = session.GetSession(ctx, server.cache, testSession.ID)
+	retrievedSession, _ = session.GetSession(ctx, server.cache, testSession.ID)
 	assert.Nil(t, retrievedSession)
 	// Session not found is not an error - GetSession returns nil
 }
