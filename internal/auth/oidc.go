@@ -19,7 +19,7 @@ import (
 	"github.com/yourusername/keyline/internal/state"
 	pkgcrypto "github.com/yourusername/keyline/pkg/crypto"
 	"go.opentelemetry.io/otel"
-	"gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v3"
 )
 
 // OIDCProvider implements OIDC authentication
