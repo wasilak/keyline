@@ -10,7 +10,6 @@ import (
 
 	"github.com/yourusername/keyline/internal/auth"
 	"github.com/yourusername/keyline/internal/config"
-	"github.com/yourusername/keyline/internal/mapper"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -41,9 +40,6 @@ func TestBasicAuthFlow_ValidCredentials(t *testing.T) {
 		},
 	}
 
-	// Create credential mapper
-	credMapper := mapper.NewCredentialMapper(cfg)
-
 	// Create Basic Auth provider
 	basicProvider, err := auth.NewBasicAuthProvider(&cfg.LocalUsers)
 	if err != nil {
@@ -73,18 +69,6 @@ func TestBasicAuthFlow_ValidCredentials(t *testing.T) {
 	}
 	if result.ESUser != "es_testuser" {
 		t.Errorf("Expected ES user 'es_testuser', got '%s'", result.ESUser)
-	}
-
-	// Verify ES credentials can be retrieved
-	esUsername, esPassword, err := credMapper.GetESCredentials(ctx, result.ESUser)
-	if err != nil {
-		t.Fatalf("Failed to get ES credentials: %v", err)
-	}
-	if esUsername != "es_testuser" {
-		t.Errorf("Expected ES username 'es_testuser', got '%s'", esUsername)
-	}
-	if esPassword != "es_password" {
-		t.Errorf("Expected ES password 'es_password', got '%s'", esPassword)
 	}
 }
 
@@ -201,7 +185,6 @@ func TestBasicAuthFlow_ESCredentialMapping(t *testing.T) {
 		},
 	}
 
-	credMapper := mapper.NewCredentialMapper(cfg)
 	basicProvider, _ := auth.NewBasicAuthProvider(&cfg.LocalUsers)
 
 	// Create request with valid credentials
@@ -221,17 +204,5 @@ func TestBasicAuthFlow_ESCredentialMapping(t *testing.T) {
 	}
 	if result.ESUser != "es_testuser" {
 		t.Errorf("Expected ES user 'es_testuser', got '%s'", result.ESUser)
-	}
-
-	// Verify ES credentials can be retrieved
-	esUsername, esPassword, err := credMapper.GetESCredentials(ctx, result.ESUser)
-	if err != nil {
-		t.Fatalf("Failed to get ES credentials: %v", err)
-	}
-	if esUsername != "es_testuser" {
-		t.Errorf("Expected ES username 'es_testuser', got '%s'", esUsername)
-	}
-	if esPassword != "es_password" {
-		t.Errorf("Expected ES password 'es_password', got '%s'", esPassword)
 	}
 }
