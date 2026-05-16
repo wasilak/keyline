@@ -29,6 +29,18 @@ server:
   # Requests exceeding this limit receive 503 Service Unavailable
   max_concurrent: 1000
 
+  # CORS (Cross-Origin Resource Sharing) configuration
+  # Controls which origins can make cross-origin requests to Keyline
+  cors:
+    # List of allowed origin domains (e.g., "https://app.example.com")
+    # If empty, all cross-origin requests are rejected
+    # WARNING: Do not use wildcard "*" in production — it weakens CSRF protection
+    allowed_origins: []
+    # Example:
+    # allowed_origins:
+    #   - "https://kibana.example.com"
+    #   - "https://app.example.com"
+
 # ============================================================================
 # OIDC Authentication Configuration
 # ============================================================================

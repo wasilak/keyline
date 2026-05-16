@@ -8,7 +8,10 @@
       "Bash(task-master parse-prd:*)",
       "Bash(task-master list:*)",
       "Bash(task-master models:*)",
-      "mcp__taskmaster__get_tasks"
+      "mcp__taskmaster__get_tasks",
+      "Bash(git -C /Users/piotrek/git/keyline checkout main)",
+      "Bash(git -C /Users/piotrek/git/keyline merge feature/ldap-user-mapping --no-ff -m \"feat: merge LDAP user mapping feature into main\")",
+      "Bash(/opt/homebrew/bin/rg go-jose *)"
     ]
   },
   "disabledMcpjsonServers": [

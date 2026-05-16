@@ -160,6 +160,13 @@ func Validate(cfg *Config) error {
 		}
 	}
 
+	// Validate CORS configuration - warn about wildcard "*"
+	for _, origin := range cfg.Server.CORS.AllowedOrigins {
+		if origin == "*" {
+			log.Printf("warning: cors.allowed_origins contains wildcard '*') — this weakens CSRF protection and should not be used in production")
+		}
+	}
+
 	// Validate LDAP configuration if enabled
 	errors = validateLDAP(cfg, errors)
 

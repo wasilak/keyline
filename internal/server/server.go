@@ -55,8 +55,16 @@ func New(cfg *config.Config, version string, cache cachego.CacheInterface, oidcP
 	e.Use(middleware.Recover())
 
 	// 5. CORS - cross-origin resource sharing
+	// Use configured allowed origins, or reject all cross-origin requests if empty
+	corsOrigins := cfg.Server.CORS.AllowedOrigins
+	if len(corsOrigins) == 0 {
+		corsOrigins = []string{} // Empty list = reject all cross-origin requests
+		slog.Info("CORS: no allowed_origins configured, cross-origin requests will be rejected")
+	} else {
+		slog.Info("CORS: configured allowed origins", slog.Any("origins", corsOrigins))
+	}
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
+		AllowOrigins: corsOrigins,
 		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
 	}))
 

@@ -27,6 +27,15 @@ type ServerConfig struct {
 	ReadTimeout   time.Duration `mapstructure:"read_timeout"`
 	WriteTimeout  time.Duration `mapstructure:"write_timeout"`
 	MaxConcurrent int           `mapstructure:"max_concurrent"`
+	CORS          CORSConfig    `mapstructure:"cors"`
+}
+
+// CORSConfig contains CORS (Cross-Origin Resource Sharing) settings
+type CORSConfig struct {
+	// AllowedOrigins is a list of allowed origin domains for CORS requests.
+	// If empty, all cross-origin requests are rejected.
+	// Use specific origins like "https://app.example.com" — wildcard "*" is NOT recommended.
+	AllowedOrigins []string `mapstructure:"allowed_origins"`
 }
 
 // OIDCConfig contains OIDC provider settings
