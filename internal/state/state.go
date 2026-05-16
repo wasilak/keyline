@@ -112,13 +112,24 @@ func DeleteStateToken(ctx context.Context, cache cachego.CacheInterface, tokenID
 
 	key := keyPrefix + tokenID
 
-	// cachego doesn't have a Delete method, so we set an empty value
-	if err := cache.Set(key, []byte{}); err != nil {
-		slog.ErrorContext(ctx, "Failed to delete state token",
-			slog.String("token_id", tokenID),
-			slog.String("error", err.Error()),
-		)
-		return fmt.Errorf("failed to delete state token: %w", err)
+	// Try to use Delete method if cache supports it (ExtendedCacheInterface)
+	if deleter, ok := cache.(interface{ Delete(context.Context, string) error }); ok {
+		if err := deleter.Delete(ctx, key); err != nil {
+			slog.ErrorContext(ctx, "Failed to delete state token",
+				slog.String("token_id", tokenID),
+				slog.String("error", err.Error()),
+			)
+			return fmt.Errorf("failed to delete state token: %w", err)
+		}
+	} else {
+		// Fallback: set empty value for caches without Delete
+		if err := cache.Set(key, []byte{}); err != nil {
+			slog.ErrorContext(ctx, "Failed to delete state token",
+				slog.String("token_id", tokenID),
+				slog.String("error", err.Error()),
+			)
+			return fmt.Errorf("failed to delete state token: %w", err)
+		}
 	}
 
 	slog.InfoContext(ctx, "State token deleted",

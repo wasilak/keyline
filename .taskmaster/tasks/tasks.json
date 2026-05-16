@@ -492,7 +492,7 @@
         "testStrategy": "Add unit tests to `internal/config/validator_test.go` that cover the new validation rules. Test cases should include configurations with plaintext sensitive values (expect validation error) and configurations with `${ENV_VAR}` references (expect successful validation).",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -554,7 +554,7 @@
             "parentId": "undefined"
           }
         ],
-        "updatedAt": "2026-05-16T18:22:32.957Z"
+        "updatedAt": "2026-05-16T18:28:30.351Z"
       },
       {
         "id": "21",
@@ -564,7 +564,7 @@
         "testStrategy": "Implement unit tests for the session store in `internal/session/store_test.go`. Test cases should verify that after a session is created and then explicitly deleted using the `Delete` method, subsequent attempts to retrieve that session return an error or `nil` (indicating not found), confirming true deletion.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -625,7 +625,8 @@
             "testStrategy": null,
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-05-16T18:30:59.898Z"
       },
       {
         "id": "22",
@@ -1262,9 +1263,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-16T18:22:32.957Z",
+      "lastModified": "2026-05-16T18:30:59.898Z",
       "taskCount": 15,
-      "completedCount": 3,
+      "completedCount": 4,
       "tags": [
         "concerns"
       ]

@@ -137,8 +137,8 @@ func main() {
 		}
 	}
 
-	// Initialize cache backend
-	cacheBackend, err := cache.InitCache(ctx, &cfg.Cache)
+	// Initialize cache backend with extended interface (supports Delete)
+	cacheBackend, err := cache.InitExtendedCache(ctx, &cfg.Cache)
 	if err != nil {
 		logger.Error("Failed to initialize cache", slog.String("error", err.Error()))
 		os.Exit(1)
