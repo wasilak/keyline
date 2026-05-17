@@ -14,7 +14,7 @@ flowchart LR
     Proxy --> Keyline[Keyline]
     
     subgraph Keyline Components
-        Auth[Auth Engine<br/>OIDC + Basic]
+        Auth[Auth Engine<br/>OIDC + Basic + LDAP]
         Mgmt[User Manager<br/>Dynamic ES Users]
         Map[Role Mapper<br/>Groups → Roles]
     end
@@ -35,6 +35,7 @@ flowchart LR
 | Traefik forwardAuth only | Any proxy + standalone |
 | Basic caching | Redis + AES-256-GCM encryption |
 | Limited observability | Full metrics, tracing, logging |
+| No built-in LDAP | LDAP built-in with `ldaps`/`starttls`/`none` TLS modes |
 
 ## Quick Start
 
@@ -56,7 +57,7 @@ oidc:
   issuer_url: https://accounts.google.com
   client_id: ${OIDC_CLIENT_ID}
   client_secret: ${OIDC_CLIENT_SECRET}
-  redirect_url: https://auth.example.com/auth/callback
+  redirect_url: https://auth.yourdomain.com/auth/callback
 
 elasticsearch:
   admin_user: ${ES_ADMIN_USER}
@@ -106,10 +107,15 @@ docker run -d \
 ## Key Features
 
 - 🔑 **Dual Auth** — OIDC for browsers, Basic Auth for scripts (both work simultaneously)
-- 👥 **Dynamic Users** — Automatic ES user creation with role-based access control
+- 👥 **Dynamic User Management** — Automatic Elasticsearch user creation and updates on every authenticated request; each user gets their own ES account via `user_management` config
+- 🔒 **LDAP Authentication** — Built-in LDAP/Active Directory support with three TLS modes (`ldap.tls_mode`: `ldaps`, `starttls`, `none`); coexists with local users and OIDC
+- 🗺️ **Role Mapping** — Pattern-based group-to-role mapping via `role_mappings`; supports wildcards, multiple groups, and configurable default roles via `default_es_roles`
+- 🔐 **Encrypted Credential Cache** — AES-256-GCM encryption for cached ES credentials (`cache.encryption_key`); Redis backend for horizontal scaling (`session.backend`)
 - 🔄 **Any Proxy** — Traefik, Nginx, HAProxy, or standalone mode
 - 📈 **Horizontal Scaling** — Redis-backed sessions for multi-instance deployments
-- 🔒 **Security** — PKCE, secure cookies, bcrypt, AES-256-GCM encryption
+- 🛡️ **Circuit Breaker** — Configurable concurrent-request limit via `server.max_concurrent`; returns 503 when exceeded, protecting the ES cluster
+- 🌐 **CORS** — Configurable allowed origins via `server.cors.allowed_origins` for cross-origin browser requests
+- 🔏 **Env-var Enforcement** — Sensitive fields (`client_secret`, `bind_password`, `encryption_key`) must use `${ENV_VAR}` references; plaintext values are rejected
 - 📊 **Observability** — Prometheus metrics, OpenTelemetry tracing, structured logging
 
 ## Documentation
