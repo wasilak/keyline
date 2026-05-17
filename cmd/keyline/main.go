@@ -12,12 +12,12 @@ import (
 
 	"github.com/wasilak/loggergo"
 	"github.com/wasilak/otelgo/tracing"
-	"github.com/yourusername/keyline/internal/auth"
-	"github.com/yourusername/keyline/internal/cache"
-	"github.com/yourusername/keyline/internal/config"
-	"github.com/yourusername/keyline/internal/elasticsearch"
-	"github.com/yourusername/keyline/internal/server"
-	"github.com/yourusername/keyline/internal/usermgmt"
+	"github.com/wasilak/keyline/internal/auth"
+	"github.com/wasilak/keyline/internal/cache"
+	"github.com/wasilak/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/elasticsearch"
+	"github.com/wasilak/keyline/internal/server"
+	"github.com/wasilak/keyline/internal/usermgmt"
 )
 
 const version = "0.1.0"
