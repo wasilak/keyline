@@ -9,6 +9,9 @@ import (
 
 	"github.com/wasilak/cachego"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+
 	"github.com/wasilak/keyline/internal/config"
 	"github.com/wasilak/keyline/internal/elasticsearch"
 )
@@ -35,12 +38,19 @@ type Credentials struct {
 func (m *manager) UpsertUser(ctx context.Context, authUser *AuthenticatedUser) (*Credentials, error) {
 	cacheKey := fmt.Sprintf("keyline:user:%s:password", authUser.Username)
 
+	_, cacheGetSpan := otel.Tracer("keyline").Start(ctx, "cache.get")
 	cachedCredentials, found, err := m.cache.Get(cacheKey)
 	if err != nil {
+		cacheGetSpan.RecordError(err)
+		cacheGetSpan.SetStatus(codes.Error, "cache lookup failed")
+		cacheGetSpan.End()
 		return nil, fmt.Errorf("cache lookup failed: %w", err)
 	}
+	cacheGetSpan.End()
 
 	if found && len(cachedCredentials) > 0 {
+		CredCacheHits.Inc()
+
 		remainingTTL, exists, ttlErr := m.cache.GetItemTTL(cacheKey)
 		if ttlErr == nil && exists {
 			threshold := m.calculateTTLThreshold()
@@ -52,21 +62,44 @@ func (m *manager) UpsertUser(ctx context.Context, authUser *AuthenticatedUser) (
 			}
 		}
 
+		UserUpsertDuration.WithLabelValues("hit").Observe(0)
 		return &Credentials{Username: authUser.Username, Password: string(cachedCredentials)}, nil
 	}
 
+	CredCacheMisses.Inc()
+
+	start := time.Now()
+	_, credSpan := otel.Tracer("keyline").Start(ctx, "es.create_credentials")
 	newPassword, err := m.generatePassword()
 	if err != nil {
+		credSpan.RecordError(err)
+		credSpan.SetStatus(codes.Error, "password generation failed")
+		credSpan.End()
 		return nil, fmt.Errorf("failed to generate password: %w", err)
 	}
+	credSpan.End()
 
+	_, upsertSpan := otel.Tracer("keyline").Start(ctx, "es.upsert_user")
 	if err := m.createOrUpdateESUser(ctx, authUser, newPassword); err != nil {
+		UserUpsertsTotal.WithLabelValues("failure").Inc()
+		upsertSpan.RecordError(err)
+		upsertSpan.SetStatus(codes.Error, "ES upsert failed")
+		upsertSpan.End()
 		return nil, err
 	}
+	upsertSpan.End()
 
+	UserUpsertDuration.WithLabelValues("miss").Observe(time.Since(start).Seconds())
+	UserUpsertsTotal.WithLabelValues("success").Inc()
+
+	_, cacheSetSpan := otel.Tracer("keyline").Start(ctx, "cache.set")
 	if err := m.cache.Set(cacheKey, []byte(newPassword)); err != nil {
+		cacheSetSpan.RecordError(err)
+		cacheSetSpan.SetStatus(codes.Error, "cache set failed")
+		cacheSetSpan.End()
 		return nil, fmt.Errorf("failed to cache credentials: %w", err)
 	}
+	cacheSetSpan.End()
 
 	return &Credentials{Username: authUser.Username, Password: newPassword}, nil
 }

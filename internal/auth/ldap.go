@@ -11,6 +11,10 @@ import (
 	"time"
 
 	"github.com/go-ldap/ldap/v3"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+
 	"github.com/wasilak/keyline/internal/config"
 )
 
@@ -177,15 +181,21 @@ func (p *LDAPProvider) Authenticate(ctx context.Context, req *AuthRequest) *Auth
 	conn.SetTimeout(p.config.ConnectionTimeout)
 
 	// --- 3. Service account bind ---
+	_, bindSpan := otel.Tracer("keyline").Start(ctx, "ldap.bind")
+	bindSpan.SetAttributes(attribute.String("ldap.bind_type", "service_account"))
 	if err := conn.Bind(p.config.BindDN, p.config.BindPassword); err != nil {
 		LDAPBindAttempts.WithLabelValues("failure").Inc()
+		bindSpan.RecordError(err)
+		bindSpan.SetStatus(codes.Error, "service account bind failed")
+		bindSpan.End()
 		slog.ErrorContext(ctx, "LDAP service account bind failed", slog.String("error", err.Error()))
 		return &AuthResult{Authenticated: false, Error: fmt.Errorf("LDAP service unavailable")}
 	}
 	LDAPBindAttempts.WithLabelValues("success").Inc()
+	bindSpan.End()
 
 	// --- 4. Search for the user ---
-	userDN, mappedUsername, email, displayName, err := p.searchUser(conn, safeUsername)
+	userDN, mappedUsername, email, displayName, err := p.searchUser(ctx, conn, safeUsername)
 	if err != nil {
 		slog.WarnContext(ctx, "LDAP user search failed",
 			slog.String("username", username),
@@ -195,22 +205,34 @@ func (p *LDAPProvider) Authenticate(ctx context.Context, req *AuthRequest) *Auth
 	}
 
 	// --- 5. Bind as the user (password verification) ---
+	_, userBindSpan := otel.Tracer("keyline").Start(ctx, "ldap.bind")
+	userBindSpan.SetAttributes(attribute.String("ldap.bind_type", "user"))
 	if err := conn.Bind(userDN, password); err != nil {
 		LDAPBindAttempts.WithLabelValues("failure").Inc()
+		userBindSpan.RecordError(err)
+		userBindSpan.SetStatus(codes.Error, "user bind failed")
+		userBindSpan.End()
 		slog.WarnContext(ctx, "LDAP user bind failed (wrong password)",
 			slog.String("username", username),
 		)
 		return &AuthResult{Authenticated: false, Username: username, Error: fmt.Errorf("invalid credentials")}
 	}
 	LDAPBindAttempts.WithLabelValues("success").Inc()
+	userBindSpan.End()
 
 	// --- 6. Re-bind as service account for group search ---
+	_, rebindSpan := otel.Tracer("keyline").Start(ctx, "ldap.bind")
+	rebindSpan.SetAttributes(attribute.String("ldap.bind_type", "service_account"))
 	if err := conn.Bind(p.config.BindDN, p.config.BindPassword); err != nil {
 		LDAPBindAttempts.WithLabelValues("failure").Inc()
+		rebindSpan.RecordError(err)
+		rebindSpan.SetStatus(codes.Error, "service account re-bind failed")
+		rebindSpan.End()
 		slog.ErrorContext(ctx, "LDAP service account re-bind failed", slog.String("error", err.Error()))
 		return &AuthResult{Authenticated: false, Error: fmt.Errorf("LDAP service unavailable")}
 	}
 	LDAPBindAttempts.WithLabelValues("success").Inc()
+	rebindSpan.End()
 
 	// --- 7. Search for groups (non-fatal) ---
 	groups := p.searchGroups(ctx, conn, userDN)
@@ -250,7 +272,7 @@ func (p *LDAPProvider) Authenticate(ctx context.Context, req *AuthRequest) *Auth
 
 // searchUser performs an LDAP search to find the user DN and attributes.
 // Returns the user's DN, email, display name, and any error.
-func (p *LDAPProvider) searchUser(conn ldapConn, safeUsername string) (userDN, mappedUsername, email, displayName string, err error) {
+func (p *LDAPProvider) searchUser(ctx context.Context, conn ldapConn, safeUsername string) (userDN, mappedUsername, email, displayName string, err error) {
 	filter := strings.ReplaceAll(p.config.SearchFilter, "{username}", safeUsername)
 
 	req := ldap.NewSearchRequest(
@@ -269,12 +291,18 @@ func (p *LDAPProvider) searchUser(conn ldapConn, safeUsername string) (userDN, m
 		nil,
 	)
 
+	_, searchSpan := otel.Tracer("keyline").Start(ctx, "ldap.search")
+	searchSpan.SetAttributes(attribute.String("ldap.username", safeUsername))
 	start := time.Now()
 	result, err := conn.Search(req)
 	LDAPSearchDuration.Observe(time.Since(start).Seconds())
 	if err != nil {
+		searchSpan.RecordError(err)
+		searchSpan.SetStatus(codes.Error, "LDAP search failed")
+		searchSpan.End()
 		return "", "", "", "", fmt.Errorf("LDAP user search error: %w", err)
 	}
+	searchSpan.End()
 
 	if len(result.Entries) == 0 {
 		return "", "", "", "", fmt.Errorf("user not found")
