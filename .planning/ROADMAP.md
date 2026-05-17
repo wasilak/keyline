@@ -9,7 +9,7 @@
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
 | 1 | Module Rename | 1/1 | Complete   | 2026-05-17 |
-| 2 | Documentation Update | 1/4 | In Progress|  |
+| 2 | Documentation Update | 3/4 | In Progress|  |
 
 ---
 
@@ -44,11 +44,11 @@ Plans:
 
 **Requirements:** DOC-01, DOC-02
 
-**Plans:** 1/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
-- [ ] 02-01-PLAN.md — Root-level docs: expand README v2.0 features inline, fix RELEASE-NOTES placeholders + add LDAP entry, fix docusaurus.config.js bugs
-- [ ] 02-02-PLAN.md — Docs reference accuracy: configuration.md missing sections (CORS/LDAP/Observability), stale `user_management.enabled` removal across configuration.md, dynamic-user-management.md, quick-start.md
+- [x] 02-01-PLAN.md — Root-level docs: expand README v2.0 features inline, fix RELEASE-NOTES placeholders + add LDAP entry, fix docusaurus.config.js bugs
+- [x] 02-02-PLAN.md — Docs reference accuracy: configuration.md missing sections (CORS/LDAP/Observability), stale `user_management.enabled` removal across configuration.md, dynamic-user-management.md, quick-start.md
 - [ ] 02-03-PLAN.md — Authentication docs: update overview.md for LDAP, create new ldap-authentication.md guide
 - [x] 02-04-PLAN.md — Deployment docs: docker.md env-var table (LDAP_BIND_PASSWORD) + health-check reconciliation, role-mappings.md claim field tightening
 
