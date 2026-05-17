@@ -40,16 +40,17 @@ Plans:
 
 ## Phase 2: Documentation Update
 
-**Goal:** Update README and RELEASE-NOTES.md to accurately reflect v2.0 features and replace all placeholder org/URL references with correct wasilak links.
+**Goal:** Update README, RELEASE-NOTES.md, and the Docusaurus docs site to accurately reflect v2.0 features (LDAP, dynamic user management, role mapping, Redis caching, CORS, circuit breaker) and replace all placeholder org/URL references with correct wasilak links.
 
 **Requirements:** DOC-01, DOC-02
 
-**Tasks:**
-1. Update README.md: add v2.0 feature descriptions (dynamic user management, LDAP, role mapping, Redis caching, new config sections)
-2. Fix all `your-org` / `your-org.com` / `your-org@example.com` references in RELEASE-NOTES.md → `wasilak`
-3. Fix GitHub URLs in RELEASE-NOTES.md → `https://github.com/wasilak/keyline`
-4. Verify config examples in docs match actual config struct fields
-5. Review `docs/` Docusaurus content for any outdated or placeholder content
+**Plans:** 4 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Root-level docs: expand README v2.0 features inline, fix RELEASE-NOTES placeholders + add LDAP entry, fix docusaurus.config.js bugs
+- [ ] 02-02-PLAN.md — Docs reference accuracy: configuration.md missing sections (CORS/LDAP/Observability), stale `user_management.enabled` removal across configuration.md, dynamic-user-management.md, quick-start.md
+- [ ] 02-03-PLAN.md — Authentication docs: update overview.md for LDAP, create new ldap-authentication.md guide
+- [ ] 02-04-PLAN.md — Deployment docs: docker.md env-var table (LDAP_BIND_PASSWORD) + health-check reconciliation, role-mappings.md claim field tightening
 
 **Success criteria:**
 1. No `your-org`, `yourusername`, or `example.com/your-org` strings remain in README.md or RELEASE-NOTES.md
