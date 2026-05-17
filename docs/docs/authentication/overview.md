@@ -5,7 +5,7 @@ sidebar_position: 1
 
 # Authentication Overview
 
-Keyline supports dual authentication methods simultaneously: **OIDC (OpenID Connect)** for interactive browser users and **Basic Auth** for programmatic access. This guide provides an overview of both authentication methods and how Keyline handles them.
+Keyline supports multiple authentication methods: **OIDC (OpenID Connect)** for interactive browser users, **Basic Auth** (local users) for programmatic access, and **LDAP / Active Directory** for corporate directory authentication. This guide provides an overview of all authentication methods and how Keyline handles them.
 
 ## Supported Authentication Methods
 
@@ -13,6 +13,7 @@ Keyline supports dual authentication methods simultaneously: **OIDC (OpenID Conn
 |--------|----------|---------|----------|
 | **OIDC** | Interactive browser authentication | Yes (cookie-based) | Human users, SSO |
 | **Basic Auth** | Programmatic/API access | No (stateless) | CI/CD, monitoring, scripts |
+| **LDAP / AD** | Corporate directory authentication | No (stateless) | Existing AD environments |
 
 ## Dual Authentication Architecture
 
@@ -73,7 +74,11 @@ sequenceDiagram
     Keyline->>User: Access granted
 ```
 
-### Basic Auth Flow (Programmatic Access)
+### Basic Auth Flow (Local Users and LDAP)
+
+Both local users and LDAP authentication use the same `Authorization: Basic` header. The auth engine selects the method automatically based on the username: local users are checked first, and if no local match is found the request falls through to LDAP.
+
+Actual priority order (from `internal/auth/engine.go`): **Session → Basic Auth header (local users checked first → LDAP fallback) → OIDC redirect**.
 
 ```mermaid
 sequenceDiagram
@@ -84,7 +89,12 @@ sequenceDiagram
     Client->>Keyline: Request with Authorization header
     Keyline->>Keyline: Decode Basic auth credentials
     Keyline->>Keyline: Find user in local_users
-    Keyline->>Keyline: Validate bcrypt password
+    alt Local user found
+        Keyline->>Keyline: Validate bcrypt password
+    else No local match — LDAP fallback
+        Keyline->>Keyline: Service-account bind to LDAP
+        Keyline->>Keyline: Search and bind user against LDAP
+    end
     Keyline->>Keyline: Map to ES roles
     Keyline->>ES: Forward with credentials
     ES->>Keyline: Response
@@ -111,6 +121,16 @@ sequenceDiagram
 | **No Session Storage** | Stateless authentication |
 | **WWW-Authenticate Header** | Proper 401 response for failed auth |
 | **No Plaintext Logging** | Credentials never logged |
+
+### LDAP Security
+
+| Feature | Purpose |
+|---------|---------|
+| **Service-Account Bind** | Lookup uses a dedicated service account; user credentials are only used to validate the user bind |
+| **env-var Credential** | `bind_password` must be a `${ENV_VAR}` reference; plaintext values are rejected at startup |
+| **TLS Modes** | `ldaps` (recommended) or `starttls`; plaintext `none` is dev-only |
+| **LDAP Injection Prevention** | Username is escaped before use in search filters |
+| **Required Groups** | Optional access gate — only members of `required_groups` are admitted |
 
 ## Session Management
 
@@ -180,9 +200,12 @@ session:
 | `/auth/logout` | GET/POST | Session logout |
 | `/*` | ANY | Protected resources |
 
+> **LDAP has no dedicated endpoint.** It reuses the `Authorization: Basic` header path alongside local users. When a request arrives with a Basic Auth header, the engine checks local users first; if no local user matches the username, it falls back to LDAP automatically.
+
 ## Next Steps
 
 - **[OIDC Authentication](./oidc-authentication.md)** - Detailed OIDC setup and configuration
 - **[Local Users (Basic Auth)](./local-users-basic-auth.md)** - Configure Basic Authentication
+- **[LDAP Authentication](./ldap-authentication.md)** - Configure LDAP / Active Directory authentication
 - **[Session Management](./session-management.md)** - Session storage and configuration
 - **[Logout](./logout.md)** - Session termination and OIDC logout
