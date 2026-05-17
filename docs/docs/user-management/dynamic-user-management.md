@@ -98,16 +98,16 @@ flowchart TB
 
 ```yaml
 user_management:
-  enabled: true
   password_length: 32
   credential_ttl: 1h
 ```
+
+> User management activates automatically when `elasticsearch.admin_user` is set.
 
 ### Required Configuration
 
 | Option | Required | Default | Description |
 |--------|----------|---------|-------------|
-| `enabled` | Yes | false | Enable dynamic user management |
 | `password_length` | No | 32 | Generated password length (min 32) |
 | `credential_ttl` | No | 1h | Password cache TTL (5m to 24h) |
 

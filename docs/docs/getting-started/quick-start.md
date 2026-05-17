@@ -95,7 +95,6 @@ elasticsearch:
   insecure_skip_verify: true
 
 user_management:
-  enabled: true
   password_length: 32
   credential_ttl: 1h
 
@@ -114,7 +113,7 @@ docker-compose up -d keyline
 ### Step 6: Verify Keyline is Running
 
 ```bash
-curl http://localhost:9000/_health
+curl http://localhost:9000/healthz
 ```
 
 Expected response:
@@ -122,7 +121,7 @@ Expected response:
 ```json
 {
   "status": "healthy",
-  "version": "1.0.0"
+  "version": "0.1.0"
 }
 ```
 
