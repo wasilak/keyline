@@ -12,6 +12,7 @@ import (
 	"github.com/wasilak/keyline/internal/config"
 	"github.com/wasilak/keyline/internal/session"
 	"github.com/wasilak/keyline/internal/usermgmt"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Engine handles authentication with dynamic user management
@@ -86,13 +87,51 @@ type EngineResult struct {
 	StatusCode    int
 	Error         error
 	AuthUser      *usermgmt.AuthenticatedUser // full user info for retry credential regeneration
+	AuthMethod    string                       // auth method used: session, basic, ldap, oidc, unknown
 }
 
-// Authenticate performs authentication with precedence logic:
+// Authenticate performs authentication and emits a structured audit event.
+func (e *Engine) Authenticate(ctx context.Context, req *EngineRequest) *EngineResult {
+	result := e.authenticate(ctx, req)
+	e.logAuditEvent(ctx, req, result)
+	return result
+}
+
+// logAuditEvent emits a structured slog event for every auth decision.
+// Fields: event, result, auth_method, username, source_ip, http_method, path.
+// When an active OTel span exists the trace_id and span_id are included.
+func (e *Engine) logAuditEvent(ctx context.Context, req *EngineRequest, result *EngineResult) {
+	outcome := "failure"
+	if result.Authenticated {
+		outcome = "success"
+	}
+
+	attrs := []any{
+		slog.String("event", "auth.decision"),
+		slog.String("result", outcome),
+		slog.String("auth_method", result.AuthMethod),
+		slog.String("username", result.Username),
+		slog.String("source_ip", req.SourceIP),
+		slog.String("http_method", req.Method),
+		slog.String("path", req.Path),
+	}
+
+	spanCtx := trace.SpanFromContext(ctx).SpanContext()
+	if spanCtx.IsValid() {
+		attrs = append(attrs,
+			slog.String("trace_id", spanCtx.TraceID().String()),
+			slog.String("span_id", spanCtx.SpanID().String()),
+		)
+	}
+
+	slog.InfoContext(ctx, "audit", attrs...)
+}
+
+// authenticate performs authentication with precedence logic:
 // 1. Check session cookie first
 // 2. Then Basic Auth header
 // 3. Then initiate OIDC flow
-func (e *Engine) Authenticate(ctx context.Context, req *EngineRequest) *EngineResult {
+func (e *Engine) authenticate(ctx context.Context, req *EngineRequest) *EngineResult {
 	slog.InfoContext(ctx, "Authentication engine processing request",
 		slog.String("method", req.Method),
 		slog.String("path", req.Path),
@@ -140,6 +179,7 @@ func (e *Engine) Authenticate(ctx context.Context, req *EngineRequest) *EngineRe
 		Authenticated: false,
 		StatusCode:    http.StatusUnauthorized,
 		Error:         fmt.Errorf("no authentication method available"),
+		AuthMethod:    "unknown",
 	}
 }
 
@@ -200,6 +240,7 @@ func (e *Engine) authenticateWithSession(ctx context.Context, req *EngineRequest
 			Authenticated: false,
 			StatusCode:    http.StatusInternalServerError,
 			Error:         fmt.Errorf("user management failed: %w", err),
+			AuthMethod:    "session",
 		}
 	}
 
@@ -221,6 +262,7 @@ func (e *Engine) authenticateWithSession(ctx context.Context, req *EngineRequest
 		ESPassword:    creds.Password,
 		ESAuthHeader:  esAuthHeader,
 		StatusCode:    http.StatusOK,
+		AuthMethod:    "session",
 	}
 }
 
@@ -243,6 +285,7 @@ func (e *Engine) authenticateWithBasicAuth(ctx context.Context, req *EngineReque
 			Authenticated: false,
 			StatusCode:    http.StatusUnauthorized,
 			Error:         authResult.Error,
+			AuthMethod:    "basic",
 		}
 	}
 
@@ -279,6 +322,7 @@ func (e *Engine) authenticateWithBasicAuth(ctx context.Context, req *EngineReque
 			Authenticated: false,
 			StatusCode:    http.StatusInternalServerError,
 			Error:         fmt.Errorf("user management failed: %w", err),
+			AuthMethod:    "basic",
 		}
 	}
 
@@ -302,6 +346,7 @@ func (e *Engine) authenticateWithBasicAuth(ctx context.Context, req *EngineReque
 		ESAuthHeader:  esAuthHeader,
 		StatusCode:    http.StatusOK,
 		AuthUser:      authUser,
+		AuthMethod:    "basic",
 	}
 }
 
@@ -352,6 +397,7 @@ func (e *Engine) authenticateWithLDAP(ctx context.Context, req *EngineRequest) *
 			Authenticated: false,
 			StatusCode:    http.StatusUnauthorized,
 			Error:         authResult.Error,
+			AuthMethod:    "ldap",
 		}
 	}
 
@@ -374,6 +420,7 @@ func (e *Engine) authenticateWithLDAP(ctx context.Context, req *EngineRequest) *
 			Authenticated: false,
 			StatusCode:    http.StatusInternalServerError,
 			Error:         fmt.Errorf("user management failed: %w", err),
+			AuthMethod:    "ldap",
 		}
 	}
 
@@ -396,6 +443,7 @@ func (e *Engine) authenticateWithLDAP(ctx context.Context, req *EngineRequest) *
 		ESAuthHeader:  esAuthHeader,
 		StatusCode:    http.StatusOK,
 		AuthUser:      authUser,
+		AuthMethod:    "ldap",
 	}
 }
 
@@ -415,6 +463,7 @@ func (e *Engine) initiateOIDCFlow(ctx context.Context, req *EngineRequest) *Engi
 			Authenticated: false,
 			StatusCode:    http.StatusInternalServerError,
 			Error:         fmt.Errorf("failed to initiate OIDC flow"),
+			AuthMethod:    "oidc",
 		}
 	}
 
@@ -424,5 +473,6 @@ func (e *Engine) initiateOIDCFlow(ctx context.Context, req *EngineRequest) *Engi
 		Authenticated: false,
 		RedirectURL:   authURL,
 		StatusCode:    http.StatusFound, // 302
+		AuthMethod:    "oidc",
 	}
 }
