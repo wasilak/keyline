@@ -9,7 +9,7 @@
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
 | 1 | Module Rename | 1/1 | Complete   | 2026-05-17 |
-| 2 | Documentation Update | Update all docs and release notes for v2.0 accuracy | DOC-01, DOC-02 | 4 |
+| 2 | Documentation Update | 1/4 | In Progress|  |
 
 ---
 
@@ -44,13 +44,13 @@ Plans:
 
 **Requirements:** DOC-01, DOC-02
 
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 
 Plans:
 - [ ] 02-01-PLAN.md — Root-level docs: expand README v2.0 features inline, fix RELEASE-NOTES placeholders + add LDAP entry, fix docusaurus.config.js bugs
 - [ ] 02-02-PLAN.md — Docs reference accuracy: configuration.md missing sections (CORS/LDAP/Observability), stale `user_management.enabled` removal across configuration.md, dynamic-user-management.md, quick-start.md
 - [ ] 02-03-PLAN.md — Authentication docs: update overview.md for LDAP, create new ldap-authentication.md guide
-- [ ] 02-04-PLAN.md — Deployment docs: docker.md env-var table (LDAP_BIND_PASSWORD) + health-check reconciliation, role-mappings.md claim field tightening
+- [x] 02-04-PLAN.md — Deployment docs: docker.md env-var table (LDAP_BIND_PASSWORD) + health-check reconciliation, role-mappings.md claim field tightening
 
 **Success criteria:**
 1. No `your-org`, `yourusername`, or `example.com/your-org` strings remain in README.md or RELEASE-NOTES.md

@@ -14,7 +14,7 @@ Requirements for the v2.0 release milestone. Each maps to a roadmap phase.
 
 ### Documentation
 
-- [ ] **DOC-01**: README accurately describes v2.0 features (dynamic user management, LDAP, role mapping, Redis caching)
+- [x] **DOC-01**: README accurately describes v2.0 features (dynamic user management, LDAP, role mapping, Redis caching)
 - [ ] **DOC-02**: RELEASE-NOTES.md contains no placeholder URLs or org references (`your-org` → `wasilak`); all links point to correct GitHub locations
 
 ## Future Requirements
@@ -45,7 +45,7 @@ Features deferred beyond v2.0.
 |-------------|-------|--------|
 | MOD-01 | Phase 1 | Pending |
 | MOD-02 | Phase 1 | Pending |
-| DOC-01 | Phase 2 | Pending |
+| DOC-01 | Phase 2 | Complete |
 | DOC-02 | Phase 2 | Pending |
 
 **Coverage:**
