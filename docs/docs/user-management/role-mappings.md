@@ -37,7 +37,7 @@ default_es_roles:
 
 | Option | Required | Description |
 |--------|----------|-------------|
-| `claim` | Yes | Claim name to evaluate (`groups` or `email`) |
+| `claim` | Yes | Claim name to evaluate (typically `groups` or `email`, but any claim name from the OIDC token is accepted) |
 | `pattern` | Yes | Pattern to match (supports `*` wildcard) |
 | `es_roles` | Yes | Array of ES role names to assign |
 
