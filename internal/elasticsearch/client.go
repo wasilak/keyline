@@ -188,7 +188,14 @@ func (c *client) CreateOrUpdateUser(ctx context.Context, req *UserRequest) error
 }
 
 // doCreateOrUpdateUser performs the actual HTTP request
-func (c *client) doCreateOrUpdateUser(ctx context.Context, username string, bodyBytes []byte) error {
+func (c *client) doCreateOrUpdateUser(ctx context.Context, username string, bodyBytes []byte) (retErr error) {
+	defer func() {
+		status := "success"
+		if retErr != nil {
+			status = "failure"
+		}
+		ESAPICallsTotal.WithLabelValues("create_user", status).Inc()
+	}()
 	url := fmt.Sprintf("%s/_security/user/%s", c.config.URL, username)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(bodyBytes))
@@ -226,7 +233,14 @@ func (c *client) doCreateOrUpdateUser(ctx context.Context, username string, body
 }
 
 // GetUser retrieves user information from Elasticsearch
-func (c *client) GetUser(ctx context.Context, username string) (*User, error) {
+func (c *client) GetUser(ctx context.Context, username string) (u *User, retErr error) {
+	defer func() {
+		status := "success"
+		if retErr != nil {
+			status = "failure"
+		}
+		ESAPICallsTotal.WithLabelValues("get_user", status).Inc()
+	}()
 	ctx, span := otel.Tracer("keyline").Start(ctx, "elasticsearch.get_user")
 	defer span.End()
 
@@ -290,7 +304,14 @@ func (c *client) GetUser(ctx context.Context, username string) (*User, error) {
 }
 
 // DeleteUser deletes an ES user
-func (c *client) DeleteUser(ctx context.Context, username string) error {
+func (c *client) DeleteUser(ctx context.Context, username string) (retErr error) {
+	defer func() {
+		status := "success"
+		if retErr != nil {
+			status = "failure"
+		}
+		ESAPICallsTotal.WithLabelValues("delete_user", status).Inc()
+	}()
 	ctx, span := otel.Tracer("keyline").Start(ctx, "elasticsearch.delete_user")
 	defer span.End()
 

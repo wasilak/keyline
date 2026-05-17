@@ -168,6 +168,7 @@ func (p *LDAPProvider) Authenticate(ctx context.Context, req *AuthRequest) *Auth
 	// --- 2. Connect to LDAP server ---
 	conn, err := p.dialFn(p.config)
 	if err != nil {
+		LDAPConnectionErrors.Inc()
 		slog.ErrorContext(ctx, "LDAP connection failed", slog.String("error", err.Error()))
 		return &AuthResult{Authenticated: false, Error: fmt.Errorf("LDAP connection failed")}
 	}
@@ -177,9 +178,11 @@ func (p *LDAPProvider) Authenticate(ctx context.Context, req *AuthRequest) *Auth
 
 	// --- 3. Service account bind ---
 	if err := conn.Bind(p.config.BindDN, p.config.BindPassword); err != nil {
+		LDAPBindAttempts.WithLabelValues("failure").Inc()
 		slog.ErrorContext(ctx, "LDAP service account bind failed", slog.String("error", err.Error()))
 		return &AuthResult{Authenticated: false, Error: fmt.Errorf("LDAP service unavailable")}
 	}
+	LDAPBindAttempts.WithLabelValues("success").Inc()
 
 	// --- 4. Search for the user ---
 	userDN, mappedUsername, email, displayName, err := p.searchUser(conn, safeUsername)
@@ -193,17 +196,21 @@ func (p *LDAPProvider) Authenticate(ctx context.Context, req *AuthRequest) *Auth
 
 	// --- 5. Bind as the user (password verification) ---
 	if err := conn.Bind(userDN, password); err != nil {
+		LDAPBindAttempts.WithLabelValues("failure").Inc()
 		slog.WarnContext(ctx, "LDAP user bind failed (wrong password)",
 			slog.String("username", username),
 		)
 		return &AuthResult{Authenticated: false, Username: username, Error: fmt.Errorf("invalid credentials")}
 	}
+	LDAPBindAttempts.WithLabelValues("success").Inc()
 
 	// --- 6. Re-bind as service account for group search ---
 	if err := conn.Bind(p.config.BindDN, p.config.BindPassword); err != nil {
+		LDAPBindAttempts.WithLabelValues("failure").Inc()
 		slog.ErrorContext(ctx, "LDAP service account re-bind failed", slog.String("error", err.Error()))
 		return &AuthResult{Authenticated: false, Error: fmt.Errorf("LDAP service unavailable")}
 	}
+	LDAPBindAttempts.WithLabelValues("success").Inc()
 
 	// --- 7. Search for groups (non-fatal) ---
 	groups := p.searchGroups(ctx, conn, userDN)
@@ -262,7 +269,9 @@ func (p *LDAPProvider) searchUser(conn ldapConn, safeUsername string) (userDN, m
 		nil,
 	)
 
+	start := time.Now()
 	result, err := conn.Search(req)
+	LDAPSearchDuration.Observe(time.Since(start).Seconds())
 	if err != nil {
 		return "", "", "", "", fmt.Errorf("LDAP user search error: %w", err)
 	}

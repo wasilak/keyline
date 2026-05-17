@@ -79,6 +79,7 @@ func (cb *CircuitBreaker) beforeCall() error {
 		// Check if we should transition to half-open
 		if time.Since(cb.lastStateTime) > cb.timeout {
 			cb.state = StateHalfOpen
+			CircuitBreakerState.Set(float64(StateHalfOpen))
 			cb.successCount = 0
 			cb.lastStateTime = time.Now()
 			return nil
@@ -118,6 +119,7 @@ func (cb *CircuitBreaker) onSuccess() {
 		cb.successCount++
 		if cb.successCount >= cb.halfOpenMax {
 			cb.state = StateClosed
+			CircuitBreakerState.Set(float64(StateClosed))
 			cb.failureCount = 0
 			cb.successCount = 0
 			cb.lastStateTime = time.Now()
@@ -134,11 +136,13 @@ func (cb *CircuitBreaker) onFailure() {
 		cb.failureCount++
 		if cb.failureCount >= cb.maxFailures {
 			cb.state = StateOpen
+			CircuitBreakerState.Set(float64(StateOpen))
 			cb.lastStateTime = time.Now()
 		}
 
 	case StateHalfOpen:
 		cb.state = StateOpen
+		CircuitBreakerState.Set(float64(StateOpen))
 		cb.successCount = 0
 		cb.lastStateTime = time.Now()
 	}
@@ -157,6 +161,7 @@ func (cb *CircuitBreaker) Reset() {
 	defer cb.mu.Unlock()
 
 	cb.state = StateClosed
+	CircuitBreakerState.Set(float64(StateClosed))
 	cb.failureCount = 0
 	cb.successCount = 0
 	cb.lastStateTime = time.Now()

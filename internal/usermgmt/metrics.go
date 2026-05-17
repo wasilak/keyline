@@ -50,12 +50,4 @@ var (
 		[]string{"pattern"},
 	)
 
-	// ESAPICallsTotal tracks the total number of ES API calls by operation and status
-	ESAPICallsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "keyline_es_api_calls_total",
-			Help: "Total number of ES API calls",
-		},
-		[]string{"operation", "status"}, // operation: "create_user", "get_user", "delete_user"; status: "success", "failure"
-	)
 )
