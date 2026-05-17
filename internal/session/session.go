@@ -82,7 +82,13 @@ func GetSession(ctx context.Context, cache cachego.CacheInterface, sessionID str
 			slog.String("username", session.Username),
 			slog.String("action", "expired"),
 		)
-		_ = DeleteSession(ctx, cache, sessionID)
+		if err := DeleteSession(ctx, cache, sessionID); err != nil {
+			slog.WarnContext(ctx, "Failed to delete expired session",
+				slog.String("session_id_hash", observability.HashSessionID(sessionID)),
+				slog.String("username", session.Username),
+				slog.String("error", err.Error()),
+			)
+		}
 		return nil, nil
 	}
 

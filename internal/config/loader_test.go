@@ -118,22 +118,13 @@ server:
 
 func TestLoad_EnvVarSubstitution(t *testing.T) {
 	// Set environment variables
-	os.Setenv("TEST_ISSUER_URL", "https://test-issuer.com")
-	os.Setenv("TEST_CLIENT_ID", "test-client-id")
-	os.Setenv("TEST_CLIENT_SECRET", "test-client-secret")
-	os.Setenv("TEST_REDIRECT_URL", "https://test-redirect.com/callback")
-	os.Setenv("TEST_SESSION_SECRET", "test-session-secret-that-is-at-least-32-bytes")
-	os.Setenv("TEST_ES_ADMIN_USER", "test-es-admin")
-	os.Setenv("TEST_ES_ADMIN_PASSWORD", "test-es-admin-password")
-	defer func() {
-		os.Unsetenv("TEST_ISSUER_URL")
-		os.Unsetenv("TEST_CLIENT_ID")
-		os.Unsetenv("TEST_CLIENT_SECRET")
-		os.Unsetenv("TEST_REDIRECT_URL")
-		os.Unsetenv("TEST_SESSION_SECRET")
-		os.Unsetenv("TEST_ES_ADMIN_USER")
-		os.Unsetenv("TEST_ES_ADMIN_PASSWORD")
-	}()
+	t.Setenv("TEST_ISSUER_URL", "https://test-issuer.com")
+	t.Setenv("TEST_CLIENT_ID", "test-client-id")
+	t.Setenv("TEST_CLIENT_SECRET", "test-client-secret")
+	t.Setenv("TEST_REDIRECT_URL", "https://test-redirect.com/callback")
+	t.Setenv("TEST_SESSION_SECRET", "test-session-secret-that-is-at-least-32-bytes")
+	t.Setenv("TEST_ES_ADMIN_USER", "test-es-admin")
+	t.Setenv("TEST_ES_ADMIN_PASSWORD", "test-es-admin-password")
 
 	tmpDir := t.TempDir()
 	configFile := filepath.Join(tmpDir, "config.yaml")
@@ -347,8 +338,7 @@ observability:
 	}
 
 	// Set CONFIG_FILE environment variable
-	os.Setenv("CONFIG_FILE", configFile)
-	defer os.Unsetenv("CONFIG_FILE")
+	t.Setenv("CONFIG_FILE", configFile)
 
 	// Load without specifying config file (should use CONFIG_FILE env var)
 	cfg, err := Load("")
@@ -413,8 +403,7 @@ func TestSubstituteString(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variables
 			for k, v := range tt.envVars {
-				os.Setenv(k, v)
-				defer os.Unsetenv(k)
+				t.Setenv(k, v)
 			}
 
 			// Test substitution

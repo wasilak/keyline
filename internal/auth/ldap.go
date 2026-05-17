@@ -48,6 +48,12 @@ func NewLDAPProvider(cfg *config.LDAPConfig) (*LDAPProvider, error) {
 		return nil, fmt.Errorf("ldap.url is required")
 	}
 
+	// Capture explicitly configured attribute values before defaults are applied.
+	origUsername := cfg.UsernameAttribute
+	origEmail := cfg.EmailAttribute
+	origDisplayName := cfg.DisplayNameAttribute
+	origGroupName := cfg.GroupNameAttribute
+
 	// Apply defaults for optional attribute names.
 	if cfg.UsernameAttribute == "" {
 		cfg.UsernameAttribute = ldapDefaultUsernameAttribute
@@ -65,20 +71,41 @@ func NewLDAPProvider(cfg *config.LDAPConfig) (*LDAPProvider, error) {
 		cfg.ConnectionTimeout = ldapDefaultConnectionTimeout
 	}
 
-	// Allow attribute mapping via map in config. If provided, override the explicit fields.
+	// Apply attribute_mapping overrides, warning when they shadow an explicit field.
 	if cfg.AttributeMapping != nil {
 		if v, ok := cfg.AttributeMapping["username"]; ok && v != "" {
+			if origUsername != "" {
+				slog.Info("attribute_mapping.username overrides username_attribute — using mapped value",
+					slog.String("original", origUsername), slog.String("mapped", v))
+			}
 			cfg.UsernameAttribute = v
 		}
 		if v, ok := cfg.AttributeMapping["email"]; ok && v != "" {
+			if origEmail != "" {
+				slog.Info("attribute_mapping.email overrides email_attribute — using mapped value",
+					slog.String("original", origEmail), slog.String("mapped", v))
+			}
 			cfg.EmailAttribute = v
 		}
 		if v, ok := cfg.AttributeMapping["displayName"]; ok && v != "" {
+			if origDisplayName != "" {
+				slog.Info("attribute_mapping.displayName overrides display_name_attribute — using mapped value",
+					slog.String("original", origDisplayName), slog.String("mapped", v))
+			}
 			cfg.DisplayNameAttribute = v
 		}
 		if v, ok := cfg.AttributeMapping["groupName"]; ok && v != "" {
+			if origGroupName != "" {
+				slog.Info("attribute_mapping.groupName overrides group_name_attribute — using mapped value",
+					slog.String("original", origGroupName), slog.String("mapped", v))
+			}
 			cfg.GroupNameAttribute = v
 		}
+	}
+
+	// Warn when credentials will be transmitted in plaintext (#29).
+	if cfg.TLSMode == "" || cfg.TLSMode == "none" {
+		slog.Warn("LDAP TLS mode is 'none' — credentials will be transmitted in plaintext. Use 'ldaps' or 'starttls' in production.")
 	}
 
 	// Resolve bind password from environment variable reference. Expect form ${ENV_VAR}.

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-jose/go-jose/v3"
@@ -28,6 +29,8 @@ type OIDCProvider struct {
 	sessionConfig *config.SessionConfig
 	cache         *cache.OIDCCache
 	httpClient    *http.Client
+	done          chan struct{}
+	stopOnce      sync.Once
 }
 
 // NewOIDCProvider creates a new OIDC provider
@@ -50,6 +53,7 @@ func NewOIDCProvider(cfg *config.OIDCConfig, fullConfig *config.Config) (*OIDCPr
 		sessionConfig: &fullConfig.Session,
 		cache:         cache.NewOIDCCache(),
 		httpClient:    httpClient,
+		done:          make(chan struct{}),
 	}
 
 	// Perform discovery during initialization
@@ -270,20 +274,28 @@ func (p *OIDCProvider) startJWKSRefresh() {
 	ticker := time.NewTicker(24 * time.Hour)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		ctx := context.Background()
-
-		slog.InfoContext(ctx, "Starting JWKS background refresh")
-
-		if err := p.fetchJWKS(ctx); err != nil {
-			// Log warning but continue with cached JWKS
-			slog.WarnContext(ctx, "JWKS refresh failed, continuing with cached JWKS",
-				slog.String("error", err.Error()),
-			)
-		} else {
-			slog.InfoContext(ctx, "JWKS refresh successful")
+	for {
+		select {
+		case <-p.done:
+			return
+		case <-ticker.C:
+			ctx := context.Background()
+			slog.InfoContext(ctx, "Starting JWKS background refresh")
+			if err := p.fetchJWKS(ctx); err != nil {
+				slog.WarnContext(ctx, "JWKS refresh failed, continuing with cached JWKS",
+					slog.String("error", err.Error()),
+				)
+			} else {
+				slog.InfoContext(ctx, "JWKS refresh successful")
+			}
 		}
 	}
+}
+
+// Stop shuts down the OIDC provider, stopping the background JWKS refresh.
+func (p *OIDCProvider) Stop() {
+	p.stopOnce.Do(func() { close(p.done) })
+	p.httpClient.CloseIdleConnections()
 }
 
 // GetJWKS returns the cached JWKS

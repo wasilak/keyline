@@ -18,6 +18,8 @@ type ExtendedCacheInterface interface {
 	cachego.CacheInterface
 	// Delete removes a key from the cache
 	Delete(ctx context.Context, key string) error
+	// Close releases any underlying connections held by the cache backend
+	Close(ctx context.Context) error
 	// GetUnderlying returns the underlying cache implementation (for advanced use)
 	GetUnderlying() interface{}
 }
@@ -72,6 +74,14 @@ func (c *extendedCache) Get(key string) ([]byte, bool, error) {
 // GetUnderlying returns the underlying cache implementation
 func (c *extendedCache) GetUnderlying() interface{} {
 	return c.CacheInterface
+}
+
+// Close releases any underlying connections held by the cache backend.
+func (c *extendedCache) Close(_ context.Context) error {
+	if c.backendType == "redis" && c.redisClient != nil {
+		return c.redisClient.Close()
+	}
+	return nil
 }
 
 // cleanupDeletedKeys periodically removes old deleted key entries (for memory backend)

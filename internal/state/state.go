@@ -80,7 +80,12 @@ func GetStateToken(ctx context.Context, cache cachego.CacheInterface, tokenID st
 		slog.InfoContext(ctx, "State token expired",
 			slog.String("token_id", tokenID),
 		)
-		_ = DeleteStateToken(ctx, cache, tokenID)
+		if err := DeleteStateToken(ctx, cache, tokenID); err != nil {
+			slog.WarnContext(ctx, "Failed to delete expired state token",
+				slog.String("token_id", tokenID),
+				slog.String("error", err.Error()),
+			)
+		}
 		return nil, nil
 	}
 
@@ -98,8 +103,15 @@ func GetStateToken(ctx context.Context, cache cachego.CacheInterface, tokenID st
 		slog.String("original_url", token.OriginalURL),
 	)
 
-	// Delete the token immediately after use (single-use enforcement)
-	_ = DeleteStateToken(ctx, cache, tokenID)
+	// Delete the token immediately after use (single-use enforcement).
+	// If deletion fails the token could be replayed, so we treat this as a hard error.
+	if err := DeleteStateToken(ctx, cache, tokenID); err != nil {
+		slog.WarnContext(ctx, "Failed to delete state token after use — aborting callback to prevent replay",
+			slog.String("token_id", tokenID),
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("failed to invalidate state token: %w", err)
+	}
 
 	return &token, nil
 }

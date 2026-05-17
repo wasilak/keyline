@@ -36,7 +36,7 @@ func setupTestServer(t *testing.T) (*Server, context.Context) {
 		},
 	}
 
-	testCache, err := cache.InitCache(ctx, &cfg.Cache)
+	testCache, err := cache.InitExtendedCache(ctx, &cfg.Cache)
 	require.NoError(t, err)
 
 	server := &Server{

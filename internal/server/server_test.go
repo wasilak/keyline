@@ -39,7 +39,7 @@ func TestHandleHealth_Healthy(t *testing.T) {
 
 	// Initialize cache
 	ctx := context.Background()
-	cacheInstance, err := cache.InitCache(ctx, &cfg.Cache)
+	cacheInstance, err := cache.InitExtendedCache(ctx, &cfg.Cache)
 	if err != nil {
 		t.Fatalf("Failed to initialize cache: %v", err)
 	}
@@ -110,7 +110,7 @@ func (m *mockCache) Get(key string) ([]byte, bool, error) {
 	return []byte("ok"), true, nil
 }
 
-func (m *mockCache) Delete(key string) error {
+func (m *mockCache) Delete(_ context.Context, _ string) error {
 	return nil
 }
 
@@ -133,6 +133,14 @@ func (m *mockCache) GetItemTTL(key string) (time.Duration, bool, error) {
 }
 
 func (m *mockCache) Init() error {
+	return nil
+}
+
+func (m *mockCache) Close(_ context.Context) error {
+	return nil
+}
+
+func (m *mockCache) GetUnderlying() interface{} {
 	return nil
 }
 
@@ -281,7 +289,7 @@ func TestHandleHealth_OIDCEnabled_ProviderNotInitialized(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	cacheInstance, err := cache.InitCache(ctx, &cfg.Cache)
+	cacheInstance, err := cache.InitExtendedCache(ctx, &cfg.Cache)
 	if err != nil {
 		t.Fatalf("Failed to initialize cache: %v", err)
 	}

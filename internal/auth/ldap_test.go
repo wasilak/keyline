@@ -87,12 +87,13 @@ func groupSearchResult(cns ...string) *ldap.SearchResult {
 }
 
 // newProviderWithMock creates an LDAPProvider using the given mock connection.
-func newProviderWithMock(cfg *config.LDAPConfig, conn ldapConn) *LDAPProvider {
+func newProviderWithMock(t testing.TB, cfg *config.LDAPConfig, conn ldapConn) *LDAPProvider {
+	t.Helper()
 	// If BindPassword is an env var reference like ${VAR}, set a test value for it so
 	// NewLDAPProvider can resolve it during construction.
 	if strings.HasPrefix(cfg.BindPassword, "${") && strings.HasSuffix(cfg.BindPassword, "}") {
 		envVar := cfg.BindPassword[2 : len(cfg.BindPassword)-1]
-		_ = os.Setenv(envVar, "svcpass")
+		t.Setenv(envVar, "svcpass")
 	}
 
 	p, err := NewLDAPProvider(cfg)
@@ -137,8 +138,7 @@ func TestNewLDAPProvider_Defaults(t *testing.T) {
 
 	// Ensure the environment variable referenced by BindPassword is set for this test.
 	// validLDAPConfig() sets BindPassword to ${LDAP_BIND_PASSWORD}.
-	os.Setenv("LDAP_BIND_PASSWORD", "svcpass")
-	defer os.Unsetenv("LDAP_BIND_PASSWORD")
+	t.Setenv("LDAP_BIND_PASSWORD", "svcpass")
 
 	p, err := NewLDAPProvider(cfg)
 	require.NoError(t, err)
@@ -174,7 +174,7 @@ func TestLDAPProvider_Authenticate_Success(t *testing.T) {
 		},
 	}
 
-	p := newProviderWithMock(cfg, mock)
+	p := newProviderWithMock(t, cfg, mock)
 	result := p.Authenticate(context.Background(), &AuthRequest{
 		AuthorizationHeader: basicAuthHeader("jdoe", "s3cr3t"),
 	})
@@ -208,7 +208,7 @@ func TestLDAPProvider_Authenticate_WrongPassword(t *testing.T) {
 		},
 	}
 
-	p := newProviderWithMock(cfg, mock)
+	p := newProviderWithMock(t, cfg, mock)
 	result := p.Authenticate(context.Background(), &AuthRequest{
 		AuthorizationHeader: basicAuthHeader("jdoe", "wrongpass"),
 	})
@@ -228,7 +228,7 @@ func TestLDAPProvider_Authenticate_UserNotFound(t *testing.T) {
 		},
 	}
 
-	p := newProviderWithMock(cfg, mock)
+	p := newProviderWithMock(t, cfg, mock)
 	result := p.Authenticate(context.Background(), &AuthRequest{
 		AuthorizationHeader: basicAuthHeader("ghost", "pass"),
 	})
@@ -247,7 +247,7 @@ func TestLDAPProvider_Authenticate_ServiceAccountBindFail(t *testing.T) {
 		},
 	}
 
-	p := newProviderWithMock(cfg, mock)
+	p := newProviderWithMock(t, cfg, mock)
 	result := p.Authenticate(context.Background(), &AuthRequest{
 		AuthorizationHeader: basicAuthHeader("jdoe", "pass"),
 	})
@@ -275,7 +275,7 @@ func TestLDAPProvider_Authenticate_GroupSearchFail_ContinuesWithEmptyGroups(t *t
 		},
 	}
 
-	p := newProviderWithMock(cfg, mock)
+	p := newProviderWithMock(t, cfg, mock)
 	result := p.Authenticate(context.Background(), &AuthRequest{
 		AuthorizationHeader: basicAuthHeader("jdoe", "pass"),
 	})
@@ -304,7 +304,7 @@ func TestLDAPProvider_Authenticate_RequiredGroupsNotMet(t *testing.T) {
 		},
 	}
 
-	p := newProviderWithMock(cfg, mock)
+	p := newProviderWithMock(t, cfg, mock)
 	result := p.Authenticate(context.Background(), &AuthRequest{
 		AuthorizationHeader: basicAuthHeader("jdoe", "pass"),
 	})
@@ -332,7 +332,7 @@ func TestLDAPProvider_Authenticate_RequiredGroupsMet(t *testing.T) {
 		},
 	}
 
-	p := newProviderWithMock(cfg, mock)
+	p := newProviderWithMock(t, cfg, mock)
 	result := p.Authenticate(context.Background(), &AuthRequest{
 		AuthorizationHeader: basicAuthHeader("jdoe", "pass"),
 	})
@@ -358,7 +358,7 @@ func TestLDAPProvider_InjectionPrevention(t *testing.T) {
 	// Username containing LDAP special characters that must be escaped.
 	maliciousUsername := "jdoe)(cn=*"
 
-	p := newProviderWithMock(cfg, mock)
+	p := newProviderWithMock(t, cfg, mock)
 	p.Authenticate(context.Background(), &AuthRequest{
 		AuthorizationHeader: basicAuthHeader(maliciousUsername, "pass"),
 	})
@@ -391,7 +391,7 @@ func TestMappedUsernameNormalization(t *testing.T) {
 		},
 	}
 
-	p := newProviderWithMock(cfg, mock)
+	p := newProviderWithMock(t, cfg, mock)
 	res := p.Authenticate(context.Background(), &AuthRequest{AuthorizationHeader: basicAuthHeader("jdoe", "pass")})
 
 	require.True(t, res.Authenticated)
@@ -420,7 +420,7 @@ func TestMappedUsernameMissingFallsBack(t *testing.T) {
 		},
 	}
 
-	p := newProviderWithMock(cfg, mock)
+	p := newProviderWithMock(t, cfg, mock)
 	res := p.Authenticate(context.Background(), &AuthRequest{AuthorizationHeader: basicAuthHeader("fallback", "pass")})
 
 	require.True(t, res.Authenticated)
@@ -464,8 +464,7 @@ func TestNewLDAPProvider_BindPasswordEmptyEnvVarName(t *testing.T) {
 
 func TestLDAPProvider_Authenticate_MissingHeader(t *testing.T) {
 	cfg := validLDAPConfig()
-	os.Setenv("LDAP_BIND_PASSWORD", "svcpass")
-	defer os.Unsetenv("LDAP_BIND_PASSWORD")
+	t.Setenv("LDAP_BIND_PASSWORD", "svcpass")
 
 	p, err := NewLDAPProvider(cfg)
 	require.NoError(t, err)
@@ -479,8 +478,7 @@ func TestLDAPProvider_Authenticate_MissingHeader(t *testing.T) {
 
 func TestLDAPProvider_Authenticate_NonBasicHeader(t *testing.T) {
 	cfg := validLDAPConfig()
-	os.Setenv("LDAP_BIND_PASSWORD", "svcpass")
-	defer os.Unsetenv("LDAP_BIND_PASSWORD")
+	t.Setenv("LDAP_BIND_PASSWORD", "svcpass")
 
 	p, err := NewLDAPProvider(cfg)
 	require.NoError(t, err)
@@ -496,8 +494,7 @@ func TestLDAPProvider_Authenticate_NonBasicHeader(t *testing.T) {
 
 func TestLDAPProvider_Authenticate_InvalidBase64(t *testing.T) {
 	cfg := validLDAPConfig()
-	os.Setenv("LDAP_BIND_PASSWORD", "svcpass")
-	defer os.Unsetenv("LDAP_BIND_PASSWORD")
+	t.Setenv("LDAP_BIND_PASSWORD", "svcpass")
 
 	p, err := NewLDAPProvider(cfg)
 	require.NoError(t, err)
@@ -513,8 +510,7 @@ func TestLDAPProvider_Authenticate_InvalidBase64(t *testing.T) {
 
 func TestLDAPProvider_Authenticate_DialFailure(t *testing.T) {
 	cfg := validLDAPConfig()
-	os.Setenv("LDAP_BIND_PASSWORD", "svcpass")
-	defer os.Unsetenv("LDAP_BIND_PASSWORD")
+	t.Setenv("LDAP_BIND_PASSWORD", "svcpass")
 
 	p, err := NewLDAPProvider(cfg)
 	require.NoError(t, err)
@@ -552,7 +548,7 @@ func TestLDAPProvider_Authenticate_ServiceAccountRebindFail(t *testing.T) {
 		},
 	}
 
-	p := newProviderWithMock(cfg, mock)
+	p := newProviderWithMock(t, cfg, mock)
 	result := p.Authenticate(context.Background(), &AuthRequest{
 		AuthorizationHeader: basicAuthHeader("jdoe", "pass"),
 	})
@@ -583,7 +579,7 @@ func TestLDAPProvider_GroupSearchFilter_UserDNSubstituted(t *testing.T) {
 		},
 	}
 
-	p := newProviderWithMock(cfg, mock)
+	p := newProviderWithMock(t, cfg, mock)
 	p.Authenticate(context.Background(), &AuthRequest{
 		AuthorizationHeader: basicAuthHeader("jdoe", "pass"),
 	})
@@ -608,7 +604,7 @@ func TestLDAPProvider_GroupSearch_NoBaseConfigured_ReturnsEmpty(t *testing.T) {
 		},
 	}
 
-	p := newProviderWithMock(cfg, mock)
+	p := newProviderWithMock(t, cfg, mock)
 	result := p.Authenticate(context.Background(), &AuthRequest{
 		AuthorizationHeader: basicAuthHeader("jdoe", "pass"),
 	})
@@ -636,7 +632,7 @@ func TestLDAPProvider_GroupSearch_EmptyResult(t *testing.T) {
 		},
 	}
 
-	p := newProviderWithMock(cfg, mock)
+	p := newProviderWithMock(t, cfg, mock)
 	result := p.Authenticate(context.Background(), &AuthRequest{
 		AuthorizationHeader: basicAuthHeader("jdoe", "pass"),
 	})

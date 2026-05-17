@@ -9,8 +9,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	slogecho "github.com/samber/slog-echo"
-	"github.com/wasilak/cachego"
 	"github.com/yourusername/keyline/internal/auth"
+	pkgcache "github.com/yourusername/keyline/internal/cache"
 	"github.com/yourusername/keyline/internal/config"
 	"github.com/yourusername/keyline/internal/observability"
 	"github.com/yourusername/keyline/internal/transport"
@@ -24,14 +24,14 @@ type Server struct {
 	echo         *echo.Echo
 	config       *config.Config
 	version      string
-	cache        cachego.CacheInterface
+	cache        pkgcache.ExtendedCacheInterface
 	oidcProvider *auth.OIDCProvider
 	authEngine   *auth.Engine
 	adapter      interface{} // Transport adapter (ForwardAuth or Standalone)
 }
 
 // New creates a new server instance
-func New(cfg *config.Config, version string, cache cachego.CacheInterface, oidcProvider *auth.OIDCProvider, userManager usermgmt.Manager) (*Server, error) {
+func New(cfg *config.Config, version string, cache pkgcache.ExtendedCacheInterface, oidcProvider *auth.OIDCProvider, userManager usermgmt.Manager) (*Server, error) {
 	// Create Echo instance
 	e := echo.New()
 	e.HideBanner = true
@@ -260,9 +260,17 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		return fmt.Errorf("server shutdown error: %w", err)
 	}
 
-	// TODO: Close cache connections
-	// TODO: Close OIDC provider connections
-	// TODO: Flush metrics and traces
+	// Close cache backend (flushes Redis connection pool if applicable)
+	if err := s.cache.Close(ctx); err != nil {
+		slog.WarnContext(ctx, "Cache close error during shutdown", slog.String("error", err.Error()))
+	}
+
+	// Stop OIDC provider (terminates JWKS refresh goroutine, drains idle HTTP connections)
+	if s.oidcProvider != nil {
+		s.oidcProvider.Stop()
+	}
+
+	// OTel trace provider shutdown is handled by the deferred call in main.go
 
 	slog.InfoContext(ctx, "Server shutdown complete")
 	return nil
