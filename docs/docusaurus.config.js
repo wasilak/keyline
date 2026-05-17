@@ -21,6 +21,8 @@ const config = {
   onBrokenLinks: 'warn',
 
   markdown: {
+    mermaid: true,
+    format: 'mdx',
     hooks: {
       onBrokenMarkdownLinks: 'warn',
     },
@@ -32,11 +34,6 @@ const config = {
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
-  },
-
-  markdown: {
-    mermaid: true,
-    format: 'mdx',
   },
 
   presets: [
@@ -54,7 +51,7 @@ const config = {
           lastVersion: 'current',
           versions: {
             current: {
-              label: '1.0.x (Latest)',
+              label: '2.0.x (Latest)',
               path: '/',
             },
           },
