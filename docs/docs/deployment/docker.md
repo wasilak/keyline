@@ -234,6 +234,11 @@ networks:
 | `ES_ADMIN_PASSWORD` | Yes* | Elasticsearch admin password |
 | `REDIS_URL` | No | Redis connection URL (required for production) |
 | `OIDC_CLIENT_SECRET` | No | OIDC client secret (if using OIDC) |
+| `LDAP_BIND_PASSWORD` | No | LDAP bind password (required when `ldap.enabled` is true) |
+| `LDAP_URL` | No | LDAP server URL, e.g. `ldap://ldap.example.com:389` (if using LDAP) |
+| `LDAP_BIND_DN` | No | LDAP service account DN, e.g. `CN=svc,DC=example,DC=com` (if using LDAP) |
+| `LDAP_SEARCH_BASE` | No | LDAP user search base DN (if using LDAP) |
+| `LDAP_GROUP_SEARCH_BASE` | No | LDAP group search base DN (if using LDAP group fetching) |
 
 *Required when using dynamic user management
 
