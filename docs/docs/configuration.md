@@ -265,7 +265,7 @@ default_es_roles:
 
 | Option | Required | Description |
 |--------|----------|-------------|
-| `claim` | Yes | Claim name (`groups` or `email`) |
+| `claim` | Yes | Claim name to evaluate (typically `groups` or `email`, but any claim name from the OIDC token is accepted) |
 | `pattern` | Yes | Pattern to match (supports `*` wildcard) |
 | `es_roles` | Yes | Elasticsearch roles to assign |
 | `default_es_roles` | No | Fallback roles if no mappings match |

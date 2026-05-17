@@ -65,7 +65,6 @@ elasticsearch:
   url: https://elasticsearch:9200
 
 user_management:
-  enabled: true
 
 cache:
   backend: redis
