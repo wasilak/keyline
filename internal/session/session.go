@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/wasilak/cachego"
-	"github.com/yourusername/keyline/internal/observability"
+	"github.com/wasilak/keyline/internal/observability"
 	"go.opentelemetry.io/otel"
 )
 

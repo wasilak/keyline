@@ -1,4 +1,4 @@
-module github.com/yourusername/keyline
+module github.com/wasilak/keyline
 
 go 1.26
 

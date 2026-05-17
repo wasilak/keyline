@@ -13,11 +13,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/wasilak/cachego"
-	"github.com/yourusername/keyline/internal/auth"
-	"github.com/yourusername/keyline/internal/cache"
-	"github.com/yourusername/keyline/internal/config"
-	"github.com/yourusername/keyline/internal/session"
-	"github.com/yourusername/keyline/internal/transport"
+	"github.com/wasilak/keyline/internal/auth"
+	"github.com/wasilak/keyline/internal/cache"
+	"github.com/wasilak/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/session"
+	"github.com/wasilak/keyline/internal/transport"
 	"golang.org/x/crypto/bcrypt"
 )
 

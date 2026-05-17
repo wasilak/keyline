@@ -9,9 +9,9 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/wasilak/cachego"
-	"github.com/yourusername/keyline/internal/auth"
-	"github.com/yourusername/keyline/internal/config"
-	"github.com/yourusername/keyline/internal/observability"
+	"github.com/wasilak/keyline/internal/auth"
+	"github.com/wasilak/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/observability"
 )
 
 // ForwardAuthAdapter handles Traefik/Nginx forwardAuth mode

@@ -12,8 +12,8 @@ import (
 
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"github.com/yourusername/keyline/internal/auth"
-	"github.com/yourusername/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/auth"
+	"github.com/wasilak/keyline/internal/config"
 )
 
 // setupLDAPContainer creates an OpenLDAP container for testing

@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/yourusername/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/config"
 	"golang.org/x/crypto/bcrypt"
 )
 

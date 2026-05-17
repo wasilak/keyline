@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/go-jose/go-jose/v3"
-	"github.com/yourusername/keyline/internal/cache"
-	"github.com/yourusername/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/cache"
+	"github.com/wasilak/keyline/internal/config"
 )
 
 // Mock OIDC server for testing

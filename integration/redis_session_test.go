@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yourusername/keyline/internal/cache"
-	"github.com/yourusername/keyline/internal/config"
-	"github.com/yourusername/keyline/internal/session"
-	"github.com/yourusername/keyline/internal/state"
+	"github.com/wasilak/keyline/internal/cache"
+	"github.com/wasilak/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/session"
+	"github.com/wasilak/keyline/internal/state"
 )
 
 // Note: These tests use the memory backend to test the cache interface

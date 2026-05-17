@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/yourusername/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/config"
 )
 
 func TestBasicAuthProvider_Authenticate_ValidCredentials(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/yourusername/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/config"
 )
 
 // --- Mock LDAP connection ---

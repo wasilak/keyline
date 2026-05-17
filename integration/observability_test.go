@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
-	"github.com/yourusername/keyline/internal/cache"
-	"github.com/yourusername/keyline/internal/config"
-	"github.com/yourusername/keyline/internal/observability"
+	"github.com/wasilak/keyline/internal/cache"
+	"github.com/wasilak/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/observability"
 )
 
 func TestObservability_PrometheusMetricsHandler(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/yourusername/keyline/internal/session"
+	"github.com/wasilak/keyline/internal/session"
 )
 
 // handleLogout handles the /auth/logout endpoint

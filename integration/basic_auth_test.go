@@ -8,8 +8,8 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/yourusername/keyline/internal/auth"
-	"github.com/yourusername/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/auth"
+	"github.com/wasilak/keyline/internal/config"
 	"golang.org/x/crypto/bcrypt"
 )
 

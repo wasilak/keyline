@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/wasilak/cachego"
-	"github.com/yourusername/keyline/internal/config"
-	"github.com/yourusername/keyline/internal/session"
-	"github.com/yourusername/keyline/internal/usermgmt"
+	"github.com/wasilak/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/session"
+	"github.com/wasilak/keyline/internal/usermgmt"
 )
 
 // Engine handles authentication with dynamic user management

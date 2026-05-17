@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	cachegoConfig "github.com/wasilak/cachego/config"
-	"github.com/yourusername/keyline/internal/config"
-	"github.com/yourusername/keyline/internal/elasticsearch"
+	"github.com/wasilak/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/elasticsearch"
 )
 
 type MockCache struct {

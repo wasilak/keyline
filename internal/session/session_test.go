@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wasilak/cachego"
 
-	"github.com/yourusername/keyline/internal/cache"
-	"github.com/yourusername/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/cache"
+	"github.com/wasilak/keyline/internal/config"
 )
 
 func setupTestCache(t *testing.T) cachego.CacheInterface {

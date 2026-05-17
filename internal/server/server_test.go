@@ -12,8 +12,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 	cachegoConfig "github.com/wasilak/cachego/config"
-	"github.com/yourusername/keyline/internal/cache"
-	"github.com/yourusername/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/cache"
+	"github.com/wasilak/keyline/internal/config"
 )
 
 // TestHandleHealth_Healthy tests the health check endpoint when all systems are healthy

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/go-ldap/ldap/v3"
-	"github.com/yourusername/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/config"
 )
 
 const (

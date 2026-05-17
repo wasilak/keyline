@@ -9,8 +9,8 @@ import (
 
 	"github.com/wasilak/cachego"
 
-	"github.com/yourusername/keyline/internal/config"
-	"github.com/yourusername/keyline/internal/elasticsearch"
+	"github.com/wasilak/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/elasticsearch"
 )
 
 type Manager interface {

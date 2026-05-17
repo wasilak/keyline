@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 
-	"github.com/yourusername/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/config"
 )
 
 // RoleMapper maps user groups/claims to Elasticsearch roles

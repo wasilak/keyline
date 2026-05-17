@@ -5,7 +5,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/yourusername/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/config"
 )
 
 // Helper function to create a test config with role mappings

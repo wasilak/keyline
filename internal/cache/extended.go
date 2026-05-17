@@ -10,7 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/wasilak/cachego"
 	cachegoConfig "github.com/wasilak/cachego/config"
-	"github.com/yourusername/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/config"
 )
 
 // ExtendedCacheInterface extends cachego.CacheInterface with Delete functionality

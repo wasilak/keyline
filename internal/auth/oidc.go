@@ -15,11 +15,11 @@ import (
 
 	"github.com/go-jose/go-jose/v3"
 	"github.com/wasilak/cachego"
-	"github.com/yourusername/keyline/internal/cache"
-	"github.com/yourusername/keyline/internal/config"
-	"github.com/yourusername/keyline/internal/session"
-	"github.com/yourusername/keyline/internal/state"
-	pkgcrypto "github.com/yourusername/keyline/pkg/crypto"
+	"github.com/wasilak/keyline/internal/cache"
+	"github.com/wasilak/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/session"
+	"github.com/wasilak/keyline/internal/state"
+	pkgcrypto "github.com/wasilak/keyline/pkg/crypto"
 	"go.opentelemetry.io/otel"
 )
 

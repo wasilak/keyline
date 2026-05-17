@@ -10,9 +10,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yourusername/keyline/internal/cache"
-	"github.com/yourusername/keyline/internal/config"
-	"github.com/yourusername/keyline/internal/session"
+	"github.com/wasilak/keyline/internal/cache"
+	"github.com/wasilak/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/session"
 )
 
 func setupTestServer(t *testing.T) (*Server, context.Context) {

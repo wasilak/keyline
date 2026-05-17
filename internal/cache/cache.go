@@ -7,7 +7,7 @@ import (
 
 	"github.com/wasilak/cachego"
 	cachegoConfig "github.com/wasilak/cachego/config"
-	"github.com/yourusername/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/config"
 )
 
 // InitCache initializes the cache backend based on configuration

@@ -12,9 +12,9 @@ import (
 
 	"github.com/wasilak/cachego"
 	cachegoConfig "github.com/wasilak/cachego/config"
-	"github.com/yourusername/keyline/internal/config"
-	"github.com/yourusername/keyline/internal/session"
-	"github.com/yourusername/keyline/internal/usermgmt"
+	"github.com/wasilak/keyline/internal/config"
+	"github.com/wasilak/keyline/internal/session"
+	"github.com/wasilak/keyline/internal/usermgmt"
 	"golang.org/x/crypto/bcrypt"
 )
 
