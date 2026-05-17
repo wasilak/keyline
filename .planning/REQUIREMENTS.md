@@ -3,23 +3,58 @@
 **Defined:** 2026-05-17
 **Core Value:** Authenticated users get their own Elasticsearch identities automatically — real accountability and auditing without per-user pre-configuration.
 
-## v2.0 Requirements
+## v2.1 Requirements
 
-Requirements for the v2.0 release milestone. Each maps to a roadmap phase.
+Requirements for the v2.1 observability and integration milestone. Each maps to a roadmap phase.
+
+### Metrics
+
+- [ ] **METRICS-01**: Prometheus metrics cover ES user management operations — upsert count (success/failure), AES credential cache hit/miss ratio, role mapping applications
+- [ ] **METRICS-02**: Prometheus metrics cover LDAP operations — bind attempts (success/failure), search duration, connection errors
+- [ ] **METRICS-03**: Prometheus metrics cover circuit breaker state — ES circuit breaker open/closed/half-open transitions exposed as a gauge
+- [ ] **METRICS-04**: All metrics added in v2.1 use the `keyline_` namespace prefix (existing metrics kept as-is to avoid breaking dashboards)
+- [ ] **METRICS-05**: All metrics documented in `docs/` with name, type, labels, and example PromQL queries
+
+### OpenTelemetry
+
+- [ ] **OTEL-01**: When OTel is enabled, loggergo emits logs in OTel format (OTLP log export) in addition to stdout JSON — opt-in via existing `otel_enabled` config flag
+- [ ] **OTEL-02**: Auth engine internals are instrumented with OTel spans: OIDC token exchange, LDAP bind + search, ES UpsertUser, credential cache get/set operations
+- [ ] **OTEL-03**: OTel tracing and log export configuration documented in `docs/` — exporter endpoint, TLS, sampling, format
+
+### Audit Logging
+
+- [ ] **AUDIT-01**: Every auth decision emits a structured slog audit event with: result (success/failure), auth method (oidc/basic/ldap/forwarded), username (redacted format where possible), source IP, HTTP method + path, timestamp — no credentials or secrets in log output
+- [ ] **AUDIT-02**: When OTel is enabled, audit log events include the active trace ID for correlation
+
+### Documentation
+
+- [ ] **DOC-03**: All five auth paths (OIDC, Basic Auth, LDAP, forward-auth, standalone proxy) have manual test references — curl/http commands, expected headers, expected responses
+
+### Secan Integration
+
+- [ ] **SECAN-01**: Integration architecture between Secan and Keyline documented — covers: how Secan sits behind Keyline in forward-auth or proxy mode, how Secan's ES cluster connections relate to Keyline's credential management, what config changes Secan would need, and what limitations exist
+
+---
+
+## v2.0 Requirements (Complete)
+
+Requirements for the v2.0 release milestone.
 
 ### Module Identity
 
-- [ ] **MOD-01**: Developer can build keyline with the correct Go module name (`github.com/wasilak/keyline`) — all import paths updated consistently
-- [ ] **MOD-02**: `go.mod` specifies a valid Go version that matches the actual minimum required by the codebase
+- [x] **MOD-01**: Developer can build keyline with the correct Go module name (`github.com/wasilak/keyline`) — all import paths updated consistently
+- [x] **MOD-02**: `go.mod` specifies a valid Go version that matches the actual minimum required by the codebase
 
 ### Documentation
 
 - [x] **DOC-01**: README accurately describes v2.0 features (dynamic user management, LDAP, role mapping, Redis caching)
 - [x] **DOC-02**: RELEASE-NOTES.md contains no placeholder URLs or org references (`your-org` → `wasilak`); all links point to correct GitHub locations
 
+---
+
 ## Future Requirements
 
-Features deferred beyond v2.0.
+Features deferred beyond v2.1.
 
 ### Deployment
 
@@ -38,21 +73,34 @@ Features deferred beyond v2.0.
 | Admin UI | Browser-based management dashboard; high complexity, not core to auth proxy value |
 | Multi-cluster routing | Single ES cluster target per instance; architectural change deferred to v3+ |
 | Re-bind failure recovery (LDAP) | Current behavior is correct per LDAP spec; documentation-only if needed |
+| Secan PoC / implementation | Secan integration is a design spike only in v2.1; implementation deferred until architecture is validated |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MOD-01 | Phase 1 | Pending |
-| MOD-02 | Phase 1 | Pending |
+| MOD-01 | Phase 1 | Complete |
+| MOD-02 | Phase 1 | Complete |
 | DOC-01 | Phase 2 | Complete |
 | DOC-02 | Phase 2 | Complete |
+| METRICS-01 | Phase 3 | Pending |
+| METRICS-02 | Phase 3 | Pending |
+| METRICS-03 | Phase 3 | Pending |
+| METRICS-04 | Phase 3 | Pending |
+| METRICS-05 | Phase 3 | Pending |
+| OTEL-01 | Phase 4 | Pending |
+| OTEL-02 | Phase 4 | Pending |
+| OTEL-03 | Phase 4 | Pending |
+| AUDIT-01 | Phase 5 | Pending |
+| AUDIT-02 | Phase 5 | Pending |
+| DOC-03 | Phase 6 | Pending |
+| SECAN-01 | Phase 7 | Pending |
 
 **Coverage:**
-- v2.0 requirements: 4 total
-- Mapped to phases: 4
+- v2.1 requirements: 11 total
+- Mapped to phases: 11
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-17*
-*Last updated: 2026-05-17 after initial definition*
+*Last updated: 2026-05-17 — v2.1 requirements added*
