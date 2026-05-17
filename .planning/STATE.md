@@ -16,8 +16,8 @@ progress:
 ## Current Position
 
 Phase: 02 (documentation-update) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
+Plan: 3 of 4 — COMPLETE (02-03-SUMMARY.md committed)
+Status: Ready for next plan (02-04)
 Last activity: 2026-05-17
 
 ## Project Reference
@@ -31,7 +31,10 @@ See: .planning/PROJECT.md (updated 2026-05-17)
 
 ### Decisions
 
-(none yet)
+- sidebar_position: 6 assigned to ldap-authentication.md (4 = session-management, 5 = logout already taken)
+- LDAP auth priority order documented from engine.go Authenticate() to ensure doc/code alignment
+- bind_password env-var requirement documented as mandatory with startup-failure consequence (T-02-05)
+- TLS none mode marked dev-only/never-production in guide and overview (T-02-06)
 
 ### Blockers
 
