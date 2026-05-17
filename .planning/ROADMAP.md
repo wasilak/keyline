@@ -8,7 +8,7 @@
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
-| 1 | Module Rename | Correct the Go module identity throughout the codebase | MOD-01, MOD-02 | 3 |
+| 1 | Module Rename | 1/1 | Complete   | 2026-05-17 |
 | 2 | Documentation Update | Update all docs and release notes for v2.0 accuracy | DOC-01, DOC-02 | 4 |
 
 ---
@@ -19,10 +19,10 @@
 
 **Requirements:** MOD-01, MOD-02
 
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 01-01-PLAN.md — Bulk-replace module path in go.mod + all Go source files, verify build and test gates
+- [x] 01-01-PLAN.md — Bulk-replace module path in go.mod + all Go source files, verify build and test gates
 
 **Tasks:**
 1. Update `go.mod` module directive from `github.com/yourusername/keyline` to `github.com/wasilak/keyline`
