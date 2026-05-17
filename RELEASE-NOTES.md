@@ -25,6 +25,13 @@ Keyline now automatically creates and manages Elasticsearch users for all authen
 
 ### ✨ New Features
 
+#### LDAP Authentication (Active Directory / OpenLDAP)
+- Three TLS modes: `ldaps` (port 636, recommended), `starttls` (upgrades plain connection), `none` (plaintext, dev only)
+- Configurable service account bind, user search, and group search via `ldap.bind_dn`, `ldap.search_base`, `ldap.group_search_base`
+- Username normalisation: trim, lower-case, and unsupported-character removal applied automatically
+- Optional `required_groups` access gate — deny login to users not in specified LDAP groups
+- Full integration with dynamic user management and role mappings
+
 #### Role Mapping System
 - Flexible pattern-based role mapping (exact match, wildcards)
 - Support for multiple groups → multiple ES roles
@@ -316,12 +323,12 @@ This feature was inspired by elastauth's LDAP user management and adapted for mo
 #### Docker
 
 ```bash
-docker pull keyline:v2.0.0
+docker pull ghcr.io/wasilak/keyline:v2.0.0
 ```
 
 #### Binary
 
-Download from [GitHub Releases](https://github.com/your-org/keyline/releases/tag/v2.0.0)
+Download from [GitHub Releases](https://github.com/wasilak/keyline/releases/tag/v2.0.0)
 
 #### Kubernetes
 
@@ -331,9 +338,9 @@ helm upgrade keyline keyline/keyline --version 2.0.0
 
 ### 🔗 Links
 
-- [GitHub Repository](https://github.com/your-org/keyline)
-- [Documentation](https://github.com/your-org/keyline/tree/main/docs)
-- [Issue Tracker](https://github.com/your-org/keyline/issues)
+- [GitHub Repository](https://github.com/wasilak/keyline)
+- [Documentation](https://github.com/wasilak/keyline/tree/main/docs)
+- [Issue Tracker](https://github.com/wasilak/keyline/issues)
 - [Migration Guide](docs/migration-guide.md)
 
 ### ⚡ Quick Start
@@ -366,9 +373,9 @@ cache:
 ### 🆘 Support
 
 - **Documentation**: See [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/your-org/keyline/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/keyline/discussions)
-- **Security**: security@your-org.com
+- **Issues**: [GitHub Issues](https://github.com/wasilak/keyline/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/wasilak/keyline/discussions)
+- **Security issues**: please open a private issue on GitHub
 
 ---
 
@@ -403,4 +410,4 @@ cache:
 
 ---
 
-**Full Changelog**: https://github.com/your-org/keyline/compare/v1.0.0...v2.0.0
+**Full Changelog**: https://github.com/wasilak/keyline/compare/v1.0.0...v2.0.0
