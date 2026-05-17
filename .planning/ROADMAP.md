@@ -19,6 +19,11 @@
 
 **Requirements:** MOD-01, MOD-02
 
+**Plans:** 1 plan
+
+Plans:
+- [ ] 01-01-PLAN.md — Bulk-replace module path in go.mod + all Go source files, verify build and test gates
+
 **Tasks:**
 1. Update `go.mod` module directive from `github.com/yourusername/keyline` to `github.com/wasilak/keyline`
 2. Update `go.mod` Go version from `1.26` to a valid version (verify minimum from CI workflow / Dockerfile)
