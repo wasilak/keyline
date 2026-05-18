@@ -8,17 +8,9 @@ Keyline is an authentication proxy for Elasticsearch. It sits in front of an ES 
 
 Authenticated users get their own Elasticsearch identities automatically — real accountability and auditing without per-user pre-configuration.
 
-## Current Milestone: v2.1 Observability & Integration
+## Current State: Post v2.1
 
-**Goal:** Deepen observability with expanded Prometheus metrics, OTel log bridge, audit logging, auth path documentation, and a Secan integration design spike.
-
-**Target features:**
-- Expanded Prometheus metrics (ES user management, LDAP ops, circuit breaker state, credential cache)
-- OTel log bridge via loggergo when `otel_enabled`
-- Fine-grained OTel spans inside auth engine internals (OIDC token exchange, LDAP, ES upsert, cache)
-- Structured audit log events for all auth decisions (no secrets)
-- Auth paths reference documentation with manual test commands for all 5 paths
-- Secan integration architecture design (forward-auth + ES credential delegation)
+v2.1 (Observability & Integration) shipped 2026-05-18. No active milestone. See backlog below for next candidate.
 
 ## Requirements
 
@@ -30,22 +22,26 @@ Authenticated users get their own Elasticsearch identities automatically — rea
 - ✓ Standalone reverse proxy mode with WebSocket support — v1.0
 - ✓ Session management (Redis + in-memory backends) — v1.0
 - ✓ Prometheus metrics + OpenTelemetry tracing — v1.0
-- ✓ Dynamic Elasticsearch user management (UpsertUser, role mapping, credential caching) — v2.0 impl
-- ✓ LDAP authentication with TLS modes (ldaps, starttls, plaintext) — v2.0 impl
-- ✓ AES-256-GCM encrypted credential caching — v2.0 impl
-- ✓ Configurable CORS allowed origins — v2.0 impl
-- ✓ Env-var enforcement for all sensitive config fields — v2.0 impl
-- ✓ Circuit breaker on Elasticsearch client — v2.0 impl
+- ✓ Dynamic Elasticsearch user management (UpsertUser, role mapping, credential caching) — v2.0
+- ✓ LDAP authentication with TLS modes (ldaps, starttls, plaintext) — v2.0
+- ✓ AES-256-GCM encrypted credential caching — v2.0
+- ✓ Configurable CORS allowed origins — v2.0
+- ✓ Env-var enforcement for all sensitive config fields — v2.0
+- ✓ Circuit breaker on Elasticsearch client — v2.0
 - ✓ Module name corrected to github.com/wasilak/keyline — v2.0 ship
 - ✓ Documentation updated with accurate v2.0 content and wasilak org references — v2.0 ship
+- ✓ Expanded Prometheus metrics: ES user management, LDAP ops, circuit breaker state (METRICS-01–05) — v2.1
+- ✓ OTel log bridge (opt-in via otel_enabled) + auth engine spans (OTEL-01–03) — v2.1
+- ✓ Structured audit log events for all auth decisions with OTel trace correlation (AUDIT-01–02) — v2.1
+- ✓ Auth paths reference documentation with manual test commands for all 5 paths (DOC-03) — v2.1
+- ✓ Secan integration architecture design: Option C (hybrid forwardAuth + proxy) recommended (SECAN-01) — v2.1
 
-### Active
+### Backlog (candidates for v2.2+)
 
-- [ ] METRICS-01 through METRICS-05: Expanded Prometheus metrics coverage + docs
-- [ ] OTEL-01 through OTEL-03: OTel log bridge, auth engine spans, configuration docs
-- [ ] AUDIT-01 through AUDIT-02: Structured audit log events with trace correlation
-- [ ] DOC-03: Auth paths reference with manual test commands
-- [ ] SECAN-01: Secan integration architecture design
+- [ ] DEPL-01: Helm chart published to a Helm repository for `helm repo add` + `helm install`
+- [ ] DEPL-02: Kubernetes operator for declarative Keyline configuration
+- [ ] OBS-01: Grafana dashboard published alongside Keyline docs
+- [ ] OBS-02: Alerting runbook for common Keyline failure modes
 
 ### Out of Scope
 
@@ -59,9 +55,9 @@ Authenticated users get their own Elasticsearch identities automatically — rea
 - **Upstream**: `github.com/wasilak/keyline` — Piotr contributing to wasilak's project
 - **Predecessor**: elastauth + Authelia (two-service chain); Keyline replaces both
 - **Go module**: correctly set to `github.com/wasilak/keyline` since v2.0 ship
-- **Observability baseline**: `/metrics` endpoint, 8 metric types, loggergo + otelgo already integrated
+- **Observability baseline (post v2.1)**: `/metrics` endpoint with 8 existing + 7 new `keyline_` metrics; loggergo + OTel spans across LDAP, cache, ES upsert; structured audit log on every auth decision
 - **Docs site**: Docusaurus at `docs/` directory, published to wasilak.github.io/keyline
-- **Secan**: Rust+React ES management GUI with OIDC/local/open auth modes; integration is a v2.1 spike
+- **Secan**: Rust+React ES management GUI; Option C hybrid integration architecture designed in v2.1 — implementation deferred
 
 ## Constraints
 
@@ -77,8 +73,12 @@ Authenticated users get their own Elasticsearch identities automatically — rea
 | go-jose/v3 over golang.org/x/oauth2 JWT | Smaller migration surface, maintained fork of v2 | ✓ Good |
 | testcontainers-go for LDAP integration tests | Real protocol behavior untestable with mocks | ✓ Good |
 | Circuit breaker on ES client | Prevent cascade failures when ES is down | ✓ Good |
-| keyline_ prefix for new v2.1 metrics only | Avoid breaking existing Grafana dashboards on upgrade | — Pending |
-| Secan as design spike only in v2.1 | "Figure out how and if" — validate architecture before implementation | — Pending |
+| keyline_ prefix for new v2.1 metrics only | Avoid breaking existing Grafana dashboards on upgrade | ✓ Good |
+| Secan as design spike only in v2.1 | "Figure out how and if" — validate architecture before implementation | ✓ Good — Option C documented, impl deferred |
+| ESAPICallsTotal in internal/elasticsearch package | Resolves circular import from internal/observability | ✓ Good |
+| AuthMethod fixed vocabulary (session/basic/ldap/oidc/unknown) | Prevents inconsistent values across code paths | ✓ Good |
+| OTel audit correlation guarded by span.IsRecording() | No zero-value trace IDs when OTel is disabled | ✓ Good |
+| Secan Option C hybrid: Traefik forwardAuth + Keyline standalone proxy | ForwardAuth for browser→Secan login, proxy for Secan→ES connections | ✓ Good — two-instance limitation documented |
 
 ## Evolution
 
@@ -98,4 +98,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-17 — Milestone v2.1 started*
+*Last updated: 2026-05-18 — Milestone v2.1 complete*

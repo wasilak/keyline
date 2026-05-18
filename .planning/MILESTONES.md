@@ -1,18 +1,24 @@
 # Milestones
 
-## v2.1 — Observability & Integration (Current)
+## v2.1 — Observability & Integration (Complete)
 
-**Status:** In progress
+**Status:** Complete
 **Started:** 2026-05-17
+**Shipped:** 2026-05-18
 **Goal:** Deepen observability with expanded Prometheus metrics, OTel log bridge, audit logging, auth path documentation, and a Secan integration design spike.
 
-**Target features:**
-- Expanded Prometheus metrics: ES user management, LDAP ops, circuit breaker state, credential cache
-- OTel log bridge via loggergo (OTLP log export when `otel_enabled`)
-- Fine-grained OTel spans inside auth engine internals
-- Structured audit log events for all auth decisions (no secrets)
-- Auth paths reference documentation with manual test commands
-- Secan integration architecture design (forward-auth + ES credential flow)
+**Delivered:**
+- Expanded Prometheus metrics: 7 new `keyline_` metrics covering ES user management, LDAP ops, circuit breaker state, credential cache (Phases 3 — METRICS-01–05)
+- OTel log bridge in `cmd/keyline/main.go` via loggergo — opt-in, gated by `otel_enabled` (Phase 4 — OTEL-01)
+- Fine-grained OTel spans: LDAP bind/search in `ldap.go`, cache/ES ops in `manager.go` (Phase 4 — OTEL-02)
+- OTel tracing and log export configuration documented (Phase 4 — OTEL-03)
+- Structured audit log events via `logAuditEvent` on every auth decision, with OTel trace correlation (Phase 5 — AUDIT-01–02)
+- Auth paths reference (`docs/auth-paths.md`) with curl examples and audit log samples for all 5 auth methods (Phase 6 — DOC-03)
+- Secan integration architecture design: Option C (hybrid Traefik forwardAuth + Keyline proxy) recommended (`docs/integrations/secan.md`) (Phase 7 — SECAN-01)
+
+**Stats:** 7 commits · 34 files · +2573 / -96 lines
+
+**Archive:** `.planning/milestones/v2.1-ROADMAP.md`, `.planning/milestones/v2.1-REQUIREMENTS.md`
 
 ---
 
