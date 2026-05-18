@@ -9,30 +9,30 @@ Requirements for the v2.1 observability and integration milestone. Each maps to 
 
 ### Metrics
 
-- [ ] **METRICS-01**: Prometheus metrics cover ES user management operations — upsert count (success/failure), AES credential cache hit/miss ratio, role mapping applications
-- [ ] **METRICS-02**: Prometheus metrics cover LDAP operations — bind attempts (success/failure), search duration, connection errors
-- [ ] **METRICS-03**: Prometheus metrics cover circuit breaker state — ES circuit breaker open/closed/half-open transitions exposed as a gauge
-- [ ] **METRICS-04**: All metrics added in v2.1 use the `keyline_` namespace prefix (existing metrics kept as-is to avoid breaking dashboards)
-- [ ] **METRICS-05**: All metrics documented in `docs/` with name, type, labels, and example PromQL queries
+- [x] **METRICS-01**: Prometheus metrics cover ES user management operations — upsert count (success/failure), AES credential cache hit/miss ratio, role mapping applications
+- [x] **METRICS-02**: Prometheus metrics cover LDAP operations — bind attempts (success/failure), search duration, connection errors
+- [x] **METRICS-03**: Prometheus metrics cover circuit breaker state — ES circuit breaker open/closed/half-open transitions exposed as a gauge
+- [x] **METRICS-04**: All metrics added in v2.1 use the `keyline_` namespace prefix (existing metrics kept as-is to avoid breaking dashboards)
+- [x] **METRICS-05**: All metrics documented in `docs/` with name, type, labels, and example PromQL queries
 
 ### OpenTelemetry
 
-- [ ] **OTEL-01**: When OTel is enabled, loggergo emits logs in OTel format (OTLP log export) in addition to stdout JSON — opt-in via existing `otel_enabled` config flag
-- [ ] **OTEL-02**: Auth engine internals are instrumented with OTel spans: OIDC token exchange, LDAP bind + search, ES UpsertUser, credential cache get/set operations
-- [ ] **OTEL-03**: OTel tracing and log export configuration documented in `docs/` — exporter endpoint, TLS, sampling, format
+- [x] **OTEL-01**: When OTel is enabled, loggergo emits logs in OTel format (OTLP log export) in addition to stdout JSON — opt-in via existing `otel_enabled` config flag
+- [x] **OTEL-02**: Auth engine internals are instrumented with OTel spans: OIDC token exchange, LDAP bind + search, ES UpsertUser, credential cache get/set operations
+- [x] **OTEL-03**: OTel tracing and log export configuration documented in `docs/` — exporter endpoint, TLS, sampling, format
 
 ### Audit Logging
 
-- [ ] **AUDIT-01**: Every auth decision emits a structured slog audit event with: result (success/failure), auth method (oidc/basic/ldap/forwarded), username (redacted format where possible), source IP, HTTP method + path, timestamp — no credentials or secrets in log output
-- [ ] **AUDIT-02**: When OTel is enabled, audit log events include the active trace ID for correlation
+- [x] **AUDIT-01**: Every auth decision emits a structured slog audit event with: result (success/failure), auth method (oidc/basic/ldap/forwarded), username (redacted format where possible), source IP, HTTP method + path, timestamp — no credentials or secrets in log output
+- [x] **AUDIT-02**: When OTel is enabled, audit log events include the active trace ID for correlation
 
 ### Documentation
 
-- [ ] **DOC-03**: All five auth paths (OIDC, Basic Auth, LDAP, forward-auth, standalone proxy) have manual test references — curl/http commands, expected headers, expected responses
+- [x] **DOC-03**: All five auth paths (OIDC, Basic Auth, LDAP, forward-auth, standalone proxy) have manual test references — curl/http commands, expected headers, expected responses
 
 ### Secan Integration
 
-- [ ] **SECAN-01**: Integration architecture between Secan and Keyline documented — covers: how Secan sits behind Keyline in forward-auth or proxy mode, how Secan's ES cluster connections relate to Keyline's credential management, what config changes Secan would need, and what limitations exist
+- [x] **SECAN-01**: Integration architecture between Secan and Keyline documented — covers: how Secan sits behind Keyline in forward-auth or proxy mode, how Secan's ES cluster connections relate to Keyline's credential management, what config changes Secan would need, and what limitations exist
 
 ---
 
@@ -83,18 +83,18 @@ Features deferred beyond v2.1.
 | MOD-02 | Phase 1 | Complete |
 | DOC-01 | Phase 2 | Complete |
 | DOC-02 | Phase 2 | Complete |
-| METRICS-01 | Phase 3 | Pending |
-| METRICS-02 | Phase 3 | Pending |
-| METRICS-03 | Phase 3 | Pending |
-| METRICS-04 | Phase 3 | Pending |
-| METRICS-05 | Phase 3 | Pending |
-| OTEL-01 | Phase 4 | Pending |
-| OTEL-02 | Phase 4 | Pending |
-| OTEL-03 | Phase 4 | Pending |
-| AUDIT-01 | Phase 5 | Pending |
-| AUDIT-02 | Phase 5 | Pending |
-| DOC-03 | Phase 6 | Pending |
-| SECAN-01 | Phase 7 | Pending |
+| METRICS-01 | Phase 3 | Complete |
+| METRICS-02 | Phase 3 | Complete |
+| METRICS-03 | Phase 3 | Complete |
+| METRICS-04 | Phase 3 | Complete |
+| METRICS-05 | Phase 3 | Complete |
+| OTEL-01 | Phase 4 | Complete |
+| OTEL-02 | Phase 4 | Complete |
+| OTEL-03 | Phase 4 | Complete |
+| AUDIT-01 | Phase 5 | Complete |
+| AUDIT-02 | Phase 5 | Complete |
+| DOC-03 | Phase 6 | Complete |
+| SECAN-01 | Phase 7 | Complete |
 
 **Coverage:**
 - v2.1 requirements: 11 total
@@ -103,4 +103,4 @@ Features deferred beyond v2.1.
 
 ---
 *Requirements defined: 2026-05-17*
-*Last updated: 2026-05-17 — v2.1 requirements added*
+*Last updated: 2026-05-18 — v2.1 milestone complete, all 11 requirements verified*
