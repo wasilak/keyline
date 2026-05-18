@@ -11,7 +11,10 @@
       "mcp__taskmaster__get_tasks",
       "Bash(git -C /Users/piotrek/git/keyline checkout main)",
       "Bash(git -C /Users/piotrek/git/keyline merge feature/ldap-user-mapping --no-ff -m \"feat: merge LDAP user mapping feature into main\")",
-      "Bash(/opt/homebrew/bin/rg go-jose *)"
+      "Bash(/opt/homebrew/bin/rg go-jose *)",
+      "Bash(python3 -c ' *)",
+      "Bash(git merge *)",
+      "Bash(npm ci *)"
     ]
   },
   "disabledMcpjsonServers": [

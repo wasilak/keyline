@@ -61,9 +61,39 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Initialize global logger with loggergo
 	ctx := context.Background()
 
+	// Initialize OpenTelemetry tracing FIRST so the log bridge can attach to it
+	var traceProvider interface{ Shutdown(context.Context) error }
+	otelInitialized := false
+	if cfg.Observability.OTelEnabled {
+		// Set environment variables for otelgo
+		os.Setenv("OTEL_SERVICE_NAME", cfg.Observability.OTelServiceName)
+		os.Setenv("OTEL_SERVICE_VERSION", cfg.Observability.OTelServiceVersion)
+		os.Setenv("OTEL_DEPLOYMENT_ENVIRONMENT", cfg.Observability.OTelEnvironment)
+		os.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", cfg.Observability.OTelEndpoint)
+		os.Setenv("OTEL_EXPORTER_OTLP_INSECURE", "true") // TODO: Make configurable
+
+		_, traceProvider, err = tracing.NewBuilder().
+			WithTLSInsecure().
+			Build(ctx)
+		if err != nil {
+			log.Printf("WARNING: Failed to initialize OpenTelemetry tracing, continuing without tracing: %v", err)
+		} else {
+			otelInitialized = true
+			log.Printf("INFO: OpenTelemetry tracing initialized (endpoint=%s, service=%s)",
+				cfg.Observability.OTelEndpoint, cfg.Observability.OTelServiceName)
+			defer func() {
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				if err := traceProvider.Shutdown(shutdownCtx); err != nil {
+					slog.Default().Error("Failed to shutdown OpenTelemetry tracing", slog.String("error", err.Error()))
+				}
+			}()
+		}
+	}
+
+	// Initialize global logger with loggergo
 	logConfig := loggergo.Config{
 		Level: parseLogLevel(cfg.Observability.LogLevel),
 	}
@@ -73,6 +103,14 @@ func main() {
 		logConfig.Format = loggergo.Types.LogFormatJSON
 	} else {
 		logConfig.Format = loggergo.Types.LogFormatText
+	}
+
+	// Enable OTel log bridge when tracing is active (fanout = console + OTel)
+	if cfg.Observability.OTelEnabled && otelInitialized {
+		logConfig.Output = loggergo.Types.OutputFanout
+		logConfig.OtelLoggerName = "keyline/logger"
+		logConfig.OtelServiceName = cfg.Observability.OTelServiceName
+		logConfig.OtelTracingEnabled = true
 	}
 
 	ctx, logger, err := loggergo.Init(ctx, logConfig)
@@ -103,38 +141,13 @@ func main() {
 		slog.String("cache_backend", cfg.Cache.Backend),
 	)
 
-	// Initialize OpenTelemetry tracing with otelgo
-	var traceProvider interface{ Shutdown(context.Context) error }
-	if cfg.Observability.OTelEnabled {
-		// Set environment variables for otelgo
-		os.Setenv("OTEL_SERVICE_NAME", cfg.Observability.OTelServiceName)
-		os.Setenv("OTEL_SERVICE_VERSION", cfg.Observability.OTelServiceVersion)
-		os.Setenv("OTEL_DEPLOYMENT_ENVIRONMENT", cfg.Observability.OTelEnvironment)
-		os.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", cfg.Observability.OTelEndpoint)
-		os.Setenv("OTEL_EXPORTER_OTLP_INSECURE", "true") // TODO: Make configurable
-
-		_, traceProvider, err = tracing.NewBuilder().
-			WithTLSInsecure().
-			Build(ctx)
-		if err != nil {
-			logger.Warn("Failed to initialize OpenTelemetry tracing, continuing without tracing",
-				slog.String("error", err.Error()),
-			)
-		} else {
-			logger.Info("OpenTelemetry tracing initialized",
-				slog.String("endpoint", cfg.Observability.OTelEndpoint),
-				slog.String("service_name", cfg.Observability.OTelServiceName),
-				slog.String("service_version", cfg.Observability.OTelServiceVersion),
-				slog.String("environment", cfg.Observability.OTelEnvironment),
-			)
-			defer func() {
-				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-				if err := traceProvider.Shutdown(shutdownCtx); err != nil {
-					logger.Error("Failed to shutdown OpenTelemetry tracing", slog.String("error", err.Error()))
-				}
-			}()
-		}
+	if cfg.Observability.OTelEnabled && otelInitialized {
+		logger.Info("OpenTelemetry tracing initialized",
+			slog.String("endpoint", cfg.Observability.OTelEndpoint),
+			slog.String("service_name", cfg.Observability.OTelServiceName),
+			slog.String("service_version", cfg.Observability.OTelServiceVersion),
+			slog.String("environment", cfg.Observability.OTelEnvironment),
+		)
 	}
 
 	// Initialize cache backend with extended interface (supports Delete)

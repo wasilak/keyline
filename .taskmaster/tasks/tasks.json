@@ -782,7 +782,7 @@
         "testStrategy": "Add unit tests to simulate OIDC state token cleanup failures. Verify that a warning log message is emitted with relevant context when cleanup fails. For non-recoverable errors, assert that the server returns a 500 HTTP status code.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -842,7 +842,8 @@
             "testStrategy": null,
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-05-17T08:46:12.885Z"
       },
       {
         "id": "25",
@@ -852,7 +853,7 @@
         "testStrategy": "Add unit tests that mock the session store's `Delete` method to return an error during session expiry. Verify that a `WARN` level log message is emitted containing the expected session ID and error details, and that the overall session expiry process does not fatally error out.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -912,7 +913,8 @@
             "testStrategy": null,
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-05-17T08:46:12.892Z"
       },
       {
         "id": "26",
@@ -922,7 +924,7 @@
         "testStrategy": "Conduct an integration test or manual verification. Start the Keyline server, make some requests to establish connections (e.g., LDAP, ES, OTel), then trigger a graceful shutdown (e.g., via SIGTERM). Monitor the process to ensure it exits cleanly without goroutine leaks or open file descriptors. Use tools like `lsof` or `netstat` to confirm ports are released.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -985,7 +987,8 @@
             "testStrategy": null,
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-05-17T08:46:12.894Z"
       },
       {
         "id": "27",
@@ -995,7 +998,7 @@
         "testStrategy": "Verify that OpenTelemetry tracing continues to function correctly after the changes. Ensure traces are still being generated and exported to the OTel collector. Run existing tests that rely on tracing to confirm no regressions.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1055,7 +1058,8 @@
             "testStrategy": "Verify that OpenTelemetry tracing continues to function correctly after the changes. Ensure traces are still being generated and exported to the OTel collector. Run existing tests that rely on tracing to confirm no regressions.",
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-05-17T08:46:12.896Z"
       },
       {
         "id": "28",
@@ -1065,7 +1069,7 @@
         "testStrategy": "Run the entire suite of unit and integration tests multiple times, including in parallel (`go test -p 4`). Verify that no tests fail due to environment variable pollution from previous tests. Specifically, look for flaky tests that might pass or fail inconsistently.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1128,7 +1132,8 @@
             "testStrategy": null,
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-05-17T08:46:12.897Z"
       },
       {
         "id": "29",
@@ -1138,7 +1143,7 @@
         "testStrategy": "Add a unit test to `internal/auth/ldap_test.go` that configures the LDAP provider with `tls_mode` set to `\"\"` or `\"none\"`. Verify that the specified warning message is emitted in the logs during the LDAP provider initialization. Ensure no warning is logged when `tls_mode` is `\"ldaps\"` or `\"starttls\"`.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1190,7 +1195,8 @@
             "testStrategy": "Write integration test that sets custom drain timeout, performs shutdown, and verifies connections are properly drained within the specified timeout period before forced termination",
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-05-17T08:46:12.898Z"
       },
       {
         "id": "30",
@@ -1200,7 +1206,7 @@
         "testStrategy": "Add a unit test to `internal/auth/ldap_test.go` that configures both an explicit attribute field (e.g., `email_attribute`) and a corresponding entry in `attribute_mapping`. Verify that the specified debug/info log message is emitted during the LDAP provider initialization, confirming the override detection. Ensure no log message is emitted if there's no override.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1260,14 +1266,15 @@
             "testStrategy": null,
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-05-17T08:46:12.899Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-16T18:56:38.986Z",
+      "lastModified": "2026-05-17T08:46:12.899Z",
       "taskCount": 15,
-      "completedCount": 7,
+      "completedCount": 14,
       "tags": [
         "concerns"
       ]
