@@ -15,16 +15,16 @@ progress:
 
 ## Current Position
 
-Phase: 07 (secan-spike) — COMPLETE
-Status: Milestone complete — all 5 phases verified
+Phase: — (no active milestone)
+Status: v2.1 closed and archived — no active milestone
 Last activity: 2026-05-18
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-17)
+See: .planning/PROJECT.md (updated 2026-05-18)
 
 **Core value:** Authenticated users get their own Elasticsearch identities automatically — real accountability and auditing without per-user pre-configuration.
-**Current focus:** Milestone v2.1 complete — ready to archive
+**Current focus:** Post v2.1 — no active milestone; backlog candidates in PROJECT.md and ROADMAP.md
 
 ## Accumulated Context
 
