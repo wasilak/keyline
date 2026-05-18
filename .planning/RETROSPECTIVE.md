@@ -1,4 +1,4 @@
-# Retrospective: v2.1 — Observability & Integration
+# Retrospective: v0.2.0 — Observability & Integration
 
 **Date:** 2026-05-18
 **Duration:** 1 day (2026-05-17 → 2026-05-18)

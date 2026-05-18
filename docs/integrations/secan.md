@@ -1,6 +1,6 @@
 # Secan Integration Spike
 
-> **Status:** Design spike — v2.1. No source code changes to Secan or Keyline in this phase.
+> **Status:** Design spike — v0.2.0. No source code changes to Secan or Keyline in this phase.
 > Implementation deferred pending architecture validation.
 
 ## What Is Secan?

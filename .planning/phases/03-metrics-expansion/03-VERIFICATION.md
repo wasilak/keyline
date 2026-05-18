@@ -8,7 +8,7 @@ overrides_applied: 0
 
 # Phase 03: Metrics Expansion Verification Report
 
-**Phase Goal:** Add Prometheus metrics for ES user management operations, circuit breaker state, and LDAP operations. Document all v2.1 metrics.
+**Phase Goal:** Add Prometheus metrics for ES user management operations, circuit breaker state, and LDAP operations. Document all v0.2.0 metrics.
 **Verified:** 2026-05-17
 **Status:** passed
 **Commit:** `50a2b138`
@@ -43,7 +43,7 @@ overrides_applied: 0
 | METRICS-01 | ES user management operation metrics | SATISFIED | ESAPICallsTotal in client.go |
 | METRICS-02 | LDAP operation metrics | SATISFIED | internal/auth/metrics.go + ldap.go wiring |
 | METRICS-03 | Circuit breaker state gauge | SATISFIED | CircuitBreakerState in circuit_breaker.go |
-| METRICS-04 | v2.1 metrics use keyline_ prefix | SATISFIED | All new metrics carry keyline_ prefix; existing metrics untouched |
+| METRICS-04 | v0.2.0 metrics use keyline_ prefix | SATISFIED | All new metrics carry keyline_ prefix; existing metrics untouched |
 | METRICS-05 | Metrics documented in docs/ | SATISFIED | docs/observability/metrics.md |
 
 ### Gaps Summary

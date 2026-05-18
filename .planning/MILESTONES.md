@@ -1,6 +1,6 @@
 # Milestones
 
-## v2.1 — Observability & Integration (Complete)
+## v0.2.0 — Observability & Integration (Complete)
 
 **Status:** Complete
 **Started:** 2026-05-17
@@ -18,7 +18,7 @@
 
 **Stats:** 7 commits · 34 files · +2573 / -96 lines
 
-**Archive:** `.planning/milestones/v2.1-ROADMAP.md`, `.planning/milestones/v2.1-REQUIREMENTS.md`
+**Archive:** `.planning/milestones/v0.2.0-ROADMAP.md`, `.planning/milestones/v0.2.0-REQUIREMENTS.md`
 
 ---
 

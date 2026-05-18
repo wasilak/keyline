@@ -33,7 +33,7 @@ key-decisions:
   - "ESAPICallsTotal moved to internal/elasticsearch package to resolve circular import (was in internal/observability)"
   - "CircuitBreakerState encodes state as int gauge: Closed=0, Open=1, HalfOpen=2"
   - "LDAP metrics defined in internal/auth/metrics.go (subsystem-local) not internal/observability"
-  - "All v2.1 metrics use keyline_ prefix; existing 8 metrics left untouched to avoid dashboard breakage"
+  - "All v0.2.0 metrics use keyline_ prefix; existing 8 metrics left untouched to avoid dashboard breakage"
 
 patterns-established:
   - "Subsystem-local metrics.go for packages with circular import risk"
@@ -51,7 +51,7 @@ completed: 2026-05-17
 
 # Phase 03 Plan 01: Metrics Expansion Summary
 
-**Added Prometheus metrics for ES user management (ESAPICallsTotal), circuit breaker state (CircuitBreakerState), and LDAP operations (LDAPBindAttempts, LDAPSearchDuration, LDAPConnectionErrors). Documented all v2.1 metrics in docs/observability/metrics.md.**
+**Added Prometheus metrics for ES user management (ESAPICallsTotal), circuit breaker state (CircuitBreakerState), and LDAP operations (LDAPBindAttempts, LDAPSearchDuration, LDAPConnectionErrors). Documented all v0.2.0 metrics in docs/observability/metrics.md.**
 
 ## Performance
 

@@ -76,8 +76,8 @@ completed: 2026-05-17
 
 ## Next Phase Readiness
 
-- SECAN-01 satisfied — all v2.1 requirements now complete
-- Milestone v2.1 complete: 5/5 phases done
+- SECAN-01 satisfied — all v0.2.0 requirements now complete
+- Milestone v0.2.0 complete: 5/5 phases done
 
 ---
 *Phase: 07-secan-spike*

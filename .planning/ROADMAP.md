@@ -6,7 +6,7 @@
 |-----------|------|--------|--------|---------|
 | v1.0 | Foundation | — | Complete | ~2026-05 |
 | v2.0 | Ship | 1–2 | Complete | 2026-05-17 |
-| v2.1 | Observability & Integration | 3–7 | Complete | 2026-05-18 |
+| v0.2.0 | Observability & Integration | 3–7 | Complete | 2026-05-18 |
 
 Archived roadmaps and requirements: `.planning/milestones/`
 
@@ -26,7 +26,7 @@ Archived roadmaps and requirements: `.planning/milestones/`
 
 ### Integration
 
-- **SECAN-IMPL**: Implement Secan Option C integration (design validated in v2.1; requires multi-listener support or two-instance deployment)
+- **SECAN-IMPL**: Implement Secan Option C integration (design validated in v0.2.0; requires multi-listener support or two-instance deployment)
 
 ---
 
@@ -36,4 +36,4 @@ Archived roadmaps and requirements: `.planning/milestones/`
 - Admin UI — browser-based management dashboard; high complexity
 
 ---
-*Last updated: 2026-05-18 — v2.1 milestone closed*
+*Last updated: 2026-05-18 — v0.2.0 milestone closed*

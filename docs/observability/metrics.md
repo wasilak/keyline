@@ -23,7 +23,7 @@ These metrics have existed since v1.0 and use no prefix (legacy naming).
 
 ## User Management Metrics
 
-Added in v2.1. Track Elasticsearch user upsert flows and credential cache.
+Added in v0.2.0. Track Elasticsearch user upsert flows and credential cache.
 
 ### `keyline_user_upserts_total`
 **Type:** Counter | **Labels:** `status`
@@ -88,7 +88,7 @@ topk(5, sum by (pattern) (rate(keyline_role_mapping_matches_total[5m])))
 
 ## Elasticsearch API Metrics
 
-Added in v2.1. Track individual HTTP calls to the Elasticsearch security API.
+Added in v0.2.0. Track individual HTTP calls to the Elasticsearch security API.
 
 ### `keyline_es_api_calls_total`
 **Type:** Counter | **Labels:** `operation`, `status`
@@ -131,7 +131,7 @@ Circuit breaker config: opens after **5 consecutive failures**, stays open for *
 
 ## LDAP Metrics
 
-Added in v2.1. Track LDAP bind, search, and connection health.
+Added in v0.2.0. Track LDAP bind, search, and connection health.
 
 ### `keyline_ldap_bind_attempts_total`
 **Type:** Counter | **Labels:** `result`
