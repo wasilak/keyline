@@ -1,6 +1,6 @@
 module github.com/wasilak/keyline
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/go-jose/go-jose/v3 v3.0.5
@@ -19,7 +19,7 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.71.0
 	go.opentelemetry.io/otel v1.46.0
 	go.opentelemetry.io/otel/trace v1.46.0
-	golang.org/x/crypto v0.55.0
+	golang.org/x/crypto v0.56.0
 )
 
 require (
