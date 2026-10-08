@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/go-jose/go-jose/v3 v3.0.5
-	github.com/go-ldap/ldap/v3 v3.4.14
+	github.com/go-ldap/ldap/v3 v3.4.15
 	github.com/labstack/echo/v4 v4.16.0
 	github.com/labstack/echo/v5 v5.4.0
 	github.com/prometheus/client_golang v1.24.1
