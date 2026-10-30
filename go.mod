@@ -6,7 +6,7 @@ require (
 	github.com/go-jose/go-jose/v3 v3.0.5
 	github.com/go-ldap/ldap/v3 v3.4.15
 	github.com/labstack/echo/v4 v4.16.3
-	github.com/labstack/echo/v5 v5.4.2
+	github.com/labstack/echo/v5 v5.4.4
 	github.com/prometheus/client_golang v1.25.0
 	github.com/samber/slog-echo v1.23.0
 	github.com/samber/slog-echo/v2 v2.2.0
