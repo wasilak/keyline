@@ -68,7 +68,7 @@ services:
 
   # Traefik reverse proxy with forward auth
   traefik:
-    image: traefik:v3.7
+    image: traefik:v3.8
     container_name: keyline-oidc-fa-traefik
     command:
       - "--api.insecure=true"
